@@ -70,7 +70,9 @@ func prepareMessengerForMatchDataReceive(messenger common.Messenger, matchData [
 					return nil
 				}
 
-				log.Info("got the message", "matchData", string(matchData), "pid", messenger.ID().Pretty())
+				// do not print the message.Data() or matchData as the test TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork
+				// will cause disruption on the github action page
+
 				wg.Done()
 
 				return nil
