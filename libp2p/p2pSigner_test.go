@@ -38,13 +38,6 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, sig)
 	})
-	signer := &p2pSigner{
-		privateKey: generatePrivateKey(),
-	}
-
-	sig, err := signer.Sign([]byte("payload"))
-	assert.Nil(t, err)
-	assert.NotNil(t, sig)
 }
 
 func TestP2pSigner_Sign(t *testing.T) {

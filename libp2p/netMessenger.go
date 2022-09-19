@@ -1262,7 +1262,7 @@ func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
 }
 
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
-// between common.PeerID and shardId
+// between peerID and shardId
 func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
 	if check.IfNil(peerShardResolver) {
 		return p2p.ErrNilPeerShardResolver
