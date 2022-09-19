@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +30,7 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		args.TopRatedCache = nil
 
 		prh, err := NewPeersRatingHandler(args)
-		assert.True(t, errors.Is(err, common.ErrNilCacher))
+		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "TopRatedCache"))
 		assert.True(t, check.IfNil(prh))
 	})
@@ -41,7 +41,7 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		args.BadRatedCache = nil
 
 		prh, err := NewPeersRatingHandler(args)
-		assert.True(t, errors.Is(err, common.ErrNilCacher))
+		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
 		assert.True(t, check.IfNil(prh))
 	})

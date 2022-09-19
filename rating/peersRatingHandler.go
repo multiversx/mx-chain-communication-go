@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 )
 
@@ -54,10 +54,10 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, err
 
 func checkArgs(args ArgPeersRatingHandler) error {
 	if check.IfNil(args.TopRatedCache) {
-		return fmt.Errorf("%w for TopRatedCache", common.ErrNilCacher)
+		return fmt.Errorf("%w for TopRatedCache", p2p.ErrNilCacher)
 	}
 	if check.IfNil(args.BadRatedCache) {
-		return fmt.Errorf("%w for BadRatedCache", common.ErrNilCacher)
+		return fmt.Errorf("%w for BadRatedCache", p2p.ErrNilCacher)
 	}
 
 	return nil

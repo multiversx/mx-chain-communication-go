@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	messagecheck "github.com/ElrondNetwork/elrond-go-p2p/messageCheck"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
@@ -31,7 +31,7 @@ func TestNewMessageVerifier(t *testing.T) {
 
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, mv)
-		require.Equal(t, common.ErrNilMarshalizer, err)
+		require.Equal(t, p2p.ErrNilMarshalizer, err)
 	})
 
 	t.Run("nil p2p signer", func(t *testing.T) {
@@ -42,7 +42,7 @@ func TestNewMessageVerifier(t *testing.T) {
 
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, mv)
-		require.Equal(t, common.ErrNilP2PSigner, err)
+		require.Equal(t, p2p.ErrNilP2PSigner, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestSerializeDeserialize(t *testing.T) {
 			},
 		}
 
-		messages := []common.MessageP2P{
+		messages := []p2p.MessageP2P{
 			&message.Message{
 				FromField:    []byte("from1"),
 				PayloadField: []byte("payload1"),
@@ -111,7 +111,7 @@ func TestSerializeDeserialize(t *testing.T) {
 		args := createMessageVerifierArgs()
 		args.Marshaller = &mock.MarshallerMock{}
 
-		expectedMessages := []common.MessageP2P{
+		expectedMessages := []p2p.MessageP2P{
 			&message.Message{
 				FromField:      []byte("from1"),
 				PayloadField:   []byte("payload1"), // it is used as data field for pubsub
@@ -154,7 +154,7 @@ func TestVerify(t *testing.T) {
 		require.Nil(t, err)
 
 		err = mv.Verify(nil)
-		require.Equal(t, common.ErrNilMessage, err)
+		require.Equal(t, p2p.ErrNilMessage, err)
 	})
 
 	t.Run("p2p signer verify should fail", func(t *testing.T) {
