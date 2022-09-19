@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -19,37 +19,37 @@ var log = logger.GetOrCreate("p2p/libp2p/connectionmonitor")
 
 type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
-	reconnecter                common.Reconnecter
+	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
 	sharder                    Sharder
-	preferredPeersHolder       common.PreferredPeersHolderHandler
+	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
-	connectionsWatcher         common.ConnectionsWatcher
+	connectionsWatcher         p2p.ConnectionsWatcher
 }
 
 // ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
 type ArgsConnectionMonitorSimple struct {
-	Reconnecter                common.Reconnecter
+	Reconnecter                p2p.Reconnecter
 	ThresholdMinConnectedPeers uint32
 	Sharder                    Sharder
-	PreferredPeersHolder       common.PreferredPeersHolderHandler
-	ConnectionsWatcher         common.ConnectionsWatcher
+	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
+	ConnectionsWatcher         p2p.ConnectionsWatcher
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
 // about pausing and resuming the discovery process)
 func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2pConnectionMonitorSimple, error) {
 	if check.IfNil(args.Reconnecter) {
-		return nil, common.ErrNilReconnecter
+		return nil, p2p.ErrNilReconnecter
 	}
 	if check.IfNil(args.Sharder) {
-		return nil, common.ErrNilSharder
+		return nil, p2p.ErrNilSharder
 	}
 	if check.IfNil(args.PreferredPeersHolder) {
-		return nil, common.ErrNilPreferredPeersHolder
+		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 	if check.IfNil(args.ConnectionsWatcher) {
-		return nil, common.ErrNilConnectionsWatcher
+		return nil, p2p.ErrNilConnectionsWatcher
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())

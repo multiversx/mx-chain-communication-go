@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -143,7 +143,7 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *test
 
 	err := cmw.SetPeerDenialEvaluator(nil)
 
-	assert.Equal(t, common.ErrNilPeerDenialEvaluator, err)
+	assert.Equal(t, p2p.ErrNilPeerDenialEvaluator, err)
 }
 
 func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {

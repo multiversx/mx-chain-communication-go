@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
 const KadDhtName = kadDhtName
@@ -39,7 +39,7 @@ func NewOptimizedKadDhtDiscovererWithInitFunc(
 	}
 
 	if arg.SeedersReconnectionInterval < minIntervalForSeedersReconnection {
-		return nil, common.ErrInvalidSeedersReconnectionInterval
+		return nil, p2p.ErrInvalidSeedersReconnectionInterval
 	}
 
 	okdd := &optimizedKadDhtDiscoverer{

@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder/connectionStringValidator"
 )
 
@@ -39,7 +39,7 @@ func NewPeersHolder(preferredConnectionAddresses []string) (*peersHolder, error)
 
 	for _, connAddr := range preferredConnectionAddresses {
 		if !connectionValidator.IsValid(connAddr) {
-			return nil, fmt.Errorf("%w for preferred connection address %s", common.ErrInvalidValue, connAddr)
+			return nil, fmt.Errorf("%w for preferred connection address %s", p2p.ErrInvalidValue, connAddr)
 		}
 
 		preferredConnections = append(preferredConnections, connAddr)

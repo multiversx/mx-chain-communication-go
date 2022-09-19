@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -14,33 +14,33 @@ var log = logger.GetOrCreate("p2p/networksharding/factory")
 
 // ArgsSharderFactory represents the argument for the sharder factory
 type ArgsSharderFactory struct {
-	PeerShardResolver    common.PeerShardResolver
+	PeerShardResolver    p2p.PeerShardResolver
 	Pid                  peer.ID
 	P2pConfig            config.P2PConfig
-	PreferredPeersHolder common.PreferredPeersHolderHandler
-	NodeOperationMode    common.NodeOperation
+	PreferredPeersHolder p2p.PreferredPeersHolderHandler
+	NodeOperationMode    p2p.NodeOperation
 }
 
 // NewSharder creates new Sharder instances
-func NewSharder(arg ArgsSharderFactory) (common.Sharder, error) {
+func NewSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 	shardingType := arg.P2pConfig.Sharding.Type
 	switch shardingType {
-	case common.ListsSharder:
+	case p2p.ListsSharder:
 		return listSharder(arg)
-	case common.OneListSharder:
+	case p2p.OneListSharder:
 		return oneListSharder(arg)
-	case common.NilListSharder:
+	case p2p.NilListSharder:
 		return nilListSharder()
 	default:
-		return nil, fmt.Errorf("%w when selecting sharder: unknown %s value", common.ErrInvalidValue, shardingType)
+		return nil, fmt.Errorf("%w when selecting sharder: unknown %s value", p2p.ErrInvalidValue, shardingType)
 	}
 }
 
-func listSharder(arg ArgsSharderFactory) (common.Sharder, error) {
+func listSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 	switch arg.NodeOperationMode {
-	case common.NormalOperation, common.FullArchiveMode:
+	case p2p.NormalOperation, p2p.FullArchiveMode:
 	default:
-		return nil, fmt.Errorf("%w unknown node operation mode %s", common.ErrInvalidValue, arg.NodeOperationMode)
+		return nil, fmt.Errorf("%w unknown node operation mode %s", p2p.ErrInvalidValue, arg.NodeOperationMode)
 	}
 
 	log.Debug("using lists sharder",
@@ -63,7 +63,7 @@ func listSharder(arg ArgsSharderFactory) (common.Sharder, error) {
 	return networksharding.NewListsSharder(argListsSharder)
 }
 
-func oneListSharder(arg ArgsSharderFactory) (common.Sharder, error) {
+func oneListSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 	log.Debug("using one list sharder",
 		"MaxConnectionCount", arg.P2pConfig.Sharding.TargetPeerCount,
 	)
@@ -73,7 +73,7 @@ func oneListSharder(arg ArgsSharderFactory) (common.Sharder, error) {
 	)
 }
 
-func nilListSharder() (common.Sharder, error) {
+func nilListSharder() (p2p.Sharder, error) {
 	log.Debug("using nil list sharder")
 	return networksharding.NewNilListSharder(), nil
 }

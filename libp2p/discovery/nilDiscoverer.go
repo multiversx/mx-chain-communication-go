@@ -3,11 +3,11 @@ package discovery
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
-var _ common.PeerDiscoverer = (*NilDiscoverer)(nil)
-var _ common.Reconnecter = (*NilDiscoverer)(nil)
+var _ p2p.PeerDiscoverer = (*NilDiscoverer)(nil)
+var _ p2p.Reconnecter = (*NilDiscoverer)(nil)
 
 const nilName = "no peer discovery"
 

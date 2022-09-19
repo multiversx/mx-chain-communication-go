@@ -6,7 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
 )
@@ -21,14 +21,14 @@ var log = logger.GetOrCreate("p2p/discovery/factory")
 type ArgsPeerDiscoverer struct {
 	Context            context.Context
 	Host               discovery.ConnectableHost
-	Sharder            common.Sharder
+	Sharder            p2p.Sharder
 	P2pConfig          config.P2PConfig
-	ConnectionsWatcher common.ConnectionsWatcher
+	ConnectionsWatcher p2p.ConnectionsWatcher
 }
 
 // NewPeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
-func NewPeerDiscoverer(args ArgsPeerDiscoverer) (common.PeerDiscoverer, error) {
+func NewPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
 	if args.P2pConfig.KadDhtPeerDiscovery.Enabled {
 		return createKadDhtPeerDiscoverer(args)
 	}
@@ -37,7 +37,7 @@ func NewPeerDiscoverer(args ArgsPeerDiscoverer) (common.PeerDiscoverer, error) {
 	return discovery.NewNilDiscoverer(), nil
 }
 
-func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer) (common.PeerDiscoverer, error) {
+func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
 	arg := discovery.ArgKadDht{
 		Context:                     args.Context,
 		Host:                        args.Host,
@@ -52,15 +52,15 @@ func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer) (common.PeerDiscoverer,
 	}
 
 	switch args.P2pConfig.Sharding.Type {
-	case common.ListsSharder, common.OneListSharder, common.NilListSharder:
+	case p2p.ListsSharder, p2p.OneListSharder, p2p.NilListSharder:
 		return createKadDhtDiscoverer(args.P2pConfig, arg)
 	default:
 		return nil, fmt.Errorf("%w unable to select peer discoverer based on "+
-			"selected sharder: unknown sharder '%s'", common.ErrInvalidValue, args.P2pConfig.Sharding.Type)
+			"selected sharder: unknown sharder '%s'", p2p.ErrInvalidValue, args.P2pConfig.Sharding.Type)
 	}
 }
 
-func createKadDhtDiscoverer(p2pConfig config.P2PConfig, arg discovery.ArgKadDht) (common.PeerDiscoverer, error) {
+func createKadDhtDiscoverer(p2pConfig config.P2PConfig, arg discovery.ArgKadDht) (p2p.PeerDiscoverer, error) {
 	switch p2pConfig.KadDhtPeerDiscovery.Type {
 	case typeLegacy:
 		log.Debug("using continuous (legacy) kad dht discoverer")
@@ -70,6 +70,6 @@ func createKadDhtDiscoverer(p2pConfig config.P2PConfig, arg discovery.ArgKadDht)
 		return discovery.NewOptimizedKadDhtDiscoverer(arg)
 	default:
 		return nil, fmt.Errorf("%w unable to select peer discoverer based on type '%s'",
-			common.ErrInvalidValue, p2pConfig.KadDhtPeerDiscovery.Type)
+			p2p.ErrInvalidValue, p2pConfig.KadDhtPeerDiscovery.Type)
 	}
 }

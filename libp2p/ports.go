@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
 func getPort(port string, handler func(int) error) (int, error) {
 	val, err := strconv.Atoi(port)
 	if err == nil {
 		if val < 0 {
-			return 0, fmt.Errorf("%w, %d does not represent a positive value for port", common.ErrInvalidPortValue, val)
+			return 0, fmt.Errorf("%w, %d does not represent a positive value for port", p2p.ErrInvalidPortValue, val)
 		}
 
 		return val, nil
@@ -22,24 +22,24 @@ func getPort(port string, handler func(int) error) (int, error) {
 
 	ports := strings.Split(port, "-")
 	if len(ports) != 2 {
-		return 0, fmt.Errorf("%w, provided port string `%s` is not in the correct format, expected `start-end`", common.ErrInvalidPortsRangeString, port)
+		return 0, fmt.Errorf("%w, provided port string `%s` is not in the correct format, expected `start-end`", p2p.ErrInvalidPortsRangeString, port)
 	}
 
 	startPort, err := strconv.Atoi(ports[0])
 	if err != nil {
-		return 0, common.ErrInvalidStartingPortValue
+		return 0, p2p.ErrInvalidStartingPortValue
 	}
 
 	endPort, err := strconv.Atoi(ports[1])
 	if err != nil {
-		return 0, common.ErrInvalidEndingPortValue
+		return 0, p2p.ErrInvalidEndingPortValue
 	}
 
 	if startPort < minRangePortValue {
-		return 0, fmt.Errorf("%w, provided starting port should be >= %d", common.ErrInvalidValue, minRangePortValue)
+		return 0, fmt.Errorf("%w, provided starting port should be >= %d", p2p.ErrInvalidValue, minRangePortValue)
 	}
 	if endPort < startPort {
-		return 0, common.ErrEndPortIsSmallerThanStartPort
+		return 0, p2p.ErrEndPortIsSmallerThanStartPort
 	}
 
 	return choosePort(startPort, endPort, handler)
@@ -68,7 +68,7 @@ func choosePort(startPort int, endPort int, handler func(int) error) (int, error
 		return p, nil
 	}
 
-	return 0, fmt.Errorf("%w, range %d-%d", common.ErrNoFreePortInRange, startPort, endPort)
+	return 0, fmt.Errorf("%w, range %d-%d", p2p.ErrNoFreePortInRange, startPort, endPort)
 }
 
 func checkFreePort(port int) error {

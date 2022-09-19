@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -17,26 +17,26 @@ import (
 type ArgsHostWithConnectionManagement struct {
 	ConnectableHost    ConnectableHost
 	Sharder            Sharder
-	ConnectionsWatcher common.ConnectionsWatcher
+	ConnectionsWatcher p2p.ConnectionsWatcher
 }
 
 type hostWithConnectionManagement struct {
 	ConnectableHost
 	sharder            Sharder
-	connectionsWatcher common.ConnectionsWatcher
+	connectionsWatcher p2p.ConnectionsWatcher
 }
 
 // NewHostWithConnectionManagement returns a host wrapper able to decide if connection initiated to a peer
 // will actually be kept or not
 func NewHostWithConnectionManagement(args ArgsHostWithConnectionManagement) (*hostWithConnectionManagement, error) {
 	if check.IfNil(args.ConnectableHost) {
-		return nil, common.ErrNilHost
+		return nil, p2p.ErrNilHost
 	}
 	if check.IfNil(args.Sharder) {
-		return nil, common.ErrNilSharder
+		return nil, p2p.ErrNilSharder
 	}
 	if check.IfNil(args.ConnectionsWatcher) {
-		return nil, common.ErrNilConnectionsWatcher
+		return nil, p2p.ErrNilConnectionsWatcher
 	}
 
 	return &hostWithConnectionManagement{
@@ -75,7 +75,7 @@ func (hwcm *hostWithConnectionManagement) canConnectToPeer(pid peer.ID) error {
 
 	evicted := hwcm.sharder.ComputeEvictionList(allPeers)
 	if hwcm.sharder.Has(pid, evicted) {
-		return fmt.Errorf("%w, pid: %s", common.ErrUnwantedPeer, pid.Pretty())
+		return fmt.Errorf("%w, pid: %s", p2p.ErrUnwantedPeer, pid.Pretty())
 	}
 
 	return nil

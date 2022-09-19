@@ -1,7 +1,7 @@
 package libp2p
 
 import (
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 )
 
@@ -17,6 +17,6 @@ type ConnectionMonitor interface {
 
 // PeerDiscovererWithSharder extends the PeerDiscoverer with the possibility to set the sharder
 type PeerDiscovererWithSharder interface {
-	common.PeerDiscoverer
-	SetSharder(sharder common.Sharder) error
+	p2p.PeerDiscoverer
+	SetSharder(sharder p2p.Sharder) error
 }

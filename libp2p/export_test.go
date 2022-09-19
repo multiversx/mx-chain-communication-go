@@ -3,7 +3,7 @@ package libp2p
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
@@ -26,17 +26,17 @@ func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 }
 
 // SetLoadBalancer -
-func (netMes *networkMessenger) SetLoadBalancer(outgoingPLB common.ChannelLoadBalancer) {
+func (netMes *networkMessenger) SetLoadBalancer(outgoingPLB p2p.ChannelLoadBalancer) {
 	netMes.outgoingPLB = outgoingPLB
 }
 
 // SetPeerDiscoverer -
-func (netMes *networkMessenger) SetPeerDiscoverer(discoverer common.PeerDiscoverer) {
+func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer) {
 	netMes.peerDiscoverer = discoverer
 }
 
 // PubsubCallback -
-func (netMes *networkMessenger) PubsubCallback(handler common.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	topicProcs := newTopicProcessors()
 	_ = topicProcs.addTopicProcessor("identifier", handler)
 
@@ -44,7 +44,7 @@ func (netMes *networkMessenger) PubsubCallback(handler common.MessageProcessor, 
 }
 
 // ValidMessageByTimestamp -
-func (netMes *networkMessenger) ValidMessageByTimestamp(msg common.MessageP2P) error {
+func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) error {
 	return netMes.validMessageByTimestamp(msg)
 }
 
@@ -95,6 +95,6 @@ func (mh *MutexHolder) Mutexes() types.Cacher {
 }
 
 // SetSignerInDirectSender sets the signer in the direct sender
-func (netMes *networkMessenger) SetSignerInDirectSender(signer common.SignerVerifier) {
+func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifier) {
 	netMes.ds.(*directSender).signer = signer
 }

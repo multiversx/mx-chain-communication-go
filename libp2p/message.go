@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
@@ -15,15 +15,15 @@ import (
 const currentTopicMessageVersion = uint32(1)
 
 // NewMessage returns a new instance of a Message object
-func NewMessage(msg *pubsub.Message, marshalizer common.Marshalizer) (*message.Message, error) {
+func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Message, error) {
 	if check.IfNil(marshalizer) {
-		return nil, common.ErrNilMarshalizer
+		return nil, p2p.ErrNilMarshalizer
 	}
 	if msg == nil {
-		return nil, common.ErrNilMessage
+		return nil, p2p.ErrNilMessage
 	}
 	if msg.Topic == nil {
-		return nil, common.ErrNilTopic
+		return nil, p2p.ErrNilTopic
 	}
 
 	newMsg := &message.Message{
@@ -38,18 +38,18 @@ func NewMessage(msg *pubsub.Message, marshalizer common.Marshalizer) (*message.M
 	topicMessage := &data.TopicMessage{}
 	err := marshalizer.Unmarshal(topicMessage, msg.Data)
 	if err != nil {
-		return nil, fmt.Errorf("%w error: %s", common.ErrMessageUnmarshalError, err.Error())
+		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
 	}
 
 	// TODO change this area when new versions of the message will need to be implemented
 	if topicMessage.Version != currentTopicMessageVersion {
 		return nil, fmt.Errorf("%w, supported %d, got %d",
-			common.ErrUnsupportedMessageVersion, currentTopicMessageVersion, topicMessage.Version)
+			p2p.ErrUnsupportedMessageVersion, currentTopicMessageVersion, topicMessage.Version)
 	}
 
 	if len(topicMessage.SignatureOnPid)+len(topicMessage.Pk) > 0 {
 		return nil, fmt.Errorf("%w for topicMessage.SignatureOnPid and topicMessage.Pk",
-			common.ErrUnsupportedFields)
+			p2p.ErrUnsupportedFields)
 	}
 
 	newMsg.DataField = topicMessage.Payload

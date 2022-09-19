@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"math/rand"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
 type seedRandReader struct {
@@ -16,7 +16,7 @@ type seedRandReader struct {
 // This is mostly used to generate predictable seeder addresses so other peers can connect to
 func NewSeedRandReader(seed []byte) (*seedRandReader, error) {
 	if len(seed) == 0 {
-		return nil, common.ErrEmptySeed
+		return nil, p2p.ErrEmptySeed
 	}
 
 	seedHash := sha256.Sum256(seed)
@@ -31,7 +31,7 @@ func NewSeedRandReader(seed []byte) (*seedRandReader, error) {
 // p buffer
 func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
-		return 0, common.ErrEmptyBuffer
+		return 0, p2p.ErrEmptyBuffer
 	}
 
 	randomizer := rand.New(rand.NewSource(srr.seedNumber))

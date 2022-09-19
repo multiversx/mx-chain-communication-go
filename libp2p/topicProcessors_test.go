@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,7 +42,7 @@ func TestTopicProcessorsDoubleAddShouldErr(t *testing.T) {
 	_ = tp.addTopicProcessor(identifier, &mock.MessageProcessorStub{})
 	err := tp.addTopicProcessor(identifier, &mock.MessageProcessorStub{})
 
-	assert.True(t, errors.Is(err, common.ErrMessageProcessorAlreadyDefined))
+	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 	require.Equal(t, 1, len(tp.processors))
 }
 
@@ -54,7 +54,7 @@ func TestTopicProcessorsRemoveInexistentShouldErr(t *testing.T) {
 	identifier := "identifier"
 	err := tp.removeTopicProcessor(identifier)
 
-	assert.True(t, errors.Is(err, common.ErrMessageProcessorDoesNotExists))
+	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorDoesNotExists))
 }
 
 func TestTopicProcessorsRemoveShouldWork(t *testing.T) {
@@ -89,17 +89,17 @@ func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
 	identifier2 := "identifier2"
 	identifier3 := "identifier3"
 	handler1 := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 	}
 	handler2 := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 	}
 	handler3 := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 	}
@@ -112,20 +112,20 @@ func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
 
 	identifiers, handlers := tp.getList()
 	assert.ElementsMatch(t, identifiers, []string{identifier1, identifier2, identifier3})
-	assert.ElementsMatch(t, handlers, []common.MessageProcessor{handler1, handler2, handler3})
+	assert.ElementsMatch(t, handlers, []p2p.MessageProcessor{handler1, handler2, handler3})
 
 	_ = tp.removeTopicProcessor(identifier1)
 	identifiers, handlers = tp.getList()
 	assert.ElementsMatch(t, identifiers, []string{identifier2, identifier3})
-	assert.ElementsMatch(t, handlers, []common.MessageProcessor{handler2, handler3})
+	assert.ElementsMatch(t, handlers, []p2p.MessageProcessor{handler2, handler3})
 
 	_ = tp.removeTopicProcessor(identifier2)
 	identifiers, handlers = tp.getList()
 	assert.Equal(t, identifiers, []string{identifier3})
-	assert.Equal(t, handlers, []common.MessageProcessor{handler3})
+	assert.Equal(t, handlers, []p2p.MessageProcessor{handler3})
 
 	_ = tp.removeTopicProcessor(identifier3)
 	identifiers, handlers = tp.getList()
 	assert.Equal(t, identifiers, make([]string, 0))
-	assert.Equal(t, handlers, make([]common.MessageProcessor, 0))
+	assert.Equal(t, handlers, make([]p2p.MessageProcessor, 0))
 }

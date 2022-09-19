@@ -3,7 +3,7 @@ package rand_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/rand"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +14,7 @@ func TestNewSeedRandReader_NilSeedShouldErr(t *testing.T) {
 	srr, err := rand.NewSeedRandReader(nil)
 
 	assert.Nil(t, srr)
-	assert.Equal(t, common.ErrEmptySeed, err)
+	assert.Equal(t, p2p.ErrEmptySeed, err)
 }
 
 func TestNewSeedRandReader_ShouldWork(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSeedRandReader_ReadNilBufferShouldErr(t *testing.T) {
 	n, err := srr.Read(nil)
 
 	assert.Equal(t, 0, n)
-	assert.Equal(t, err, common.ErrEmptyBuffer)
+	assert.Equal(t, err, p2p.ErrEmptyBuffer)
 }
 
 func TestSeedRandReader_ReadShouldWork(t *testing.T) {

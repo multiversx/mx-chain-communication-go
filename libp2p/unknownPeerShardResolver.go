@@ -2,10 +2,10 @@ package libp2p
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
-var _ common.PeerShardResolver = (*unknownPeerShardResolver)(nil)
+var _ p2p.PeerShardResolver = (*unknownPeerShardResolver)(nil)
 
 type unknownPeerShardResolver struct {
 }

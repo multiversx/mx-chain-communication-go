@@ -3,7 +3,7 @@ package libp2p
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -16,7 +16,7 @@ func NewMockMessenger(
 	mockNet mocknet.Mocknet,
 ) (*networkMessenger, error) {
 	if mockNet == nil {
-		return nil, common.ErrNilMockNet
+		return nil, p2p.ErrNilMockNet
 	}
 
 	h, err := mockNet.GenPeer()

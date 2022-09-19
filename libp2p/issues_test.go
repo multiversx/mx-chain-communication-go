@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func createMessenger() common.Messenger {
+func createMessenger() p2p.Messenger {
 	args := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
@@ -27,14 +27,14 @@ func createMessenger() common.Messenger {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     common.NormalOperation,
+		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
@@ -83,7 +83,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 
 	_ = mes2.CreateTopic(topic, false)
 	_ = mes2.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, _ core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
 			}

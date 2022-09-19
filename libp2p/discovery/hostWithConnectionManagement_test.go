@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -41,7 +41,7 @@ func TestNewHostWithConnectionManagement(t *testing.T) {
 		hwcm, err := discovery.NewHostWithConnectionManagement(args)
 
 		assert.True(t, check.IfNil(hwcm))
-		assert.Equal(t, common.ErrNilHost, err)
+		assert.Equal(t, p2p.ErrNilHost, err)
 	})
 	t.Run("nil sharder should error", func(t *testing.T) {
 		t.Parallel()
@@ -51,7 +51,7 @@ func TestNewHostWithConnectionManagement(t *testing.T) {
 		hwcm, err := discovery.NewHostWithConnectionManagement(args)
 
 		assert.True(t, check.IfNil(hwcm))
-		assert.Equal(t, common.ErrNilSharder, err)
+		assert.Equal(t, p2p.ErrNilSharder, err)
 	})
 	t.Run("nil connection watcher should error", func(t *testing.T) {
 		t.Parallel()
@@ -61,7 +61,7 @@ func TestNewHostWithConnectionManagement(t *testing.T) {
 		hwcm, err := discovery.NewHostWithConnectionManagement(args)
 
 		assert.True(t, check.IfNil(hwcm))
-		assert.Equal(t, common.ErrNilConnectionsWatcher, err)
+		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

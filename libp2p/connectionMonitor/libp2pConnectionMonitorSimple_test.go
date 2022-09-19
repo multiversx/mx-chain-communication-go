@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		args.Reconnecter = nil
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
-		assert.Equal(t, common.ErrNilReconnecter, err)
+		assert.Equal(t, p2p.ErrNilReconnecter, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("nil sharder should error", func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		args.Sharder = nil
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
-		assert.Equal(t, common.ErrNilSharder, err)
+		assert.Equal(t, p2p.ErrNilSharder, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("nil preferred peers holder should error", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		args.PreferredPeersHolder = nil
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
-		assert.Equal(t, common.ErrNilPreferredPeersHolder, err)
+		assert.Equal(t, p2p.ErrNilPreferredPeersHolder, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("nil connections watcher should error", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		args.ConnectionsWatcher = nil
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
-		assert.Equal(t, common.ErrNilConnectionsWatcher, err)
+		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("should work", func(t *testing.T) {

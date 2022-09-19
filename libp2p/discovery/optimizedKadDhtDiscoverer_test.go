@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -25,13 +25,13 @@ func TestNewOptimizedKadDhtDiscoverer(t *testing.T) {
 		arg := createTestArgument()
 		arg.Host = nil
 		okdd, err := discovery.NewOptimizedKadDhtDiscoverer(arg)
-		assert.Equal(t, common.ErrNilHost, err)
+		assert.Equal(t, p2p.ErrNilHost, err)
 		assert.True(t, check.IfNil(okdd))
 
 		arg = createTestArgument()
 		arg.SeedersReconnectionInterval = 0
 		okdd, err = discovery.NewOptimizedKadDhtDiscoverer(arg)
-		assert.Equal(t, common.ErrInvalidSeedersReconnectionInterval, err)
+		assert.Equal(t, p2p.ErrInvalidSeedersReconnectionInterval, err)
 		assert.True(t, check.IfNil(okdd))
 	})
 	t.Run("should work", func(t *testing.T) {

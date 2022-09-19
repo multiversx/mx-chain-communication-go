@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ func TestNewPeersOnChannel_NilPeersRatingHandlerShouldErr(t *testing.T) {
 	poc, err := newPeersOnChannel(nil, nil, 1, 1)
 
 	assert.Nil(t, poc)
-	assert.Equal(t, common.ErrNilPeersRatingHandler, err)
+	assert.Equal(t, p2p.ErrNilPeersRatingHandler, err)
 }
 
 func TestNewPeersOnChannel_NilFetchPeersHandlerShouldErr(t *testing.T) {
@@ -28,7 +28,7 @@ func TestNewPeersOnChannel_NilFetchPeersHandlerShouldErr(t *testing.T) {
 	poc, err := newPeersOnChannel(&mock.PeersRatingHandlerStub{}, nil, 1, 1)
 
 	assert.Nil(t, poc)
-	assert.Equal(t, common.ErrNilFetchPeersOnTopicHandler, err)
+	assert.Equal(t, p2p.ErrNilFetchPeersOnTopicHandler, err)
 }
 
 func TestNewPeersOnChannel_InvalidRefreshIntervalShouldErr(t *testing.T) {
@@ -43,7 +43,7 @@ func TestNewPeersOnChannel_InvalidRefreshIntervalShouldErr(t *testing.T) {
 		1)
 
 	assert.Nil(t, poc)
-	assert.Equal(t, common.ErrInvalidDurationProvided, err)
+	assert.Equal(t, p2p.ErrInvalidDurationProvided, err)
 }
 
 func TestNewPeersOnChannel_InvalidTTLIntervalShouldErr(t *testing.T) {
@@ -58,7 +58,7 @@ func TestNewPeersOnChannel_InvalidTTLIntervalShouldErr(t *testing.T) {
 		0)
 
 	assert.Nil(t, poc)
-	assert.Equal(t, common.ErrInvalidDurationProvided, err)
+	assert.Equal(t, p2p.ErrInvalidDurationProvided, err)
 }
 
 func TestNewPeersOnChannel_OkValsShouldWork(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestNewConnectionsWatcher(t *testing.T) {
 	t.Run("print connections watcher", func(t *testing.T) {
 		t.Parallel()
 
-		cw, err := NewConnectionsWatcher(common.ConnectionWatcherTypePrint, time.Second)
+		cw, err := NewConnectionsWatcher(p2p.ConnectionWatcherTypePrint, time.Second)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(cw))
 		assert.Equal(t, "*metrics.printConnectionsWatcher", fmt.Sprintf("%T", cw))
@@ -25,7 +25,7 @@ func TestNewConnectionsWatcher(t *testing.T) {
 	t.Run("disabled connections watcher", func(t *testing.T) {
 		t.Parallel()
 
-		cw, err := NewConnectionsWatcher(common.ConnectionWatcherTypeDisabled, time.Second)
+		cw, err := NewConnectionsWatcher(p2p.ConnectionWatcherTypeDisabled, time.Second)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(cw))
 		assert.Equal(t, "*metrics.disabledConnectionsWatcher", fmt.Sprintf("%T", cw))
@@ -33,7 +33,7 @@ func TestNewConnectionsWatcher(t *testing.T) {
 	t.Run("empty connections watcher", func(t *testing.T) {
 		t.Parallel()
 
-		cw, err := NewConnectionsWatcher(common.ConnectionWatcherTypeEmpty, time.Second)
+		cw, err := NewConnectionsWatcher(p2p.ConnectionWatcherTypeEmpty, time.Second)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(cw))
 		assert.Equal(t, "*metrics.disabledConnectionsWatcher", fmt.Sprintf("%T", cw))

@@ -9,7 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
@@ -93,7 +93,7 @@ func TestNewListsSharder_InvalidMinimumTargetPeerCountShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	assert.True(t, strings.Contains(err.Error(), "maxPeerCount should be at least"))
 }
 
@@ -105,7 +105,7 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrNilPeerShardResolver))
+	assert.True(t, errors.Is(err, p2p.ErrNilPeerShardResolver))
 }
 
 func TestNewListsSharder_InvalidIntraShardValidatorsShouldErr(t *testing.T) {
@@ -116,7 +116,7 @@ func TestNewListsSharder_InvalidIntraShardValidatorsShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewListsSharder_InvalidCrossShardValidatorsShouldErr(t *testing.T) {
@@ -127,7 +127,7 @@ func TestNewListsSharder_InvalidCrossShardValidatorsShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewListsSharder_InvalidIntraShardObserversShouldErr(t *testing.T) {
@@ -138,7 +138,7 @@ func TestNewListsSharder_InvalidIntraShardObserversShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewListsSharder_InvalidCrossShardObserversShouldErr(t *testing.T) {
@@ -149,7 +149,7 @@ func TestNewListsSharder_InvalidCrossShardObserversShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
@@ -160,7 +160,7 @@ func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewListsSharder_NilPreferredPeersShouldErr(t *testing.T) {
@@ -171,7 +171,7 @@ func TestNewListsSharder_NilPreferredPeersShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, common.ErrNilPreferredPeersHolder))
+	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
 }
 
 func TestNewListsSharder_NormalShouldWork(t *testing.T) {
@@ -203,7 +203,7 @@ func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.NodeOperationMode = common.FullArchiveMode
+	arg.NodeOperationMode = p2p.FullArchiveMode
 	arg.P2pConfig.Sharding.TargetPeerCount = 25
 	arg.P2pConfig.Sharding.MaxIntraShardValidators = 6
 	arg.P2pConfig.Sharding.MaxCrossShardValidators = 5
@@ -554,7 +554,7 @@ func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 
 	err := lks.SetPeerShardResolver(nil)
 
-	assert.Equal(t, common.ErrNilPeerShardResolver, err)
+	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
 }
 
 func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {

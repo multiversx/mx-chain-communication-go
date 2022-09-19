@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
@@ -40,7 +40,7 @@ var log = logger.GetOrCreate("p2p/libp2p/tests")
 var noSigCheckHandler = func(sigSize int) bool { return true }
 
 type noSigner struct {
-	common.SignerVerifier
+	p2p.SignerVerifier
 }
 
 // Sign -
@@ -57,12 +57,12 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 	}
 }
 
-func prepareMessengerForMatchDataReceive(messenger common.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
+func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
 	_ = messenger.CreateTopic(testTopic, false)
 
 	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message common.MessageP2P, _ core.PeerID) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 				if !bytes.Equal(matchData, message.Data()) {
 					return nil
 				}
@@ -80,7 +80,7 @@ func prepareMessengerForMatchDataReceive(messenger common.Messenger, matchData [
 		})
 }
 
-func getConnectableAddress(messenger common.Messenger) string {
+func getConnectableAddress(messenger p2p.Messenger) string {
 	for _, addr := range messenger.Addresses() {
 		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
 			continue
@@ -104,17 +104,17 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 }
 
-func createMockNetworkOf2() (mocknet.Mocknet, common.Messenger, common.Messenger) {
+func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	netw := mocknet.New()
 
 	messenger1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -125,7 +125,7 @@ func createMockNetworkOf2() (mocknet.Mocknet, common.Messenger, common.Messenger
 	return netw, messenger1, messenger2
 }
 
-func createMockNetworkOf3() (common.Messenger, common.Messenger, common.Messenger) {
+func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
 	netw := mocknet.New()
 
 	messenger1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -155,7 +155,7 @@ func createMockNetworkOf3() (common.Messenger, common.Messenger, common.Messenge
 	return messenger1, messenger2, messenger3
 }
 
-func createMockMessenger() common.Messenger {
+func createMockMessenger() p2p.Messenger {
 	netw := mocknet.New()
 
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -179,7 +179,7 @@ func TestNewMemoryLibp2pMessenger_NilMockNetShouldErr(t *testing.T) {
 	messenger, err := libp2p.NewMockMessenger(args, nil)
 
 	assert.Nil(t, messenger)
-	assert.Equal(t, common.ErrNilMockNet, err)
+	assert.Equal(t, p2p.ErrNilMockNet, err)
 }
 
 func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T) {
@@ -201,7 +201,7 @@ func TestNewNetworkMessenger_NilMessengerShouldErr(t *testing.T) {
 	messenger, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, common.ErrNilMarshalizer))
+	assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
 }
 
 func TestNewNetworkMessenger_NilPreferredPeersHolderShouldErr(t *testing.T) {
@@ -210,7 +210,7 @@ func TestNewNetworkMessenger_NilPreferredPeersHolderShouldErr(t *testing.T) {
 	messenger, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, common.ErrNilPreferredPeersHolder))
+	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
 }
 
 func TestNewNetworkMessenger_NilPeersRatingHandlerShouldErr(t *testing.T) {
@@ -219,7 +219,7 @@ func TestNewNetworkMessenger_NilPeersRatingHandlerShouldErr(t *testing.T) {
 	mes, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(mes))
-	assert.True(t, errors.Is(err, common.ErrNilPeersRatingHandler))
+	assert.True(t, errors.Is(err, p2p.ErrNilPeersRatingHandler))
 }
 
 func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
@@ -228,7 +228,7 @@ func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
 	messenger, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, common.ErrNilSyncTimer))
+	assert.True(t, errors.Is(err, p2p.ErrNilSyncTimer))
 }
 
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
@@ -252,11 +252,11 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
 	}
-	arg.P2pConfig.Sharding.Type = common.ListsSharder
+	arg.P2pConfig.Sharding.Type = p2p.ListsSharder
 	messenger, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T) {
@@ -271,7 +271,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 		RoutingTableRefreshIntervalInSec: 10,
 	}
 	arg.P2pConfig.Sharding = config.ShardingConfig{
-		Type:            common.NilListSharder,
+		Type:            p2p.NilListSharder,
 		TargetPeerCount: 10,
 	}
 	messenger, err := libp2p.NewNetworkMessenger(arg)
@@ -380,7 +380,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testin
 
 	err := messenger.RegisterMessageProcessor("test", "identifier", nil)
 
-	assert.True(t, errors.Is(err, common.ErrNilValidator))
+	assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 
 	_ = messenger.Close()
 }
@@ -405,7 +405,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	// re-registration
 	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
-	assert.True(t, errors.Is(err, common.ErrMessageProcessorAlreadyDefined))
+	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 
 	_ = messenger.Close()
 }
@@ -500,12 +500,12 @@ func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T
 	msg := make([]byte, libp2p.MaxSendBuffSize+1)
 	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	messenger.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
-		GetChannelOrDefaultCalled: func(pipe string) chan *common.SendableData {
+		GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
 			assert.Fail(t, "should have not got to this line")
 
-			return make(chan *common.SendableData, 1)
+			return make(chan *p2p.SendableData, 1)
 		},
-		CollectOneElementFromChannelsCalled: func() *common.SendableData {
+		CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
 			return nil
 		},
 	})
@@ -559,17 +559,17 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	msg := []byte("test message")
 	numBroadcasts := libp2p.BroadcastGoRoutines + 5
 
-	ch := make(chan *common.SendableData)
+	ch := make(chan *p2p.SendableData)
 
 	wg := sync.WaitGroup{}
 	wg.Add(numBroadcasts)
 
 	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	messenger.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
-		CollectOneElementFromChannelsCalled: func() *common.SendableData {
+		CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
 			return nil
 		},
-		GetChannelOrDefaultCalled: func(pipe string) chan *common.SendableData {
+		GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
 			wg.Done()
 			return ch
 		},
@@ -580,7 +580,7 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	for i := 0; i < numBroadcasts; i++ {
 		go func() {
 			err := messenger.BroadcastOnChannelBlocking("test", "test", msg)
-			if err == common.ErrTooManyGoroutines {
+			if err == p2p.ErrTooManyGoroutines {
 				atomic.AddUint32(&numErrors, 1)
 				wg.Done()
 			}
@@ -1107,7 +1107,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
@@ -1172,7 +1172,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
@@ -1331,7 +1331,7 @@ func TestNetworkMessenger_SetThresholdMinConnectedPeersInvalidValueShouldErr(t *
 
 	err := messenger.SetThresholdMinConnectedPeers(-1)
 
-	assert.Equal(t, common.ErrInvalidValue, err)
+	assert.Equal(t, p2p.ErrInvalidValue, err)
 }
 
 func TestNetworkMessenger_SetThresholdMinConnectedPeersShouldWork(t *testing.T) {
@@ -1383,7 +1383,7 @@ func TestNetworkMessenger_SetPeerShardResolverNilShouldErr(t *testing.T) {
 
 	err := messenger.SetPeerShardResolver(nil)
 
-	assert.Equal(t, common.ErrNilPeerShardResolver, err)
+	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
 }
 
 func TestNetworkMessenger_SetPeerShardResolver(t *testing.T) {
@@ -1421,20 +1421,20 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
 
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
 			return nil
 		},
@@ -1487,13 +1487,13 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1511,7 +1511,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
 			return nil
 		},
@@ -1560,13 +1560,13 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1574,7 +1574,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	numCalled := uint32(0)
 	expectedErr := errors.New("expected error")
 	handler := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message common.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
 			return expectedErr
 		},
@@ -1624,13 +1624,13 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.NilListSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1660,7 +1660,7 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageTooOld(t *testing.T) {
 	}
 	err := mes.ValidMessageByTimestamp(msg)
 
-	assert.True(t, errors.Is(err, common.ErrMessageTooOld))
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooOld))
 }
 
 func TestNetworkMessenger_ValidMessageByTimestampMessageAtLowerLimitShouldWork(t *testing.T) {
@@ -1690,7 +1690,7 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageTooNew(t *testing.T) {
 	}
 	err := mes.ValidMessageByTimestamp(msg)
 
-	assert.True(t, errors.Is(err, common.ErrMessageTooNew))
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooNew))
 }
 
 func TestNetworkMessenger_ValidMessageByTimestampMessageAtUpperLimitShouldWork(t *testing.T) {
@@ -1842,7 +1842,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		},
 		SyncTimer:            &mock.SyncTimerStub{},
 		PeersRatingHandler:   &mock.PeersRatingHandlerStub{},
-		PreferredPeersHolder: &mock.PeersHolderStub{}, ConnectionWatcherType: common.ConnectionWatcherTypePrint,
+		PreferredPeersHolder: &mock.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)
@@ -1964,7 +1964,7 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 
 		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 
-		topic := common.ConnectionTopic
+		topic := p2p.ConnectionTopic
 		err := netMes.CreateTopic(topic, true)
 		assert.Nil(t, err)
 		assert.False(t, netMes.HasTopic(topic))
@@ -1990,7 +1990,7 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 
 		identifier := "identifier"
-		topic := common.ConnectionTopic
+		topic := p2p.ConnectionTopic
 		err := netMes.RegisterMessageProcessor(topic, identifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(topic))
@@ -2006,7 +2006,7 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 
 		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 
-		topic := common.ConnectionTopic
+		topic := p2p.ConnectionTopic
 		err := netMes.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(topic))
@@ -2027,7 +2027,7 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 
 		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 
-		topic := common.ConnectionTopic
+		topic := p2p.ConnectionTopic
 		err := netMes.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(topic))

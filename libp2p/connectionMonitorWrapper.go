@@ -5,27 +5,27 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
 
 var _ ConnectionMonitor = (*connectionMonitorWrapper)(nil)
 
-// connectionMonitorWrapper is a wrapper over common.ConnectionMonitor that satisfies the Notifiee interface
+// connectionMonitorWrapper is a wrapper over ConnectionMonitor that satisfies the Notifiee interface
 // and is able to be notified by the current running host (connection status changes)
 // it handles black list peers
 type connectionMonitorWrapper struct {
 	ConnectionMonitor
 	network             network.Network
 	mutPeerBlackList    sync.RWMutex
-	peerDenialEvaluator common.PeerDenialEvaluator
+	peerDenialEvaluator p2p.PeerDenialEvaluator
 }
 
 func newConnectionMonitorWrapper(
 	network network.Network,
 	connMonitor ConnectionMonitor,
-	peerDenialEvaluator common.PeerDenialEvaluator,
+	peerDenialEvaluator p2p.PeerDenialEvaluator,
 ) *connectionMonitorWrapper {
 	return &connectionMonitorWrapper{
 		ConnectionMonitor:   connMonitor,
@@ -96,9 +96,9 @@ func (cmw *connectionMonitorWrapper) CheckConnectionsBlocking() {
 }
 
 // SetPeerDenialEvaluator sets the handler that is able to tell if a peer can connect to self or not (is or not blacklisted)
-func (cmw *connectionMonitorWrapper) SetPeerDenialEvaluator(handler common.PeerDenialEvaluator) error {
+func (cmw *connectionMonitorWrapper) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
 	if check.IfNil(handler) {
-		return common.ErrNilPeerDenialEvaluator
+		return p2p.ErrNilPeerDenialEvaluator
 	}
 
 	cmw.mutPeerBlackList.Lock()
@@ -109,7 +109,7 @@ func (cmw *connectionMonitorWrapper) SetPeerDenialEvaluator(handler common.PeerD
 }
 
 // PeerDenialEvaluator gets the peer denial evauator
-func (cmw *connectionMonitorWrapper) PeerDenialEvaluator() common.PeerDenialEvaluator {
+func (cmw *connectionMonitorWrapper) PeerDenialEvaluator() p2p.PeerDenialEvaluator {
 	cmw.mutPeerBlackList.RLock()
 	defer cmw.mutPeerBlackList.RUnlock()
 

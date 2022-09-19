@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +19,7 @@ func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 	)
 
 	assert.True(t, check.IfNil(ols))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewOneListSharder_ShouldWork(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/ElrondNetwork/go-libp2p-pubsub"
@@ -84,7 +84,7 @@ func TestNewDirectSender(t *testing.T) {
 		)
 
 		assert.True(t, check.IfNil(ds))
-		assert.Equal(t, common.ErrNilContext, err)
+		assert.Equal(t, p2p.ErrNilContext, err)
 	})
 	t.Run("nil host", func(t *testing.T) {
 		t.Parallel()
@@ -97,7 +97,7 @@ func TestNewDirectSender(t *testing.T) {
 		)
 
 		assert.True(t, check.IfNil(ds))
-		assert.Equal(t, common.ErrNilHost, err)
+		assert.Equal(t, p2p.ErrNilHost, err)
 	})
 	t.Run("nil message handler", func(t *testing.T) {
 		t.Parallel()
@@ -110,7 +110,7 @@ func TestNewDirectSender(t *testing.T) {
 		)
 
 		assert.True(t, check.IfNil(ds))
-		assert.Equal(t, common.ErrNilDirectSendMessageHandler, err)
+		assert.Equal(t, p2p.ErrNilDirectSendMessageHandler, err)
 	})
 	t.Run("nil signer", func(t *testing.T) {
 		t.Parallel()
@@ -123,7 +123,7 @@ func TestNewDirectSender(t *testing.T) {
 		)
 
 		assert.True(t, check.IfNil(ds))
-		assert.Equal(t, common.ErrNilP2PSigner, err)
+		assert.Equal(t, p2p.ErrNilP2PSigner, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -178,7 +178,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing
 
 	err := ds.ProcessReceivedDirectMessage(nil, "peer id")
 
-	assert.Equal(t, common.ErrNilMessage, err)
+	assert.Equal(t, p2p.ErrNilMessage, err)
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testing.T) {
@@ -201,7 +201,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 
 	err := ds.ProcessReceivedDirectMessage(msg, id)
 
-	assert.Equal(t, common.ErrNilTopic, err)
+	assert.Equal(t, p2p.ErrNilTopic, err)
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageKeyFieldIsNotNilShouldErr(t *testing.T) {
@@ -227,14 +227,14 @@ func TestDirectSender_ProcessReceivedDirectMessageKeyFieldIsNotNilShouldErr(t *t
 		msg.Key = []byte("random key")
 
 		err := ds.ProcessReceivedDirectMessage(msg, id)
-		assert.True(t, errors.Is(err, common.ErrInvalidValue))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "for Key field as the node accepts only nil on this field"))
 	})
 	t.Run("Key contains an empty byte slice", func(t *testing.T) {
 		msg.Key = make([]byte, 0)
 
 		err := ds.ProcessReceivedDirectMessage(msg, id)
-		assert.True(t, errors.Is(err, common.ErrInvalidValue))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "for Key field as the node accepts only nil on this field"))
 	})
 }
@@ -259,7 +259,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAbnormalSeqNoFieldShouldErr(t 
 	msg.Topic = &topic
 
 	err := ds.ProcessReceivedDirectMessage(msg, id)
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	assert.True(t, strings.Contains(err.Error(), "for SeqNo field as the node accepts only a maximum"))
 }
 
@@ -287,7 +287,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 
 	err := ds.ProcessReceivedDirectMessage(msg, id)
 
-	assert.Equal(t, common.ErrAlreadySeenMessage, err)
+	assert.Equal(t, p2p.ErrAlreadySeenMessage, err)
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
@@ -422,7 +422,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 
 	err := ds.Send("topic", messageTooLarge, core.PeerID(cs.RemotePeer()))
 
-	assert.True(t, errors.Is(err, common.ErrMessageTooLarge))
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooLarge))
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *testing.T) {
@@ -448,7 +448,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 
 	err := ds.Send("topic", []byte("data"), "not connected peer")
 
-	assert.Equal(t, common.ErrPeerNotDirectlyConnected, err)
+	assert.Equal(t, p2p.ErrPeerNotDirectlyConnected, err)
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testing.T) {
@@ -756,7 +756,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 
 	err := ds.ProcessReceivedDirectMessage(msg, "not the same peer id")
 
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
@@ -37,7 +37,7 @@ func TestMessage_NilMarshalizerShouldErr(t *testing.T) {
 	m, err := libp2p.NewMessage(pMes, nil)
 
 	assert.True(t, check.IfNil(m))
-	assert.True(t, errors.Is(err, common.ErrNilMarshalizer))
+	assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
 }
 
 func TestMessage_ShouldErrBecauseOfFromField(t *testing.T) {
@@ -160,7 +160,7 @@ func TestMessage_WrongVersionShouldErr(t *testing.T) {
 	m, err := libp2p.NewMessage(pMes, marshalizer)
 
 	assert.True(t, check.IfNil(m))
-	assert.True(t, errors.Is(err, common.ErrUnsupportedMessageVersion))
+	assert.True(t, errors.Is(err, p2p.ErrUnsupportedMessageVersion))
 }
 
 func TestMessage_PopulatedPkFieldShouldErr(t *testing.T) {
@@ -186,7 +186,7 @@ func TestMessage_PopulatedPkFieldShouldErr(t *testing.T) {
 	m, err := libp2p.NewMessage(pMes, marshalizer)
 
 	assert.True(t, check.IfNil(m))
-	assert.True(t, errors.Is(err, common.ErrUnsupportedFields))
+	assert.True(t, errors.Is(err, p2p.ErrUnsupportedFields))
 }
 
 func TestMessage_PopulatedSigFieldShouldErr(t *testing.T) {
@@ -212,7 +212,7 @@ func TestMessage_PopulatedSigFieldShouldErr(t *testing.T) {
 	m, err := libp2p.NewMessage(pMes, marshalizer)
 
 	assert.True(t, check.IfNil(m))
-	assert.True(t, errors.Is(err, common.ErrUnsupportedFields))
+	assert.True(t, errors.Is(err, p2p.ErrUnsupportedFields))
 }
 
 func TestMessage_NilTopic(t *testing.T) {
@@ -235,7 +235,7 @@ func TestMessage_NilTopic(t *testing.T) {
 	pMes := &pubsub.Message{Message: mes}
 	m, err := libp2p.NewMessage(pMes, marshalizer)
 
-	assert.Equal(t, common.ErrNilTopic, err)
+	assert.Equal(t, p2p.ErrNilTopic, err)
 	assert.True(t, check.IfNil(m))
 }
 
@@ -246,6 +246,6 @@ func TestMessage_NilMessage(t *testing.T) {
 
 	m, err := libp2p.NewMessage(nil, marshalizer)
 
-	assert.Equal(t, common.ErrNilMessage, err)
+	assert.Equal(t, p2p.ErrNilMessage, err)
 	assert.True(t, check.IfNil(m))
 }

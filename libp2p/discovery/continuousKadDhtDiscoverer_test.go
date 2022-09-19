@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/event"
@@ -44,7 +44,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.True(t, check.IfNil(kdd))
-		assert.True(t, errors.Is(err, common.ErrNilContext))
+		assert.True(t, errors.Is(err, p2p.ErrNilContext))
 	})
 	t.Run("nil host should error", func(t *testing.T) {
 		t.Parallel()
@@ -55,7 +55,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.True(t, check.IfNil(kdd))
-		assert.True(t, errors.Is(err, common.ErrNilHost))
+		assert.True(t, errors.Is(err, p2p.ErrNilHost))
 	})
 	t.Run("nil sharder should error", func(t *testing.T) {
 		t.Parallel()
@@ -66,7 +66,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.True(t, check.IfNil(kdd))
-		assert.True(t, errors.Is(err, common.ErrNilSharder))
+		assert.True(t, errors.Is(err, p2p.ErrNilSharder))
 	})
 	t.Run("wrong sharder should error", func(t *testing.T) {
 		t.Parallel()
@@ -77,7 +77,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.True(t, check.IfNil(kdd))
-		assert.True(t, errors.Is(err, common.ErrWrongTypeAssertion))
+		assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
 	})
 	t.Run("invalid peers refresh interval should error", func(t *testing.T) {
 		t.Parallel()
@@ -88,7 +88,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.Nil(t, kdd)
-		assert.True(t, errors.Is(err, common.ErrInvalidValue))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	})
 	t.Run("invalid routing table refresh interval should error", func(t *testing.T) {
 		t.Parallel()
@@ -99,7 +99,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.Nil(t, kdd)
-		assert.True(t, errors.Is(err, common.ErrInvalidValue))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	})
 	t.Run("nil connections watcher should error", func(t *testing.T) {
 		t.Parallel()
@@ -110,7 +110,7 @@ func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
 		assert.Nil(t, kdd)
-		assert.True(t, errors.Is(err, common.ErrNilConnectionsWatcher))
+		assert.True(t, errors.Is(err, p2p.ErrNilConnectionsWatcher))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -159,7 +159,7 @@ func TestContinuousKadDhtDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) 
 	_ = ckdd.Bootstrap()
 	err := ckdd.Bootstrap()
 
-	assert.Equal(t, common.ErrPeerDiscoveryProcessAlreadyStarted, err)
+	assert.Equal(t, p2p.ErrPeerDiscoveryProcessAlreadyStarted, err)
 }
 
 // ------- connectToOnePeerFromInitialPeersList

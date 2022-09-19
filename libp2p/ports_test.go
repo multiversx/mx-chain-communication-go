@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func TestGetPort_InvalidStringShouldErr(t *testing.T) {
 	port, err := getPort("NaN", checkFreePort)
 
 	assert.Equal(t, 0, port)
-	assert.True(t, errors.Is(err, common.ErrInvalidPortsRangeString))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidPortsRangeString))
 }
 
 func TestGetPort_InvalidPortNumberShouldErr(t *testing.T) {
@@ -24,7 +24,7 @@ func TestGetPort_InvalidPortNumberShouldErr(t *testing.T) {
 
 	port, err := getPort("-1", checkFreePort)
 	assert.Equal(t, 0, port)
-	assert.True(t, errors.Is(err, common.ErrInvalidPortValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidPortValue))
 }
 
 func TestGetPort_SinglePortShouldWork(t *testing.T) {
@@ -45,11 +45,11 @@ func TestCheckFreePort_InvalidStartingPortShouldErr(t *testing.T) {
 
 	port, err := getPort("NaN-10000", checkFreePort)
 	assert.Equal(t, 0, port)
-	assert.Equal(t, common.ErrInvalidStartingPortValue, err)
+	assert.Equal(t, p2p.ErrInvalidStartingPortValue, err)
 
 	port, err = getPort("1024-10000", checkFreePort)
 	assert.Equal(t, 0, port)
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestCheckFreePort_InvalidEndingPortShouldErr(t *testing.T) {
@@ -57,7 +57,7 @@ func TestCheckFreePort_InvalidEndingPortShouldErr(t *testing.T) {
 
 	port, err := getPort("10000-NaN", checkFreePort)
 	assert.Equal(t, 0, port)
-	assert.Equal(t, common.ErrInvalidEndingPortValue, err)
+	assert.Equal(t, p2p.ErrInvalidEndingPortValue, err)
 }
 
 func TestGetPort_EndPortLargerThanSendPort(t *testing.T) {
@@ -65,7 +65,7 @@ func TestGetPort_EndPortLargerThanSendPort(t *testing.T) {
 
 	port, err := getPort("10000-9999", checkFreePort)
 	assert.Equal(t, 0, port)
-	assert.Equal(t, common.ErrEndPortIsSmallerThanStartPort, err)
+	assert.Equal(t, p2p.ErrEndPortIsSmallerThanStartPort, err)
 }
 
 func TestGetPort_RangeOfOneShouldWork(t *testing.T) {
@@ -100,7 +100,7 @@ func TestGetPort_RangeOccupiedShouldErrorShouldWork(t *testing.T) {
 
 	result, err := getPort(fmt.Sprintf("%d-%d", portStart, portEnd), handler)
 
-	assert.True(t, errors.Is(err, common.ErrNoFreePortInRange))
+	assert.True(t, errors.Is(err, p2p.ErrNoFreePortInRange))
 	assert.Equal(t, portEnd-portStart+1, len(portsTried))
 	assert.Equal(t, 0, result)
 }

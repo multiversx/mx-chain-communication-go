@@ -9,14 +9,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
-var _ common.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)
-var _ common.Reconnecter = (*ContinuousKadDhtDiscoverer)(nil)
+var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)
+var _ p2p.Reconnecter = (*ContinuousKadDhtDiscoverer)(nil)
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
@@ -32,8 +32,8 @@ type ArgKadDht struct {
 	InitialPeersList            []string
 	BucketSize                  uint32
 	RoutingTableRefresh         time.Duration
-	KddSharder                  common.Sharder
-	ConnectionWatcher           common.ConnectionsWatcher
+	KddSharder                  p2p.Sharder
+	ConnectionWatcher           p2p.ConnectionsWatcher
 }
 
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
@@ -52,7 +52,7 @@ type ContinuousKadDhtDiscoverer struct {
 	routingTableRefresh  time.Duration
 	hostConnManagement   *hostWithConnectionManagement
 	sharder              Sharder
-	connectionWatcher    common.ConnectionsWatcher
+	connectionWatcher    p2p.ConnectionsWatcher
 }
 
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
@@ -80,26 +80,26 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, 
 
 func prepareArguments(arg ArgKadDht) (Sharder, error) {
 	if check.IfNilReflect(arg.Context) {
-		return nil, common.ErrNilContext
+		return nil, p2p.ErrNilContext
 	}
 	if check.IfNilReflect(arg.Host) {
-		return nil, common.ErrNilHost
+		return nil, p2p.ErrNilHost
 	}
 	if check.IfNil(arg.KddSharder) {
-		return nil, common.ErrNilSharder
+		return nil, p2p.ErrNilSharder
 	}
 	if check.IfNil(arg.ConnectionWatcher) {
-		return nil, common.ErrNilConnectionsWatcher
+		return nil, p2p.ErrNilConnectionsWatcher
 	}
 	sharder, ok := arg.KddSharder.(Sharder)
 	if !ok {
-		return nil, fmt.Errorf("%w for sharder: expected discovery.Sharder type of interface", common.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w for sharder: expected discovery.Sharder type of interface", p2p.ErrWrongTypeAssertion)
 	}
 	if arg.PeersRefreshInterval < time.Second {
-		return nil, fmt.Errorf("%w, PeersRefreshInterval should have been at least 1 second", common.ErrInvalidValue)
+		return nil, fmt.Errorf("%w, PeersRefreshInterval should have been at least 1 second", p2p.ErrInvalidValue)
 	}
 	if arg.RoutingTableRefresh < time.Second {
-		return nil, fmt.Errorf("%w, RoutingTableRefresh should have been at least 1 second", common.ErrInvalidValue)
+		return nil, fmt.Errorf("%w, RoutingTableRefresh should have been at least 1 second", p2p.ErrInvalidValue)
 	}
 	isListNilOrEmpty := len(arg.InitialPeersList) == 0
 	if isListNilOrEmpty {
@@ -116,7 +116,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) Bootstrap() error {
 	defer ckdd.mutKadDht.Unlock()
 
 	if ckdd.kadDHT != nil {
-		return common.ErrPeerDiscoveryProcessAlreadyStarted
+		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
 	}
 
 	return ckdd.startDHT()
@@ -263,7 +263,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 }
 
 func printConnectionErrorToSeeder(peer string, err error) {
-	if errors.Is(err, common.ErrUnwantedPeer) {
+	if errors.Is(err, p2p.ErrUnwantedPeer) {
 		log.Trace("tryConnectToSeeder: unwanted peer",
 			"seeder", peer,
 			"error", err.Error(),

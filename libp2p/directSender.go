@@ -13,7 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	ggio "github.com/gogo/protobuf/io"
@@ -23,7 +23,7 @@ import (
 	"github.com/whyrusleeping/timecache"
 )
 
-var _ common.DirectSender = (*directSender)(nil)
+var _ p2p.DirectSender = (*directSender)(nil)
 
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
@@ -37,7 +37,7 @@ type directSender struct {
 	mutSeenMessages sync.Mutex
 	seenMessages    *timecache.TimeCache
 	mutexForPeer    *MutexHolder
-	signer          common.SignerVerifier
+	signer          p2p.SignerVerifier
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -45,20 +45,20 @@ func NewDirectSender(
 	ctx context.Context,
 	h host.Host,
 	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error,
-	signer common.SignerVerifier,
+	signer p2p.SignerVerifier,
 ) (*directSender, error) {
 
 	if h == nil {
-		return nil, common.ErrNilHost
+		return nil, p2p.ErrNilHost
 	}
 	if ctx == nil {
-		return nil, common.ErrNilContext
+		return nil, p2p.ErrNilContext
 	}
 	if messageHandler == nil {
-		return nil, common.ErrNilDirectSendMessageHandler
+		return nil, p2p.ErrNilDirectSendMessageHandler
 	}
 	if check.IfNil(signer) {
-		return nil, common.ErrNilP2PSigner
+		return nil, p2p.ErrNilP2PSigner
 	}
 
 	mutexForPeer, err := NewMutexHolder(maxMutexes)
@@ -117,22 +117,22 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, fromConnectedPeer peer.ID) error {
 	if message == nil {
-		return common.ErrNilMessage
+		return p2p.ErrNilMessage
 	}
 	if message.Topic == nil {
-		return common.ErrNilTopic
+		return p2p.ErrNilTopic
 	}
 	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
-		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", common.ErrInvalidValue)
+		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
 	}
 	if message.Key != nil {
-		return fmt.Errorf("%w for Key field as the node accepts only nil on this field", common.ErrInvalidValue)
+		return fmt.Errorf("%w for Key field as the node accepts only nil on this field", p2p.ErrInvalidValue)
 	}
 	if len(message.Seqno) > sequenceNumberSize {
-		return fmt.Errorf("%w for SeqNo field as the node accepts only a maximum %d bytes", common.ErrInvalidValue, sequenceNumberSize)
+		return fmt.Errorf("%w for SeqNo field as the node accepts only a maximum %d bytes", p2p.ErrInvalidValue, sequenceNumberSize)
 	}
 	if ds.checkAndSetSeenMessage(message) {
-		return common.ErrAlreadySeenMessage
+		return p2p.ErrAlreadySeenMessage
 	}
 	err := ds.checkSig(message)
 	if err != nil {
@@ -171,7 +171,7 @@ func (ds *directSender) NextSequenceNumber() []byte {
 // Send will send a direct message to the connected peer
 func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error {
 	if len(buff) >= maxSendBuffSize {
-		return fmt.Errorf("%w, to be sent: %d, maximum: %d", common.ErrMessageTooLarge, len(buff), maxSendBuffSize)
+		return fmt.Errorf("%w, to be sent: %d, maximum: %d", p2p.ErrMessageTooLarge, len(buff), maxSendBuffSize)
 	}
 
 	mut := ds.mutexForPeer.Get(string(peer))
@@ -216,7 +216,7 @@ func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error 
 func (ds *directSender) getConnection(p core.PeerID) (network.Conn, error) {
 	conns := ds.hostP2P.Network().ConnsToPeer(peer.ID(p))
 	if len(conns) == 0 {
-		return nil, common.ErrPeerNotDirectlyConnected
+		return nil, p2p.ErrPeerNotDirectlyConnected
 	}
 
 	// return the connection that has the highest number of streams

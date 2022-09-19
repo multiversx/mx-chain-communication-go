@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -15,7 +15,7 @@ import (
 // it buffers the data and refresh the peers list continuously (in refreshInterval intervals)
 type peersOnChannel struct {
 	mutPeers           sync.RWMutex
-	peersRatingHandler common.PeersRatingHandler
+	peersRatingHandler p2p.PeersRatingHandler
 	peers              map[string][]core.PeerID
 	lastUpdated        map[string]time.Time
 
@@ -28,23 +28,23 @@ type peersOnChannel struct {
 
 // newPeersOnChannel returns a new peersOnChannel object
 func newPeersOnChannel(
-	peersRatingHandler common.PeersRatingHandler,
+	peersRatingHandler p2p.PeersRatingHandler,
 	fetchPeersHandler func(topic string) []peer.ID,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 ) (*peersOnChannel, error) {
 
 	if check.IfNil(peersRatingHandler) {
-		return nil, common.ErrNilPeersRatingHandler
+		return nil, p2p.ErrNilPeersRatingHandler
 	}
 	if fetchPeersHandler == nil {
-		return nil, common.ErrNilFetchPeersOnTopicHandler
+		return nil, p2p.ErrNilFetchPeersOnTopicHandler
 	}
 	if refreshInterval == 0 {
-		return nil, common.ErrInvalidDurationProvided
+		return nil, p2p.ErrInvalidDurationProvided
 	}
 	if ttlInterval == 0 {
-		return nil, common.ErrInvalidDurationProvided
+		return nil, p2p.ErrInvalidDurationProvided
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())

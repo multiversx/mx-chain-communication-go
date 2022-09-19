@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery/factory"
@@ -50,7 +50,7 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 				Type:                             "legacy",
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.ListsSharder,
+				Type: p2p.ListsSharder,
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
@@ -79,7 +79,7 @@ func TestNewPeerDiscoverer_OptimizedKadDhtShouldWork(t *testing.T) {
 				Type:                             "optimized",
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.ListsSharder,
+				Type: p2p.ListsSharder,
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
@@ -113,7 +113,7 @@ func TestNewPeerDiscoverer_UnknownSharderShouldErr(t *testing.T) {
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)
 
 	assert.True(t, check.IfNil(pDiscoverer))
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestNewPeerDiscoverer_UnknownKadDhtShouldErr(t *testing.T) {
@@ -131,7 +131,7 @@ func TestNewPeerDiscoverer_UnknownKadDhtShouldErr(t *testing.T) {
 				Type:                             "unknown",
 			},
 			Sharding: config.ShardingConfig{
-				Type: common.ListsSharder,
+				Type: p2p.ListsSharder,
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
@@ -139,6 +139,6 @@ func TestNewPeerDiscoverer_UnknownKadDhtShouldErr(t *testing.T) {
 
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)
 
-	assert.True(t, errors.Is(err, common.ErrInvalidValue))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	assert.True(t, check.IfNil(pDiscoverer))
 }

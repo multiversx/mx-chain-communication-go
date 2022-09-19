@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 )
@@ -31,7 +31,7 @@ type optimizedKadDhtDiscoverer struct {
 	errChanInit                 chan error
 	chanConnectToSeeders        chan struct{}
 	createKadDhtHandler         func(ctx context.Context) (KadDhtHandler, error)
-	connectionWatcher           common.ConnectionsWatcher
+	connectionWatcher           p2p.ConnectionsWatcher
 }
 
 // NewOptimizedKadDhtDiscoverer creates an optimized kad-dht discovery type implementation
@@ -44,7 +44,7 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 	}
 
 	if arg.SeedersReconnectionInterval < minIntervalForSeedersReconnection {
-		return nil, common.ErrInvalidSeedersReconnectionInterval
+		return nil, p2p.ErrInvalidSeedersReconnectionInterval
 	}
 
 	sharder.SetSeeders(arg.InitialPeersList)
@@ -151,7 +151,7 @@ func (okdd *optimizedKadDhtDiscoverer) createChTimeSeedersReconnect(isConnectedT
 
 func (okdd *optimizedKadDhtDiscoverer) init(ctx context.Context) error {
 	if okdd.status != statNotInitialized {
-		return common.ErrPeerDiscoveryProcessAlreadyStarted
+		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
 	}
 
 	kadDhtHandler, err := okdd.createKadDhtHandler(ctx)

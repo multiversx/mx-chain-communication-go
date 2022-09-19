@@ -11,14 +11,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
-var _ common.Sharder = (*listsSharder)(nil)
+var _ p2p.Sharder = (*listsSharder)(nil)
 
 const minAllowedConnectedPeersListSharder = 5
 const minAllowedValidators = 1
@@ -75,11 +75,11 @@ var _ = leadingZerosCount[255]
 
 // ArgListsSharder represents the argument structure used in the initialization of a listsSharder implementation
 type ArgListsSharder struct {
-	PeerResolver         common.PeerShardResolver
+	PeerResolver         p2p.PeerShardResolver
 	SelfPeerId           peer.ID
 	P2pConfig            config.P2PConfig
-	PreferredPeersHolder common.PreferredPeersHolderHandler
-	NodeOperationMode    common.NodeOperation
+	PreferredPeersHolder p2p.PreferredPeersHolderHandler
+	NodeOperationMode    p2p.NodeOperation
 }
 
 // listsSharder is the struct able to compute an eviction list of connected peers id according to the
@@ -88,7 +88,7 @@ type ArgListsSharder struct {
 // maximum levels, unknown list is able to fill the gap until maximum peer count value is fulfilled.
 type listsSharder struct {
 	mutResolver             sync.RWMutex
-	peerShardResolver       common.PeerShardResolver
+	peerShardResolver       p2p.PeerShardResolver
 	selfPeerId              peer.ID
 	maxPeerCount            int
 	maxIntraShardValidators int
@@ -101,7 +101,7 @@ type listsSharder struct {
 	mutSeeders              sync.RWMutex
 	seeders                 []string
 	computeDistance         func(src peer.ID, dest peer.ID) *big.Int
-	preferredPeersHolder    common.PreferredPeersHolderHandler
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
 }
 
 type peersConnections struct {
@@ -118,25 +118,25 @@ type peersConnections struct {
 // NewListsSharder creates a new kad list based kad sharder instance
 func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 	if check.IfNil(arg.PeerResolver) {
-		return nil, common.ErrNilPeerShardResolver
+		return nil, p2p.ErrNilPeerShardResolver
 	}
 	if arg.P2pConfig.Sharding.TargetPeerCount < minAllowedConnectedPeersListSharder {
-		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", common.ErrInvalidValue, minAllowedConnectedPeersListSharder)
+		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeersListSharder)
 	}
 	if arg.P2pConfig.Sharding.MaxIntraShardValidators < minAllowedValidators {
-		return nil, fmt.Errorf("%w, maxIntraShardValidators should be at least %d", common.ErrInvalidValue, minAllowedValidators)
+		return nil, fmt.Errorf("%w, maxIntraShardValidators should be at least %d", p2p.ErrInvalidValue, minAllowedValidators)
 	}
 	if arg.P2pConfig.Sharding.MaxCrossShardValidators < minAllowedValidators {
-		return nil, fmt.Errorf("%w, maxCrossShardValidators should be at least %d", common.ErrInvalidValue, minAllowedValidators)
+		return nil, fmt.Errorf("%w, maxCrossShardValidators should be at least %d", p2p.ErrInvalidValue, minAllowedValidators)
 	}
 	if arg.P2pConfig.Sharding.MaxIntraShardObservers < minAllowedObservers {
-		return nil, fmt.Errorf("%w, maxIntraShardObservers should be at least %d", common.ErrInvalidValue, minAllowedObservers)
+		return nil, fmt.Errorf("%w, maxIntraShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
 	if arg.P2pConfig.Sharding.MaxCrossShardObservers < minAllowedObservers {
-		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", common.ErrInvalidValue, minAllowedObservers)
+		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
 	if check.IfNil(arg.PreferredPeersHolder) {
-		return nil, fmt.Errorf("%w while creating a new listsShared", common.ErrNilPreferredPeersHolder)
+		return nil, fmt.Errorf("%w while creating a new listsShared", p2p.ErrNilPreferredPeersHolder)
 	}
 	peersConn, err := processNumConnections(arg)
 	if err != nil {
@@ -171,7 +171,7 @@ func processNumConnections(arg ArgListsSharder) (peersConnections, error) {
 		seeders:              int(arg.P2pConfig.Sharding.MaxSeeders),
 		fullHistoryObservers: 0,
 	}
-	if arg.NodeOperationMode == common.FullArchiveMode {
+	if arg.NodeOperationMode == p2p.FullArchiveMode {
 		peersConn.fullHistoryObservers = int(arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers)
 		peersConn.maxPeerCount += peersConn.fullHistoryObservers
 	}
@@ -184,7 +184,7 @@ func processNumConnections(arg ArgListsSharder) (peersConnections, error) {
 		peersConn.intraShardObservers + peersConn.crossShardObservers +
 		peersConn.seeders + peersConn.fullHistoryObservers
 	if providedPeers+minUnknownPeers > peersConn.maxPeerCount {
-		return peersConnections{}, fmt.Errorf("%w, maxValidators + maxObservers + seeders + full archive nodes should be less than %d", common.ErrInvalidValue, peersConn.maxPeerCount)
+		return peersConnections{}, fmt.Errorf("%w, maxValidators + maxObservers + seeders + full archive nodes should be less than %d", p2p.ErrInvalidValue, peersConn.maxPeerCount)
 	}
 
 	peersConn.unknown = peersConn.maxPeerCount - providedPeers
@@ -401,9 +401,9 @@ func (ls *listsSharder) SetSeeders(addresses []string) {
 }
 
 // SetPeerShardResolver sets the peer shard resolver for this sharder
-func (ls *listsSharder) SetPeerShardResolver(psp common.PeerShardResolver) error {
+func (ls *listsSharder) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
 	if check.IfNil(psp) {
-		return common.ErrNilPeerShardResolver
+		return p2p.ErrNilPeerShardResolver
 	}
 
 	ls.mutResolver.Lock()

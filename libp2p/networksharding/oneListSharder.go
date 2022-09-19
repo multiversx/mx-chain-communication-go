@@ -5,12 +5,12 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var _ common.Sharder = (*oneListSharder)(nil)
+var _ p2p.Sharder = (*oneListSharder)(nil)
 
 const minAllowedConnectedPeersOneSharder = 3
 
@@ -26,7 +26,7 @@ func NewOneListSharder(
 	maxPeerCount int,
 ) (*oneListSharder, error) {
 	if maxPeerCount < minAllowedConnectedPeersOneSharder {
-		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", common.ErrInvalidValue, minAllowedConnectedPeersOneSharder)
+		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeersOneSharder)
 	}
 
 	return &oneListSharder{
@@ -64,7 +64,7 @@ func (ols *oneListSharder) Has(pid peer.ID, list []peer.ID) bool {
 }
 
 // SetPeerShardResolver sets the peer shard resolver for this sharder. Doesn't do anything in this implementation
-func (ols *oneListSharder) SetPeerShardResolver(_ common.PeerShardResolver) error {
+func (ols *oneListSharder) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
 	return nil
 }
 

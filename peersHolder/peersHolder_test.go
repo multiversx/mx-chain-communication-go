@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestNewPeersHolder(t *testing.T) {
 		preferredPeers := []string{"10.100.100", "invalid string"}
 		ph, err := NewPeersHolder(preferredPeers)
 		assert.True(t, check.IfNil(ph))
-		assert.True(t, errors.Is(err, common.ErrInvalidValue))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
