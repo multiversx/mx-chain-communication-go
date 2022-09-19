@@ -2,10 +2,10 @@ package message
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
-var _ common.MessageP2P = (*Message)(nil)
+var _ p2p.MessageP2P = (*Message)(nil)
 
 // Message is a data holder struct
 type Message struct {
