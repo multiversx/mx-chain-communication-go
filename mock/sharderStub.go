@@ -2,18 +2,18 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
 // SharderStub -
 type SharderStub struct {
-	SetPeerShardResolverCalled func(psp common.PeerShardResolver) error
+	SetPeerShardResolverCalled func(psp p2p.PeerShardResolver) error
 	SetSeedersCalled           func(addresses []string)
 	IsSeederCalled             func(pid core.PeerID) bool
 }
 
 // SetPeerShardResolver -
-func (ss *SharderStub) SetPeerShardResolver(psp common.PeerShardResolver) error {
+func (ss *SharderStub) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
 	if ss.SetPeerShardResolverCalled != nil {
 		return ss.SetPeerShardResolverCalled(psp)
 	}

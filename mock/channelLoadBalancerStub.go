@@ -1,15 +1,15 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-p2p/common"
+	"github.com/ElrondNetwork/elrond-go-p2p"
 )
 
 // ChannelLoadBalancerStub -
 type ChannelLoadBalancerStub struct {
 	AddChannelCalled                    func(pipe string) error
 	RemoveChannelCalled                 func(pipe string) error
-	GetChannelOrDefaultCalled           func(pipe string) chan *common.SendableData
-	CollectOneElementFromChannelsCalled func() *common.SendableData
+	GetChannelOrDefaultCalled           func(pipe string) chan *p2p.SendableData
+	CollectOneElementFromChannelsCalled func() *p2p.SendableData
 	CloseCalled                         func() error
 }
 
@@ -24,12 +24,12 @@ func (clbs *ChannelLoadBalancerStub) RemoveChannel(pipe string) error {
 }
 
 // GetChannelOrDefault -
-func (clbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *common.SendableData {
+func (clbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.SendableData {
 	return clbs.GetChannelOrDefaultCalled(pipe)
 }
 
 // CollectOneElementFromChannels -
-func (clbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *common.SendableData {
+func (clbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
 	return clbs.CollectOneElementFromChannelsCalled()
 }
 
