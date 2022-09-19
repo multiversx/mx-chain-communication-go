@@ -14,7 +14,7 @@ type MarshallerMock struct {
 }
 
 // Marshal converts the input object in a slice of bytes
-func (mm MarshallerMock) Marshal(obj interface{}) ([]byte, error) {
+func (mm *MarshallerMock) Marshal(obj interface{}) ([]byte, error) {
 	if mm.Fail {
 		return nil, ErrMockMarshaller
 	}
@@ -27,7 +27,7 @@ func (mm MarshallerMock) Marshal(obj interface{}) ([]byte, error) {
 }
 
 // Unmarshal applies the serialized values over an instantiated object
-func (mm MarshallerMock) Unmarshal(obj interface{}, buff []byte) error {
+func (mm *MarshallerMock) Unmarshal(obj interface{}, buff []byte) error {
 	if mm.Fail {
 		return ErrMockMarshaller
 	}
@@ -48,6 +48,6 @@ func (mm MarshallerMock) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (mm MarshallerMock) IsInterfaceNil() bool {
-	return false
+func (mm *MarshallerMock) IsInterfaceNil() bool {
+	return mm == nil
 }
