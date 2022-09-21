@@ -124,52 +124,6 @@ func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) e
 	return nil
 }
 
-// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscovery() p2p.Messenger {
-	p2pCfg := CreateP2PConfigWithNoDiscovery()
-
-	return CreateMessengerFromConfig(p2pCfg)
-}
-
-// CreateP2PConfigWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
-	return config.P2PConfig{
-		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "",
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled: false,
-		},
-		Sharding: config.ShardingConfig{
-			Type: p2p.NilListSharder,
-		},
-	}
-}
-
-// CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
-func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
-	initialAddresses := make([]string, 0)
-	if len(initialAddr) > 0 {
-		initialAddresses = append(initialAddresses, initialAddr)
-	}
-	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshaller,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:             createP2PConfig(initialAddresses),
-		SyncTimer:             &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
-		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-	}
-
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	log.LogIfError(err)
-
-	return libP2PMes
-}
-
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
@@ -194,6 +148,41 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	return libP2PMes
 }
 
+// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pCfg := createP2PConfigWithNoDiscovery()
+
+	return CreateMessengerFromConfig(p2pCfg)
+}
+
+// createP2PConfigWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func createP2PConfigWithNoDiscovery() config.P2PConfig {
+	return config.P2PConfig{
+		Node: config.NodeConfig{
+			Port: "0",
+			Seed: "",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
+}
+
+// CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
+func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
+	initialAddresses := make([]string, 0)
+	if len(initialAddr) > 0 {
+		initialAddresses = append(initialAddresses, initialAddr)
+	}
+
+	p2pCfg := createP2PConfig(initialAddresses)
+
+	return CreateMessengerFromConfig(p2pCfg)
+}
+
 // CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
 func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID string) p2p.Messenger {
 	initialAddresses := make([]string, 0)
@@ -202,21 +191,8 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 	}
 	p2pCfg := createP2PConfig(initialAddresses)
 	p2pCfg.KadDhtPeerDiscovery.ProtocolID = protocolID
-	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshaller,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:             p2pCfg,
-		SyncTimer:             &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
-		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
-		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-	}
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	log.LogIfError(err)
-
-	return libP2PMes
+	return CreateMessengerFromConfig(p2pCfg)
 }
 
 // ClosePeers calls Messenger.Close on the provided peers
