@@ -13,7 +13,7 @@ import (
 var errNilPrivateKey = errors.New("nil private key")
 
 type p2pSigner struct {
-	privateKey *libp2pCrypto.Secp256k1PrivateKey
+	privateKey libp2pCrypto.PrivKey
 }
 
 // NewP2PSigner creates a new p2pSigner instance

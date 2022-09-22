@@ -3,6 +3,7 @@ package libp2p_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"runtime"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -241,6 +243,50 @@ func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T
 	_ = messenger.Close()
 }
 
+func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with empty private key bytes, should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivateKeyBytes = []byte{}
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.NotNil(t, messenger)
+		assert.Nil(t, err)
+
+		_ = messenger.Close()
+	})
+
+	t.Run("with invalid private key bytes", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivateKeyBytes = []byte("invalid pk bytes")
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.Nil(t, messenger)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("valid private key bytes, should work", func(t *testing.T) {
+		t.Parallel()
+
+		pk, _, _ := crypto.GenerateSecp256k1Key(rand.Reader)
+		pkBytes, _ := pk.Raw()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivateKeyBytes = pkBytes
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.NotNil(t, messenger)
+		assert.Nil(t, err)
+
+		_ = messenger.Close()
+	})
+}
+
 func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShouldErr(t *testing.T) {
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
@@ -261,6 +307,30 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 
 func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T) {
 	arg := createMockNetworkArgs()
+	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
+		Enabled:                          true,
+		Type:                             "optimized",
+		RefreshIntervalInSec:             10,
+		ProtocolID:                       "/erd/kad/1.0.0",
+		InitialPeerList:                  nil,
+		BucketSize:                       100,
+		RoutingTableRefreshIntervalInSec: 10,
+	}
+	arg.P2pConfig.Sharding = config.ShardingConfig{
+		Type:            p2p.NilListSharder,
+		TargetPeerCount: 10,
+	}
+	messenger, err := libp2p.NewNetworkMessenger(arg)
+
+	assert.False(t, check.IfNil(messenger))
+	assert.Nil(t, err)
+
+	_ = messenger.Close()
+}
+
+func TestNewNetworkMessenger_WithListenAddrWithIp4AndTcpShouldWork(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.ListenAddress = libp2p.ListenAddrWithIp4AndTcp
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		Type:                             "optimized",
@@ -1817,7 +1887,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port:                       "0",
-				Seed:                       "",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
 			},
