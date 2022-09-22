@@ -266,7 +266,7 @@ func createP2PPrivateKey(p2pPrivateKeyBytes []byte) (libp2pCrypto.PrivKey, error
 			return nil, err
 		}
 
-		log.Info("createP2PPrivKey: generated a new private key for p2p signing")
+		log.Info("createP2PPrivateKey: generated a new private key for p2p signing")
 
 		return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
 	}
