@@ -1,24 +1,22 @@
-package libp2p
+package crypto
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
-
-var errNilPrivateKey = errors.New("nil private key")
 
 type p2pSigner struct {
 	privateKey libp2pCrypto.PrivKey
 }
 
 // NewP2PSigner creates a new p2pSigner instance
-func NewP2PSigner(privateKey *libp2pCrypto.Secp256k1PrivateKey) (*p2pSigner, error) {
-	if privateKey == nil {
+func NewP2PSigner(privateKey libp2pCrypto.PrivKey) (*p2pSigner, error) {
+	if check.IfNilReflect(privateKey) {
 		return nil, errNilPrivateKey
 	}
 
@@ -53,4 +51,14 @@ func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byt
 	}
 
 	return nil
+}
+
+// SignUsingPrivateKey will sign the payload with provided private key bytes
+func (signer *p2pSigner) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+	sk, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(skBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return sk.Sign(payload)
 }

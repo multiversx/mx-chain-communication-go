@@ -2,8 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"crypto/ecdsa"
-	cryptoRand "crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -20,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/debug"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/connectionMonitor"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/disabled"
 	discoveryFactory "github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
@@ -28,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/loadBalancer"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
-	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -90,7 +88,7 @@ func init() {
 
 // TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	*p2pSigner
+	p2pSigner
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -152,14 +150,15 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
 	}
 
-	p2pPrivKey, err := createP2PPrivateKey(args.P2pPrivateKeyBytes)
+	keyGen := crypto.NewIdentityGenerator()
+	p2pPrivateKey, err := keyGen.CreateP2PPrivateKey(args.P2pPrivateKeyBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	setupExternalP2PLoggers()
 
-	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey)
+	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -208,10 +207,14 @@ func constructNode(
 		return nil, err
 	}
 
+	p2pSignerInstance, err := crypto.NewP2PSigner(p2pPrivateKey)
+	if err != nil {
+		cancelFunc()
+		return nil, err
+	}
+
 	p2pNode := &networkMessenger{
-		p2pSigner: &p2pSigner{
-			privateKey: p2pPrivateKey,
-		},
+		p2pSigner:               p2pSignerInstance,
 		ctx:                     ctx,
 		cancelFunc:              cancelFunc,
 		p2pHost:                 NewConnectableHost(h),
@@ -256,29 +259,6 @@ func setupExternalP2PLoggers() {
 
 		_ = logging.SetLogLevel(external, "DEBUG")
 	}
-}
-
-func createP2PPrivateKey(p2pPrivateKeyBytes []byte) (libp2pCrypto.PrivKey, error) {
-	if len(p2pPrivateKeyBytes) == 0 {
-		randReader := cryptoRand.Reader
-		prvKey, err := ecdsa.GenerateKey(btcec.S256(), randReader)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Info("createP2PPrivateKey: generated a new private key for p2p signing")
-
-		return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
-	}
-
-	prvKey, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(p2pPrivateKeyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info("createP2PPrivateKey: using the provided private key for p2p signing")
-
-	return prvKey, nil
 }
 
 func addComponentsToNode(
@@ -384,12 +364,12 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 				continue
 			}
 
-			buffToSend := netMes.createMessageBytes(sendableData.Buff)
-			if len(buffToSend) == 0 {
+			packedSendableDataBuff := netMes.createMessageBytes(sendableData.Buff)
+			if len(packedSendableDataBuff) == 0 {
 				continue
 			}
 
-			errPublish := topic.Publish(netMes.ctx, buffToSend)
+			errPublish := netMes.publish(topic, sendableData, packedSendableDataBuff)
 			if errPublish != nil {
 				log.Trace("error sending data", "error", errPublish)
 			}
@@ -397,6 +377,14 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}(netMes.outgoingPLB)
 
 	return nil
+}
+
+func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *p2p.SendableData, packedSendableDataBuff []byte) error {
+	if data.Sk == nil {
+		return topic.Publish(netMes.ctx, packedSendableDataBuff)
+	}
+
+	return topic.PublishWithSk(netMes.ctx, packedSendableDataBuff, data.Sk, data.ID)
 }
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
@@ -906,6 +894,7 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 	sendable := &p2p.SendableData{
 		Buff:  buff,
 		Topic: topic,
+		ID:    netMes.p2pHost.ID(),
 	}
 	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
 	netMes.goRoutinesThrottler.EndProcessing()
@@ -936,6 +925,69 @@ func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string,
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel
 func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 	netMes.BroadcastOnChannel(topic, topic, buff)
+}
+
+// BroadcastOnChannelBlockingUsingPrivateKey tries to send a byte buffer onto a topic using provided channel
+// It is a blocking method. It needs to be launched on a go routine
+func (netMes *networkMessenger) BroadcastOnChannelBlockingUsingPrivateKey(
+	channel string,
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) error {
+	id := peer.ID(pid)
+	sk, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(skBytes)
+	if err != nil {
+		return err
+	}
+
+	err = netMes.checkSendableData(buff)
+	if err != nil {
+		return err
+	}
+
+	if !netMes.goRoutinesThrottler.CanProcess() {
+		return p2p.ErrTooManyGoroutines
+	}
+
+	netMes.goRoutinesThrottler.StartProcessing()
+
+	sendable := &p2p.SendableData{
+		Buff:  buff,
+		Topic: topic,
+		Sk:    sk,
+		ID:    id,
+	}
+	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
+	netMes.goRoutinesThrottler.EndProcessing()
+	return nil
+}
+
+// BroadcastOnChannelUsingPrivateKey tries to send a byte buffer onto a topic using provided channel
+func (netMes *networkMessenger) BroadcastOnChannelUsingPrivateKey(
+	channel string,
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) {
+	go func() {
+		err := netMes.BroadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
+		if err != nil {
+			log.Warn("p2p broadcast using private key", "error", err.Error())
+		}
+	}()
+}
+
+// BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
+func (netMes *networkMessenger) BroadcastUsingPrivateKey(
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) {
+	netMes.BroadcastOnChannelUsingPrivateKey(topic, topic, buff, pid, skBytes)
 }
 
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers

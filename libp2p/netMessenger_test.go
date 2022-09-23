@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
@@ -2112,4 +2113,50 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 
 		_ = netMes.Close()
 	})
+}
+
+func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	msg := []byte("test message")
+	topic := "topic"
+
+	interceptors := make([]*mock.MessageProcessorMock, 2)
+
+	fmt.Println("Messenger 1:")
+	mes1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	_ = mes1.CreateTopic(topic, true)
+	interceptors[0] = mock.NewMessageProcessorMock()
+	_ = mes1.RegisterMessageProcessor(topic, "", interceptors[0])
+
+	fmt.Println("Messenger 2:")
+	mes2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	_ = mes2.CreateTopic(topic, true)
+	interceptors[1] = mock.NewMessageProcessorMock()
+	_ = mes2.RegisterMessageProcessor(topic, "", interceptors[1])
+
+	err := mes1.ConnectToPeer(getConnectableAddress(mes2))
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second * 2)
+
+	keyGen := p2pCrypto.NewIdentityGenerator()
+	skBuff, pid, err := keyGen.CreateRandomP2PIdentity()
+	assert.Nil(t, err)
+	fmt.Printf("new identity: %s\n", pid.Pretty())
+
+	mes1.BroadcastUsingPrivateKey(topic, msg, pid, skBuff)
+
+	time.Sleep(time.Second * 2)
+
+	for _, i := range interceptors {
+		messages := i.GetMessages()
+
+		assert.Equal(t, 1, len(messages))
+		assert.Equal(t, 1, messages[pid])
+		assert.Equal(t, 0, messages[mes1.ID()])
+		assert.Equal(t, 0, messages[mes2.ID()])
+	}
 }
