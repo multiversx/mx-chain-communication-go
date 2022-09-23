@@ -1,4 +1,4 @@
-package libp2p
+package crypto
 
 import (
 	"crypto/ecdsa"
@@ -24,7 +24,7 @@ func generatePrivateKey() *libp2pCrypto.Secp256k1PrivateKey {
 func TestP2pSigner_NewP2PSigner(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil privKey should err", func(t *testing.T) {
+	t.Run("nil private key should error", func(t *testing.T) {
 		t.Parallel()
 
 		sig, err := NewP2PSigner(nil)
@@ -107,6 +107,35 @@ func TestP2pSigner_Verify(t *testing.T) {
 	})
 }
 
+func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
+	t.Parallel()
+
+	payload := []byte("payload")
+
+	generator := NewIdentityGenerator()
+	skBytes1, pid1, err := generator.CreateRandomP2PIdentity()
+	assert.Nil(t, err)
+
+	skBytes2, pid2, err := generator.CreateRandomP2PIdentity()
+	assert.Nil(t, err)
+	assert.NotEqual(t, skBytes1, skBytes2)
+
+	sk := generatePrivateKey()
+	signer := &p2pSigner{
+		privateKey: sk,
+	}
+
+	sig1, err := signer.SignUsingPrivateKey(skBytes1, payload)
+	assert.Nil(t, err)
+
+	sig2, err := signer.SignUsingPrivateKey(skBytes2, payload)
+	assert.Nil(t, err)
+	assert.NotEqual(t, sig1, sig2)
+
+	assert.Nil(t, signer.Verify(payload, pid1, sig1))
+	assert.Nil(t, signer.Verify(payload, pid2, sig2))
+}
+
 func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
@@ -137,10 +166,13 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 			case 1:
 				errVerify := signer.Verify(payload1, pid, sig1)
 				assert.Nil(t, errVerify)
+			case 2:
+				errVerify := signer.Verify(payload1, pid, sig1)
+				assert.Nil(t, errVerify)
 			}
 
 			wg.Done()
-		}(i % 2)
+		}(i % 3)
 	}
 
 	wg.Wait()

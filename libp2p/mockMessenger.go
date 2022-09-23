@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -24,12 +25,20 @@ func NewMockMessenger(
 		return nil, err
 	}
 
+	keyGen := crypto.NewIdentityGenerator()
+	p2pPrivateKey, err := keyGen.CreateP2PPrivateKey(args.P2pPrivateKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := crypto.NewP2PSigner(p2pPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	privKey, _ := createP2PPrivateKey(args.P2pPrivateKeyBytes)
 	p2pNode := &networkMessenger{
-		p2pSigner: &p2pSigner{
-			privateKey: privKey,
-		},
+		p2pSigner:  signer,
 		p2pHost:    NewConnectableHost(h),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
