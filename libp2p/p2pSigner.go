@@ -13,7 +13,7 @@ import (
 var errNilPrivateKey = errors.New("nil private key")
 
 type p2pSigner struct {
-	privateKey *libp2pCrypto.Secp256k1PrivateKey
+	privateKey libp2pCrypto.PrivKey
 }
 
 // NewP2PSigner creates a new p2pSigner instance
@@ -49,7 +49,7 @@ func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byt
 		return err
 	}
 	if !sigOk {
-		return crypto.ErrInvalidSignature
+		return crypto.ErrSigNotValid
 	}
 
 	return nil

@@ -25,7 +25,7 @@ func NewMockMessenger(
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	privKey, _ := createP2PPrivKey(args.P2pConfig.Node.Seed)
+	privKey, _ := createP2PPrivateKey(args.P2pPrivateKeyBytes)
 	p2pNode := &networkMessenger{
 		p2pSigner: &p2pSigner{
 			privateKey: privKey,
