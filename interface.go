@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
@@ -21,6 +23,8 @@ type MessageProcessor interface {
 type SendableData struct {
 	Buff  []byte
 	Topic string
+	Sk    crypto.PrivKey
+	ID    peer.ID
 }
 
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
@@ -116,6 +120,9 @@ type Messenger interface {
 	// through a specified channel.
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 
+	// BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
+	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+
 	// Broadcast is a convenience function that calls BroadcastOnChannelBlocking,
 	// but implicitly sets the channel to be identical to the specified topic.
 	Broadcast(topic string, buff []byte)
@@ -136,6 +143,7 @@ type Messenger interface {
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
