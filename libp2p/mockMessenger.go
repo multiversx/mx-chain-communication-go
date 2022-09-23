@@ -25,10 +25,18 @@ func NewMockMessenger(
 		return nil, err
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	keyGen := crypto.NewIdentityGenerator()
 	p2pPrivateKey, err := keyGen.CreateP2PPrivateKey(args.P2pPrivateKeyBytes)
-	signer, _ := crypto.NewP2PSigner(p2pPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := crypto.NewP2PSigner(p2pPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	p2pNode := &networkMessenger{
 		p2pSigner:  signer,
 		p2pHost:    NewConnectableHost(h),

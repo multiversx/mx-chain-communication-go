@@ -200,19 +200,17 @@ func constructNode(
 		libp2p.NATPortMap(),
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	h, err := libp2p.New(opts...)
 	if err != nil {
-		cancelFunc()
 		return nil, err
 	}
 
 	p2pSignerInstance, err := crypto.NewP2PSigner(p2pPrivateKey)
 	if err != nil {
-		cancelFunc()
 		return nil, err
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	p2pNode := &networkMessenger{
 		p2pSigner:               p2pSignerInstance,
 		ctx:                     ctx,

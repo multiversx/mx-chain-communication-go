@@ -42,9 +42,10 @@ func (generator *identityGenerator) CreateRandomP2PIdentity() ([]byte, core.Peer
 	return skBuff, core.PeerID(pid), nil
 }
 
-// CreateP2PPrivateKey will create a new P2P private key based on the provided seed. If the seed is the empty string
-// it will use the crypto's random generator to provide a random one. Otherwise, it will create a deterministic private
-// key. This is useful when we want a private key that never changes, such as in the network seeders
+// CreateP2PPrivateKey will create a new P2P private key based on the provided private key bytes. If the byte slice is empty,
+// it will use the crypto's random generator to provide a random one. Otherwise, it will try to load the private key from
+// the provided bytes (if the bytes are in the correct format).
+// This is useful when we want a private key that never changes, such as in the network seeders
 func (generator *identityGenerator) CreateP2PPrivateKey(privateKeyBytes []byte) (libp2pCrypto.PrivKey, error) {
 	if len(privateKeyBytes) == 0 {
 		randReader := rand.Reader
