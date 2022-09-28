@@ -2,11 +2,14 @@ package libp2p
 
 import (
 	"context"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/whyrusleeping/timecache"
 )
@@ -26,7 +29,7 @@ func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 }
 
 // SetLoadBalancer -
-func (netMes *networkMessenger) SetLoadBalancer(outgoingPLB p2p.ChannelLoadBalancer) {
+func (netMes *networkMessenger) SetLoadBalancer(outgoingPLB ChannelLoadBalancer) {
 	netMes.outgoingPLB = outgoingPLB
 }
 
@@ -97,4 +100,83 @@ func (mh *MutexHolder) Mutexes() types.Cacher {
 // SetSignerInDirectSender sets the signer in the direct sender
 func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifier) {
 	netMes.ds.(*directSender).signer = signer
+}
+
+func (oplb *OutgoingChannelLoadBalancer) Chans() []chan *SendableData {
+	return oplb.chans
+}
+
+func (oplb *OutgoingChannelLoadBalancer) Names() []string {
+	return oplb.names
+}
+
+func (oplb *OutgoingChannelLoadBalancer) NamesChans() map[string]chan *SendableData {
+	return oplb.namesChans
+}
+
+func DefaultSendChannel() string {
+	return defaultSendChannel
+}
+
+func NewConnectionMonitorWrapper(
+	network network.Network,
+	connMonitor ConnectionMonitor,
+	peerDenialEvaluator p2p.PeerDenialEvaluator,
+) *connectionMonitorWrapper {
+	return newConnectionMonitorWrapper(network, connMonitor, peerDenialEvaluator)
+}
+
+func NewPeersOnChannel(
+	peersRatingHandler p2p.PeersRatingHandler,
+	fetchPeersHandler func(topic string) []peer.ID,
+	refreshInterval time.Duration,
+	ttlInterval time.Duration,
+) (*peersOnChannel, error) {
+	return newPeersOnChannel(peersRatingHandler, fetchPeersHandler, refreshInterval, ttlInterval)
+}
+
+func (poc *peersOnChannel) SetPeersOnTopic(topic string, lastUpdated time.Time, peers []core.PeerID) {
+	poc.mutPeers.Lock()
+	poc.peers[topic] = peers
+	poc.lastUpdated[topic] = lastUpdated
+	poc.mutPeers.Unlock()
+}
+
+func (poc *peersOnChannel) GetPeers(topic string) []core.PeerID {
+	poc.mutPeers.RLock()
+	defer poc.mutPeers.RUnlock()
+
+	return poc.peers[topic]
+}
+
+func (poc *peersOnChannel) SetTimeHandler(handler func() time.Time) {
+	poc.getTimeHandler = handler
+}
+
+func GetPort(port string, handler func(int) error) (int, error) {
+	return getPort(port, handler)
+}
+
+func CheckFreePort(port int) error {
+	return checkFreePort(port)
+}
+
+func NewTopicProcessors() *topicProcessors {
+	return newTopicProcessors()
+}
+
+func (tp *topicProcessors) AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error {
+	return tp.addTopicProcessor(identifier, processor)
+}
+
+func (tp *topicProcessors) RemoveTopicProcessor(identifier string) error {
+	return tp.removeTopicProcessor(identifier)
+}
+
+func (tp *topicProcessors) GetList() ([]string, []p2p.MessageProcessor) {
+	return tp.getList()
+}
+
+func NewUnknownPeerShardResolver() *unknownPeerShardResolver {
+	return &unknownPeerShardResolver{}
 }

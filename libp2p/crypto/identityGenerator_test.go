@@ -1,4 +1,4 @@
-package crypto
+package crypto_test
 
 import (
 	"crypto/ecdsa"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/stretchr/testify/assert"
@@ -15,14 +16,14 @@ import (
 func TestNewIdentityGenerator(t *testing.T) {
 	t.Parallel()
 
-	generator := NewIdentityGenerator()
+	generator := crypto.NewIdentityGenerator()
 	assert.False(t, check.IfNil(generator))
 }
 
 func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 	t.Parallel()
 
-	generator := NewIdentityGenerator()
+	generator := crypto.NewIdentityGenerator()
 
 	skKey1, errGenerate := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	require.Nil(t, errGenerate)
@@ -76,7 +77,7 @@ func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 func TestIdentityGenerator_CreateRandomP2PIdentity(t *testing.T) {
 	t.Parallel()
 
-	generator := NewIdentityGenerator()
+	generator := crypto.NewIdentityGenerator()
 	sk1, pid1, err := generator.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 

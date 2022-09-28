@@ -1,4 +1,4 @@
-package crypto
+package crypto_test
 
 import (
 	"crypto/ecdsa"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -27,14 +28,14 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 	t.Run("nil private key should error", func(t *testing.T) {
 		t.Parallel()
 
-		sig, err := NewP2PSigner(nil)
-		assert.Equal(t, errNilPrivateKey, err)
+		var sig, err = p2pCrypto.NewP2PSigner(nil)
+		assert.Equal(t, p2pCrypto.ErrNilPrivateKey, err)
 		assert.Nil(t, sig)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		sig, err := NewP2PSigner(generatePrivateKey())
+		sig, err := p2pCrypto.NewP2PSigner(generatePrivateKey())
 		assert.Nil(t, err)
 		assert.NotNil(t, sig)
 	})
@@ -43,9 +44,7 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 func TestP2pSigner_Sign(t *testing.T) {
 	t.Parallel()
 
-	signer := &p2pSigner{
-		privateKey: generatePrivateKey(),
-	}
+	signer, _ := p2pCrypto.NewP2PSigner(generatePrivateKey())
 
 	sig, err := signer.Sign([]byte("payload"))
 	assert.Nil(t, err)
@@ -58,9 +57,7 @@ func TestP2pSigner_Verify(t *testing.T) {
 	sk := generatePrivateKey()
 	pk := sk.GetPublic()
 	payload := []byte("payload")
-	signer := &p2pSigner{
-		privateKey: sk,
-	}
+	signer, _ := p2pCrypto.NewP2PSigner(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 
 	t.Run("invalid public key should error", func(t *testing.T) {
@@ -112,7 +109,7 @@ func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
 
 	payload := []byte("payload")
 
-	generator := NewIdentityGenerator()
+	generator := p2pCrypto.NewIdentityGenerator()
 	skBytes1, pid1, err := generator.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 
@@ -121,9 +118,7 @@ func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
 	assert.NotEqual(t, skBytes1, skBytes2)
 
 	sk := generatePrivateKey()
-	signer := &p2pSigner{
-		privateKey: sk,
-	}
+	signer, _ := p2pCrypto.NewP2PSigner(sk)
 
 	sig1, err := signer.SignUsingPrivateKey(skBytes1, payload)
 	assert.Nil(t, err)
@@ -147,9 +142,7 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 	pk := sk.GetPublic()
 	payload1 := []byte("payload1")
 	payload2 := []byte("payload2")
-	signer := &p2pSigner{
-		privateKey: sk,
-	}
+	signer, _ := p2pCrypto.NewP2PSigner(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 	pid := core.PeerID(libp2pPid)
 

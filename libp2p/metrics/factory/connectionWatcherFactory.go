@@ -16,6 +16,6 @@ func NewConnectionsWatcher(connectionsWatcherType string, timeToLive time.Durati
 	case p2p.ConnectionWatcherTypeDisabled, p2p.ConnectionWatcherTypeEmpty:
 		return metrics.NewDisabledConnectionsWatcher(), nil
 	default:
-		return nil, fmt.Errorf("%w %s", errUnknownConnectionWatcherType, connectionsWatcherType)
+		return nil, fmt.Errorf("%w %s", ErrUnknownConnectionWatcherType, connectionsWatcherType)
 	}
 }

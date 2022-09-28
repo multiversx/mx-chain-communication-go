@@ -1,4 +1,4 @@
-package networksharding
+package networksharding_test
 
 import (
 	"encoding/hex"
@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -67,18 +68,18 @@ func countPeers(peers []peer.ID, shardID uint32, marker string) int {
 	return counter
 }
 
-func createMockListSharderArguments() ArgListsSharder {
-	return ArgListsSharder{
+func createMockListSharderArguments() networksharding.ArgListsSharder {
+	return networksharding.ArgListsSharder{
 		PeerResolver:         createStringPeersShardResolver(),
 		SelfPeerId:           crtPid,
 		PreferredPeersHolder: &mock.PeersHolderStub{},
 		P2pConfig: config.P2PConfig{
 			Sharding: config.ShardingConfig{
-				TargetPeerCount:         minAllowedConnectedPeersListSharder,
-				MaxIntraShardValidators: minAllowedValidators,
-				MaxCrossShardValidators: minAllowedValidators,
-				MaxIntraShardObservers:  minAllowedObservers,
-				MaxCrossShardObservers:  minAllowedObservers,
+				TargetPeerCount:         networksharding.MinAllowedConnectedPeersListSharder,
+				MaxIntraShardValidators: networksharding.MinAllowedValidators,
+				MaxCrossShardValidators: networksharding.MinAllowedValidators,
+				MaxIntraShardObservers:  networksharding.MinAllowedObservers,
+				MaxCrossShardObservers:  networksharding.MinAllowedObservers,
 				MaxSeeders:              0,
 			},
 		},
@@ -89,8 +90,8 @@ func TestNewListsSharder_InvalidMinimumTargetPeerCountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.P2pConfig.Sharding.TargetPeerCount = minAllowedConnectedPeersListSharder - 1
-	ls, err := NewListsSharder(arg)
+	arg.P2pConfig.Sharding.TargetPeerCount = networksharding.MinAllowedConnectedPeersListSharder - 1
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
@@ -102,7 +103,7 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 
 	arg := createMockListSharderArguments()
 	arg.PeerResolver = nil
-	ls, err := NewListsSharder(arg)
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrNilPeerShardResolver))
@@ -112,8 +113,8 @@ func TestNewListsSharder_InvalidIntraShardValidatorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.P2pConfig.Sharding.MaxIntraShardValidators = minAllowedValidators - 1
-	ls, err := NewListsSharder(arg)
+	arg.P2pConfig.Sharding.MaxIntraShardValidators = networksharding.MinAllowedValidators - 1
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
@@ -123,8 +124,8 @@ func TestNewListsSharder_InvalidCrossShardValidatorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.P2pConfig.Sharding.MaxCrossShardValidators = minAllowedValidators - 1
-	ls, err := NewListsSharder(arg)
+	arg.P2pConfig.Sharding.MaxCrossShardValidators = networksharding.MinAllowedValidators - 1
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
@@ -134,8 +135,8 @@ func TestNewListsSharder_InvalidIntraShardObserversShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.P2pConfig.Sharding.MaxIntraShardObservers = minAllowedObservers - 1
-	ls, err := NewListsSharder(arg)
+	arg.P2pConfig.Sharding.MaxIntraShardObservers = networksharding.MinAllowedObservers - 1
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
@@ -145,8 +146,8 @@ func TestNewListsSharder_InvalidCrossShardObserversShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.P2pConfig.Sharding.MaxCrossShardObservers = minAllowedObservers - 1
-	ls, err := NewListsSharder(arg)
+	arg.P2pConfig.Sharding.MaxCrossShardObservers = networksharding.MinAllowedObservers - 1
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
@@ -156,8 +157,8 @@ func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	arg.P2pConfig.Sharding.MaxCrossShardObservers = minAllowedObservers + 1
-	ls, err := NewListsSharder(arg)
+	arg.P2pConfig.Sharding.MaxCrossShardObservers = networksharding.MinAllowedObservers + 1
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
@@ -168,7 +169,7 @@ func TestNewListsSharder_NilPreferredPeersShouldErr(t *testing.T) {
 
 	arg := createMockListSharderArguments()
 	arg.PreferredPeersHolder = nil
-	ls, err := NewListsSharder(arg)
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
@@ -185,18 +186,18 @@ func TestNewListsSharder_NormalShouldWork(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
 	arg.P2pConfig.Sharding.MaxSeeders = 2
 	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
-	ls, err := NewListsSharder(arg)
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.False(t, check.IfNil(ls))
 	assert.Nil(t, err)
-	assert.Equal(t, 25, ls.maxPeerCount)
-	assert.Equal(t, 6, ls.maxIntraShardValidators)
-	assert.Equal(t, 5, ls.maxCrossShardValidators)
-	assert.Equal(t, 4, ls.maxIntraShardObservers)
-	assert.Equal(t, 3, ls.maxCrossShardObservers)
-	assert.Equal(t, 2, ls.maxSeeders)
-	assert.Equal(t, 0, ls.maxFullHistoryObservers)
-	assert.Equal(t, 5, ls.maxUnknown)
+	assert.Equal(t, 25, ls.GetMaxPeerCount())
+	assert.Equal(t, 6, ls.GetMaxIntraShardValidators())
+	assert.Equal(t, 5, ls.GetMaxCrossShardValidators())
+	assert.Equal(t, 4, ls.GetMaxIntraShardObservers())
+	assert.Equal(t, 3, ls.GetMaxCrossShardObservers())
+	assert.Equal(t, 2, ls.GetMaxSeeders())
+	assert.Equal(t, 0, ls.GetMaxFullHistoryObservers())
+	assert.Equal(t, 5, ls.GetMaxUnknown())
 }
 
 func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
@@ -211,18 +212,18 @@ func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
 	arg.P2pConfig.Sharding.MaxSeeders = 2
 	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
-	ls, err := NewListsSharder(arg)
+	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.False(t, check.IfNil(ls))
 	assert.Nil(t, err)
-	assert.Equal(t, 26, ls.maxPeerCount)
-	assert.Equal(t, 6, ls.maxIntraShardValidators)
-	assert.Equal(t, 5, ls.maxCrossShardValidators)
-	assert.Equal(t, 4, ls.maxIntraShardObservers)
-	assert.Equal(t, 3, ls.maxCrossShardObservers)
-	assert.Equal(t, 2, ls.maxSeeders)
-	assert.Equal(t, 1, ls.maxFullHistoryObservers)
-	assert.Equal(t, 5, ls.maxUnknown)
+	assert.Equal(t, 26, ls.GetMaxPeerCount())
+	assert.Equal(t, 6, ls.GetMaxIntraShardValidators())
+	assert.Equal(t, 5, ls.GetMaxCrossShardValidators())
+	assert.Equal(t, 4, ls.GetMaxIntraShardObservers())
+	assert.Equal(t, 3, ls.GetMaxCrossShardObservers())
+	assert.Equal(t, 2, ls.GetMaxSeeders())
+	assert.Equal(t, 1, ls.GetMaxFullHistoryObservers())
+	assert.Equal(t, 5, ls.GetMaxUnknown())
 }
 
 // ------- ComputeEvictionList
@@ -231,7 +232,7 @@ func TestListsSharder_ComputeEvictionListNotReachedValidatorsShouldRetEmpty(t *t
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, validatorMarker))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker))
 	pids := []peer.ID{pidCrtShard, pidCrossShard}
@@ -245,7 +246,7 @@ func TestListsSharder_ComputeEvictionListNotReachedObserversShouldRetEmpty(t *te
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker))
 	pids := []peer.ID{pidCrtShard, pidCrossShard}
@@ -259,7 +260,7 @@ func TestListsSharder_ComputeEvictionListNotReachedUnknownShouldRetEmpty(t *test
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	pidUnknown := peer.ID(fmt.Sprintf("0 %s", unknownMarker))
 	pids := []peer.ID{pidUnknown}
 
@@ -272,7 +273,7 @@ func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	pidCrtShard1 := peer.ID(fmt.Sprintf("%d - 1 - %s", crtShardId, validatorMarker))
 	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - %s", crtShardId, validatorMarker))
 	pids := []peer.ID{pidCrtShard2, pidCrtShard1}
@@ -288,7 +289,7 @@ func TestListsSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing
 
 	arg := createMockListSharderArguments()
 	arg.P2pConfig.Sharding.TargetPeerCount = 5
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 
 	unknownPids := make([]peer.ID, arg.P2pConfig.Sharding.TargetPeerCount)
 	for i := 0; i < int(arg.P2pConfig.Sharding.TargetPeerCount); i++ {
@@ -312,7 +313,7 @@ func TestListsSharder_ComputeEvictionListCrossShouldFillTheGap(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxCrossShardValidators = 1
 	arg.P2pConfig.Sharding.MaxIntraShardObservers = 1
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = 1
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 
 	pids := []peer.ID{
 		peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker)),
@@ -337,7 +338,7 @@ func TestListsSharder_ComputeEvictionListEvictFromAllShouldWork(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxIntraShardObservers = 1
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = 1
 	arg.P2pConfig.Sharding.MaxSeeders = 1
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
 		"ip6/" + seeder.Pretty(),
@@ -405,7 +406,7 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 		},
 	}
 
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
 		"ip6/" + seeder.Pretty(),
@@ -462,7 +463,7 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 			return core.P2PPeerInfo{}
 		},
 	}
-	ls, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
 		"ip6/" + seeder.Pretty(),
@@ -499,7 +500,8 @@ func TestListsSharder_HasNotFound(t *testing.T) {
 	t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
-	ls := &listsSharder{}
+	arg := createMockListSharderArguments()
+	ls, _ := networksharding.NewListsSharder(arg)
 
 	assert.False(t, ls.Has("pid4", list))
 }
@@ -508,18 +510,20 @@ func TestListsSharder_HasEmpty(t *testing.T) {
 	t.Parallel()
 
 	list := make([]peer.ID, 0)
-	lks := &listsSharder{}
+	arg := createMockListSharderArguments()
+	ls, _ := networksharding.NewListsSharder(arg)
 
-	assert.False(t, lks.Has("pid4", list))
+	assert.False(t, ls.Has("pid4", list))
 }
 
 func TestListsSharder_HasFound(t *testing.T) {
 	t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
-	lks := &listsSharder{}
+	arg := createMockListSharderArguments()
+	ls, _ := networksharding.NewListsSharder(arg)
 
-	assert.True(t, lks.Has("pid2", list))
+	assert.True(t, ls.Has("pid2", list))
 }
 
 // ------- computeDistance
@@ -528,31 +532,31 @@ func TestComputeDistanceByCountingBits(t *testing.T) {
 	t.Parallel()
 
 	// compute will be done on hashes. Impossible to predict the outcome in this test
-	assert.Equal(t, uint64(0), computeDistanceByCountingBits("", "").Uint64())
-	assert.Equal(t, uint64(0), computeDistanceByCountingBits("a", "a").Uint64())
-	assert.Equal(t, uint64(139), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
-	assert.Equal(t, uint64(130), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
-	assert.Equal(t, uint64(117), computeDistanceByCountingBits(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+	assert.Equal(t, uint64(0), networksharding.ComputeDistanceByCountingBits("", "").Uint64())
+	assert.Equal(t, uint64(0), networksharding.ComputeDistanceByCountingBits("a", "a").Uint64())
+	assert.Equal(t, uint64(139), networksharding.ComputeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(130), networksharding.ComputeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(117), networksharding.ComputeDistanceByCountingBits(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
 }
 
 func TestComputeDistanceLog2Based(t *testing.T) {
 	t.Parallel()
 
 	// compute will be done on hashes. Impossible to predict the outcome in this test
-	assert.Equal(t, uint64(0), computeDistanceLog2Based("", "").Uint64())
-	assert.Equal(t, uint64(0), computeDistanceLog2Based("a", "a").Uint64())
-	assert.Equal(t, uint64(254), computeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
-	assert.Equal(t, uint64(250), computeDistanceLog2Based(peer.ID([]byte{254}), peer.ID([]byte{255})).Uint64())
-	assert.Equal(t, uint64(256), computeDistanceLog2Based(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+	assert.Equal(t, uint64(0), networksharding.ComputeDistanceLog2Based("", "").Uint64())
+	assert.Equal(t, uint64(0), networksharding.ComputeDistanceLog2Based("a", "a").Uint64())
+	assert.Equal(t, uint64(254), networksharding.ComputeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(250), networksharding.ComputeDistanceLog2Based(peer.ID([]byte{254}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(256), networksharding.ComputeDistanceLog2Based(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
 }
 
 func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	lks, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 
-	err := lks.SetPeerShardResolver(nil)
+	err := ls.SetPeerShardResolver(nil)
 
 	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
 }
@@ -561,11 +565,11 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
-	lks, _ := NewListsSharder(arg)
+	ls, _ := networksharding.NewListsSharder(arg)
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
-	err := lks.SetPeerShardResolver(newPeerShardResolver)
+	err := ls.SetPeerShardResolver(newPeerShardResolver)
 
 	// pointer testing
-	assert.True(t, lks.peerShardResolver == newPeerShardResolver)
+	assert.True(t, ls.GetPeerShardResolver() == newPeerShardResolver)
 	assert.Nil(t, err)
 }

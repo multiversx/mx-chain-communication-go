@@ -1,4 +1,4 @@
-package libp2p
+package libp2p_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -25,7 +26,7 @@ func createStubConn() *mock.ConnStub {
 func TestNewConnectionMonitorWrapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cmw := newConnectionMonitorWrapper(
+	cmw := libp2p.NewConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
 		&mock.PeerDenialEvaluatorStub{},
@@ -46,8 +47,9 @@ func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testin
 
 		return nil
 	}
-	cmw := newConnectionMonitorWrapper(
-		&mock.NetworkStub{},
+	networkInstance := &mock.NetworkStub{}
+	cmw := libp2p.NewConnectionMonitorWrapper(
+		networkInstance,
 		&mock.ConnectionMonitorStub{},
 		&mock.PeerDenialEvaluatorStub{
 			IsDeniedCalled: func(pid core.PeerID) bool {
@@ -56,7 +58,7 @@ func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testin
 		},
 	)
 
-	cmw.Connected(cmw.network, conn)
+	cmw.Connected(networkInstance, conn)
 
 	assert.True(t, peerCloseCalled)
 }
@@ -66,8 +68,9 @@ func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t 
 
 	peerConnectedCalled := false
 	conn := createStubConn()
-	cmw := newConnectionMonitorWrapper(
-		&mock.NetworkStub{},
+	networkInstance := &mock.NetworkStub{}
+	cmw := libp2p.NewConnectionMonitorWrapper(
+		networkInstance,
 		&mock.ConnectionMonitorStub{
 			ConnectedCalled: func(netw network.Network, conn network.Conn) {
 				peerConnectedCalled = true
@@ -80,7 +83,7 @@ func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t 
 		},
 	)
 
-	cmw.Connected(cmw.network, conn)
+	cmw.Connected(networkInstance, conn)
 
 	assert.True(t, peerConnectedCalled)
 }
@@ -95,7 +98,7 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 	disconnectCalled := false
 	openedCalled := false
 	closedCalled := false
-	cmw := newConnectionMonitorWrapper(
+	cmw := libp2p.NewConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{
 			ListenCalled: func(network.Network, multiaddr.Multiaddr) {
@@ -135,7 +138,7 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cmw := newConnectionMonitorWrapper(
+	cmw := libp2p.NewConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
 		&mock.PeerDenialEvaluatorStub{},
@@ -149,7 +152,7 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *test
 func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cmw := newConnectionMonitorWrapper(
+	cmw := libp2p.NewConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
 		&mock.PeerDenialEvaluatorStub{},
@@ -160,7 +163,6 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	// pointer testing
-	assert.True(t, newPeerDenialEvaluator == cmw.peerDenialEvaluator)
 	assert.True(t, newPeerDenialEvaluator == cmw.PeerDenialEvaluator())
 }
 
@@ -172,7 +174,7 @@ func TestConnectionMonitorWrapper_CheckConnectionsBlockingShouldWork(t *testing.
 	whiteListPeer := peer.ID("whitelisted")
 	blackListPeer := peer.ID("blacklisted")
 	closeCalled := 0
-	cmw := newConnectionMonitorWrapper(
+	cmw := libp2p.NewConnectionMonitorWrapper(
 		&mock.NetworkStub{
 			PeersCall: func() []peer.ID {
 				return []peer.ID{whiteListPeer, blackListPeer}

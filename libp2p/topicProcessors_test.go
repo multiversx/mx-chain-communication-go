@@ -1,4 +1,4 @@
-package libp2p
+package libp2p_test
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +15,7 @@ import (
 func TestNewTopicProcessors(t *testing.T) {
 	t.Parallel()
 
-	tp := newTopicProcessors()
+	tp := libp2p.NewTopicProcessors()
 
 	assert.NotNil(t, tp)
 }
@@ -22,37 +23,41 @@ func TestNewTopicProcessors(t *testing.T) {
 func TestTopicProcessorsAddShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tp := newTopicProcessors()
+	tp := libp2p.NewTopicProcessors()
 
 	identifier := "identifier"
 	proc := &mock.MessageProcessorStub{}
-	err := tp.addTopicProcessor(identifier, proc)
+	err := tp.AddTopicProcessor(identifier, proc)
 
 	assert.Nil(t, err)
-	require.Equal(t, 1, len(tp.processors))
-	assert.True(t, proc == tp.processors[identifier]) // pointer testing
+	topics, processors := tp.GetList()
+	require.Equal(t, 1, len(topics))
+	require.Equal(t, 1, len(processors))
+	assert.True(t, proc == processors[0]) // pointer testing
 }
 
 func TestTopicProcessorsDoubleAddShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tp := newTopicProcessors()
+	tp := libp2p.NewTopicProcessors()
 
 	identifier := "identifier"
-	_ = tp.addTopicProcessor(identifier, &mock.MessageProcessorStub{})
-	err := tp.addTopicProcessor(identifier, &mock.MessageProcessorStub{})
+	_ = tp.AddTopicProcessor(identifier, &mock.MessageProcessorStub{})
+	err := tp.AddTopicProcessor(identifier, &mock.MessageProcessorStub{})
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
-	require.Equal(t, 1, len(tp.processors))
+	topics, processors := tp.GetList()
+	require.Equal(t, 1, len(topics))
+	require.Equal(t, 1, len(processors))
 }
 
 func TestTopicProcessorsRemoveInexistentShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tp := newTopicProcessors()
+	tp := libp2p.NewTopicProcessors()
 
 	identifier := "identifier"
-	err := tp.removeTopicProcessor(identifier)
+	err := tp.RemoveTopicProcessor(identifier)
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorDoesNotExists))
 }
@@ -60,30 +65,36 @@ func TestTopicProcessorsRemoveInexistentShouldErr(t *testing.T) {
 func TestTopicProcessorsRemoveShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tp := newTopicProcessors()
+	tp := libp2p.NewTopicProcessors()
 
 	identifier1 := "identifier1"
 	identifier2 := "identifier2"
-	_ = tp.addTopicProcessor(identifier1, &mock.MessageProcessorStub{})
-	_ = tp.addTopicProcessor(identifier2, &mock.MessageProcessorStub{})
+	_ = tp.AddTopicProcessor(identifier1, &mock.MessageProcessorStub{})
+	_ = tp.AddTopicProcessor(identifier2, &mock.MessageProcessorStub{})
 
-	require.Equal(t, 2, len(tp.processors))
+	topics, processors := tp.GetList()
+	require.Equal(t, 2, len(topics))
+	require.Equal(t, 2, len(processors))
 
-	err := tp.removeTopicProcessor(identifier2)
-
+	err := tp.RemoveTopicProcessor(identifier2)
 	assert.Nil(t, err)
-	require.Equal(t, 1, len(tp.processors))
 
-	err = tp.removeTopicProcessor(identifier1)
+	topics, processors = tp.GetList()
+	require.Equal(t, 1, len(topics))
+	require.Equal(t, 1, len(processors))
 
+	err = tp.RemoveTopicProcessor(identifier1)
 	assert.Nil(t, err)
-	require.Equal(t, 0, len(tp.processors))
+
+	topics, processors = tp.GetList()
+	require.Equal(t, 0, len(topics))
+	require.Equal(t, 0, len(processors))
 }
 
 func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
 	t.Parallel()
 
-	tp := newTopicProcessors()
+	tp := libp2p.NewTopicProcessors()
 
 	identifier1 := "identifier1"
 	identifier2 := "identifier2"
@@ -104,28 +115,26 @@ func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
 		},
 	}
 
-	_ = tp.addTopicProcessor(identifier3, handler3)
-	_ = tp.addTopicProcessor(identifier1, handler1)
-	_ = tp.addTopicProcessor(identifier2, handler2)
+	_ = tp.AddTopicProcessor(identifier3, handler3)
+	_ = tp.AddTopicProcessor(identifier1, handler1)
+	_ = tp.AddTopicProcessor(identifier2, handler2)
 
-	require.Equal(t, 3, len(tp.processors))
+	topics, processors := tp.GetList()
+	assert.ElementsMatch(t, []string{identifier1, identifier2, identifier3}, topics)
+	assert.ElementsMatch(t, []p2p.MessageProcessor{handler1, handler2, handler3}, processors)
 
-	identifiers, handlers := tp.getList()
-	assert.ElementsMatch(t, identifiers, []string{identifier1, identifier2, identifier3})
-	assert.ElementsMatch(t, handlers, []p2p.MessageProcessor{handler1, handler2, handler3})
+	_ = tp.RemoveTopicProcessor(identifier1)
+	topics, processors = tp.GetList()
+	assert.ElementsMatch(t, []string{identifier2, identifier3}, topics)
+	assert.ElementsMatch(t, []p2p.MessageProcessor{handler2, handler3}, processors)
 
-	_ = tp.removeTopicProcessor(identifier1)
-	identifiers, handlers = tp.getList()
-	assert.ElementsMatch(t, identifiers, []string{identifier2, identifier3})
-	assert.ElementsMatch(t, handlers, []p2p.MessageProcessor{handler2, handler3})
+	_ = tp.RemoveTopicProcessor(identifier2)
+	topics, processors = tp.GetList()
+	assert.Equal(t, []string{identifier3}, topics)
+	assert.Equal(t, []p2p.MessageProcessor{handler3}, processors)
 
-	_ = tp.removeTopicProcessor(identifier2)
-	identifiers, handlers = tp.getList()
-	assert.Equal(t, identifiers, []string{identifier3})
-	assert.Equal(t, handlers, []p2p.MessageProcessor{handler3})
-
-	_ = tp.removeTopicProcessor(identifier3)
-	identifiers, handlers = tp.getList()
-	assert.Equal(t, identifiers, make([]string, 0))
-	assert.Equal(t, handlers, make([]p2p.MessageProcessor, 0))
+	_ = tp.RemoveTopicProcessor(identifier3)
+	topics, processors = tp.GetList()
+	assert.Empty(t, topics)
+	assert.Empty(t, processors)
 }

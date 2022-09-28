@@ -1,4 +1,4 @@
-package metrics
+package metrics_test
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,14 +18,14 @@ func TestNewPrintConnectionsWatcher(t *testing.T) {
 	t.Run("invalid value for time to live parameter should error", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, err := NewPrintConnectionsWatcher(minTimeToLive - time.Nanosecond)
+		pcw, err := metrics.NewPrintConnectionsWatcher(metrics.MinTimeToLive - time.Nanosecond)
 		assert.True(t, check.IfNil(pcw))
-		assert.True(t, errors.Is(err, errInvalidValueForTimeToLiveParam))
+		assert.True(t, errors.Is(err, metrics.ErrInvalidValueForTimeToLiveParam))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, err := NewPrintConnectionsWatcher(minTimeToLive)
+		pcw, err := metrics.NewPrintConnectionsWatcher(metrics.MinTimeToLive)
 		assert.False(t, check.IfNil(pcw))
 		assert.Nil(t, err)
 
@@ -38,23 +39,23 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 	t.Run("no iteration has been done", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, _ := NewPrintConnectionsWatcher(time.Hour)
+		pcw, _ := metrics.NewPrintConnectionsWatcher(time.Hour)
 		err := pcw.Close()
 
 		assert.Nil(t, err)
 		time.Sleep(time.Second) // allow the go routine to close
-		assert.True(t, pcw.goRoutineClosed.IsSet())
+		assert.True(t, pcw.GoRoutineClosed())
 	})
 	t.Run("iterations were done", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, _ := NewPrintConnectionsWatcher(time.Second)
+		pcw, _ := metrics.NewPrintConnectionsWatcher(time.Second)
 		time.Sleep(time.Second * 4)
 		err := pcw.Close()
 
 		assert.Nil(t, err)
 		time.Sleep(time.Second) // allow the go routine to close
-		assert.True(t, pcw.goRoutineClosed.IsSet())
+		assert.True(t, pcw.GoRoutineClosed())
 	})
 
 }
@@ -70,7 +71,7 @@ func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 		handler := func(pid core.PeerID, conn string) {
 			numCalled++
 		}
-		pcw, _ := NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
+		pcw, _ := metrics.NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
 
 		pcw.NewKnownConnection(providedPid, connection)
 		assert.Equal(t, 0, numCalled)
@@ -85,7 +86,7 @@ func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 			assert.Equal(t, providedPid, pid)
 			assert.Equal(t, connection, conn)
 		}
-		pcw, _ := NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
+		pcw, _ := metrics.NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
 
 		pcw.NewKnownConnection(providedPid, connection)
 		assert.Equal(t, 1, numCalled)
@@ -104,5 +105,5 @@ func TestLogPrintHandler_shouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	logPrintHandler("pid", "connection")
+	metrics.LogPrintHandler("pid", "connection")
 }
