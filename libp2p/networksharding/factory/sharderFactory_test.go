@@ -1,4 +1,4 @@
-package factory
+package factory_test
 
 import (
 	"errors"
@@ -10,12 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/factory"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArg() ArgsSharderFactory {
-	return ArgsSharderFactory{
+func createMockArg() factory.ArgsSharderFactory {
+	return factory.ArgsSharderFactory{
 
 		PeerShardResolver:    &mock.PeerShardResolverStub{},
 		Pid:                  "",
@@ -43,7 +44,7 @@ func TestNewSharder_CreateListsSharderUnknownNodeOperationShouldError(t *testing
 	arg := createMockArg()
 	arg.P2pConfig.Sharding.Type = p2p.ListsSharder
 	arg.NodeOperationMode = ""
-	sharder, err := NewSharder(arg)
+	sharder, err := factory.NewSharder(arg)
 
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	assert.True(t, strings.Contains(err.Error(), "unknown node operation mode"))
@@ -55,7 +56,7 @@ func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
 
 	arg := createMockArg()
 	arg.P2pConfig.Sharding.Type = p2p.ListsSharder
-	sharder, err := NewSharder(arg)
+	sharder, err := factory.NewSharder(arg)
 	maxPeerCount := uint32(5)
 	maxValidators := uint32(1)
 	maxObservers := uint32(1)
@@ -84,7 +85,7 @@ func TestNewSharder_CreateOneListSharderShouldWork(t *testing.T) {
 
 	arg := createMockArg()
 	arg.P2pConfig.Sharding.Type = p2p.OneListSharder
-	sharder, err := NewSharder(arg)
+	sharder, err := factory.NewSharder(arg)
 	maxPeerCount := 2
 
 	expectedSharder, _ := networksharding.NewOneListSharder("", maxPeerCount)
@@ -97,7 +98,7 @@ func TestNewSharder_CreateNilListSharderShouldWork(t *testing.T) {
 
 	arg := createMockArg()
 	arg.P2pConfig.Sharding.Type = p2p.NilListSharder
-	sharder, err := NewSharder(arg)
+	sharder, err := factory.NewSharder(arg)
 
 	expectedSharder := networksharding.NewNilListSharder()
 	assert.Nil(t, err)
@@ -108,7 +109,7 @@ func TestNewSharder_CreateWithUnknownVariantShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
-	sharder, err := NewSharder(arg)
+	sharder, err := factory.NewSharder(arg)
 
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	assert.True(t, check.IfNil(sharder))

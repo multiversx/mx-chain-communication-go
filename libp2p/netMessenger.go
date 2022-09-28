@@ -24,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
 	metricsFactory "github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/factory"
-	"github.com/ElrondNetwork/elrond-go-p2p/loadBalancer"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	logging "github.com/ipfs/go-log"
@@ -36,11 +35,8 @@ import (
 )
 
 const (
-	// ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
-	ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
-
-	// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
-	ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
+	// TestListenAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP used in testing
+	TestListenAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
 	// DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 	DirectSendID = protocol.ID("/erd/directsend/1.0.0")
@@ -106,7 +102,7 @@ type networkMessenger struct {
 	processors              map[string]*topicProcessors
 	topics                  map[string]*pubsub.Topic
 	subscriptions           map[string]*pubsub.Subscription
-	outgoingPLB             p2p.ChannelLoadBalancer
+	outgoingPLB             ChannelLoadBalancer
 	poc                     *peersOnChannel
 	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
 	connectionsMetric       *metrics.Connections
@@ -269,7 +265,7 @@ func addComponentsToNode(
 	p2pNode.processors = make(map[string]*topicProcessors)
 	p2pNode.topics = make(map[string]*pubsub.Topic)
 	p2pNode.subscriptions = make(map[string]*pubsub.Subscription)
-	p2pNode.outgoingPLB = loadBalancer.NewOutgoingChannelLoadBalancer()
+	p2pNode.outgoingPLB = NewOutgoingChannelLoadBalancer()
 	p2pNode.peerShardResolver = &unknownPeerShardResolver{}
 	p2pNode.marshalizer = args.Marshalizer
 	p2pNode.syncTimer = args.SyncTimer
@@ -336,7 +332,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 		return err
 	}
 
-	go func(plb p2p.ChannelLoadBalancer) {
+	go func(plb ChannelLoadBalancer) {
 		for {
 			select {
 			case <-time.After(durationBetweenSends):
@@ -377,7 +373,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	return nil
 }
 
-func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *p2p.SendableData, packedSendableDataBuff []byte) error {
+func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *SendableData, packedSendableDataBuff []byte) error {
 	if data.Sk == nil {
 		return topic.Publish(netMes.ctx, packedSendableDataBuff)
 	}
@@ -889,7 +885,7 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 
 	netMes.goRoutinesThrottler.StartProcessing()
 
-	sendable := &p2p.SendableData{
+	sendable := &SendableData{
 		Buff:  buff,
 		Topic: topic,
 		ID:    netMes.p2pHost.ID(),
@@ -951,7 +947,7 @@ func (netMes *networkMessenger) BroadcastOnChannelBlockingUsingPrivateKey(
 
 	netMes.goRoutinesThrottler.StartProcessing()
 
-	sendable := &p2p.SendableData{
+	sendable := &SendableData{
 		Buff:  buff,
 		Topic: topic,
 		Sk:    sk,

@@ -1,4 +1,4 @@
-package networksharding
+package networksharding_test
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,9 +14,9 @@ import (
 func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ols, err := NewOneListSharder(
+	ols, err := networksharding.NewOneListSharder(
 		"",
-		minAllowedConnectedPeersOneSharder-1,
+		networksharding.MinAllowedConnectedPeersOneSharder-1,
 	)
 
 	assert.True(t, check.IfNil(ols))
@@ -25,9 +26,9 @@ func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 func TestNewOneListSharder_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ols, err := NewOneListSharder(
+	ols, err := networksharding.NewOneListSharder(
 		"",
-		minAllowedConnectedPeersOneSharder,
+		networksharding.MinAllowedConnectedPeersOneSharder,
 	)
 
 	assert.False(t, check.IfNil(ols))
@@ -39,9 +40,9 @@ func TestNewOneListSharder_ShouldWork(t *testing.T) {
 func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	ols, _ := NewOneListSharder(
+	ols, _ := networksharding.NewOneListSharder(
 		crtPid,
-		minAllowedConnectedPeersOneSharder,
+		networksharding.MinAllowedConnectedPeersOneSharder,
 	)
 	pid1 := peer.ID("pid1")
 	pid2 := peer.ID("pid2")
@@ -55,9 +56,9 @@ func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T
 func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *testing.T) {
 	t.Parallel()
 
-	ols, _ := NewOneListSharder(
+	ols, _ := networksharding.NewOneListSharder(
 		crtPid,
-		minAllowedConnectedPeersOneSharder,
+		networksharding.MinAllowedConnectedPeersOneSharder,
 	)
 	pid1 := peer.ID("pid1")
 	pid2 := peer.ID("pid2")
@@ -77,27 +78,36 @@ func TestOneListSharder_HasNotFound(t *testing.T) {
 	t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
-	lnks := &oneListSharder{}
+	ols, _ := networksharding.NewOneListSharder(
+		crtPid,
+		networksharding.MinAllowedConnectedPeersOneSharder,
+	)
 
-	assert.False(t, lnks.Has("pid4", list))
+	assert.False(t, ols.Has("pid4", list))
 }
 
 func TestOneListSharder_HasEmpty(t *testing.T) {
 	t.Parallel()
 
 	list := make([]peer.ID, 0)
-	lnks := &oneListSharder{}
+	ols, _ := networksharding.NewOneListSharder(
+		crtPid,
+		networksharding.MinAllowedConnectedPeersOneSharder,
+	)
 
-	assert.False(t, lnks.Has("pid4", list))
+	assert.False(t, ols.Has("pid4", list))
 }
 
 func TestOneListSharder_HasFound(t *testing.T) {
 	t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
-	lnks := &oneListSharder{}
+	ols, _ := networksharding.NewOneListSharder(
+		crtPid,
+		networksharding.MinAllowedConnectedPeersOneSharder,
+	)
 
-	assert.True(t, lnks.Has("pid2", list))
+	assert.True(t, ols.Has("pid2", list))
 }
 
 func TestOneListSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
@@ -110,9 +120,9 @@ func TestOneListSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	ols, _ := NewOneListSharder(
+	ols, _ := networksharding.NewOneListSharder(
 		"",
-		minAllowedConnectedPeersOneSharder,
+		networksharding.MinAllowedConnectedPeersOneSharder,
 	)
 
 	err := ols.SetPeerShardResolver(nil)

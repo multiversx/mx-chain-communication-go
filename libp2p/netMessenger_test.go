@@ -98,7 +98,7 @@ func getConnectableAddress(messenger p2p.Messenger) string {
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -331,7 +331,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 
 func TestNewNetworkMessenger_WithListenAddrWithIp4AndTcpShouldWork(t *testing.T) {
 	arg := createMockNetworkArgs()
-	arg.ListenAddress = libp2p.ListenAddrWithIp4AndTcp
+	arg.ListenAddress = libp2p.TestListenAddrWithIp4AndTcp
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		Type:                             "optimized",
@@ -571,12 +571,12 @@ func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T
 	msg := make([]byte, libp2p.MaxSendBuffSize+1)
 	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	messenger.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
-		GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
+		GetChannelOrDefaultCalled: func(pipe string) chan *libp2p.SendableData {
 			assert.Fail(t, "should have not got to this line")
 
-			return make(chan *p2p.SendableData, 1)
+			return make(chan *libp2p.SendableData, 1)
 		},
-		CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+		CollectOneElementFromChannelsCalled: func() *libp2p.SendableData {
 			return nil
 		},
 	})
@@ -630,17 +630,17 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	msg := []byte("test message")
 	numBroadcasts := libp2p.BroadcastGoRoutines + 5
 
-	ch := make(chan *p2p.SendableData)
+	ch := make(chan *libp2p.SendableData)
 
 	wg := sync.WaitGroup{}
 	wg.Add(numBroadcasts)
 
 	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	messenger.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
-		CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+		CollectOneElementFromChannelsCalled: func() *libp2p.SendableData {
 			return nil
 		},
-		GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
+		GetChannelOrDefaultCalled: func(pipe string) chan *libp2p.SendableData {
 			wg.Done()
 			return ch
 		},
@@ -1169,7 +1169,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 
 	args := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -1234,7 +1234,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 
 	args := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -1482,7 +1482,7 @@ func TestNetworkMessenger_DoubleCloseShouldWork(t *testing.T) {
 
 func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		Marshalizer:   &mock.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
@@ -1549,7 +1549,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -1622,7 +1622,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -1686,7 +1686,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   &mock.ProtoMarshallerMock{},
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -1883,7 +1883,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 
 	args := libp2p.ArgsNetworkMessenger{
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		Marshalizer:   &marshal.GogoProtoMarshalizer{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{

@@ -1,4 +1,4 @@
-package sorting
+package sorting_test
 
 import (
 	"fmt"
@@ -6,12 +6,13 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
-func createPeerDistance(distance int) *PeerDistance {
-	return &PeerDistance{
+func createPeerDistance(distance int) *sorting.PeerDistance {
+	return &sorting.PeerDistance{
 		ID:       peer.ID(fmt.Sprintf("pid_%d", distance)),
 		Distance: big.NewInt(int64(distance)),
 	}
@@ -26,7 +27,7 @@ func TestPeerDistances_Sort(t *testing.T) {
 	pid1 := createPeerDistance(1)
 	pid2 := createPeerDistance(2)
 
-	pids := PeerDistances{pid4, pid0, pid100, pid1, pid2}
+	pids := sorting.PeerDistances{pid4, pid0, pid100, pid1, pid2}
 	sort.Sort(pids)
 
 	assert.Equal(t, pid0, pids[0])

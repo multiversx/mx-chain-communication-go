@@ -9,10 +9,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 )
 
+const MinTimeToLive = minTimeToLive
+
 // NewPrintConnectionsWatcherWithHandler -
 func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler func(pid core.PeerID, connection string)) (*printConnectionsWatcher, error) {
 	if timeToLive < minTimeToLive {
-		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", errInvalidValueForTimeToLiveParam, timeToLive, minTimeToLive)
+		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", ErrInvalidValueForTimeToLiveParam, timeToLive, minTimeToLive)
 	}
 
 	pcw := &printConnectionsWatcher{
@@ -26,4 +28,12 @@ func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler fun
 	go pcw.doSweep(ctx)
 
 	return pcw, nil
+}
+
+func LogPrintHandler(pid core.PeerID, connection string) {
+	logPrintHandler(pid, connection)
+}
+
+func (pcw *printConnectionsWatcher) GoRoutineClosed() bool {
+	return pcw.goRoutineClosed.IsSet()
 }

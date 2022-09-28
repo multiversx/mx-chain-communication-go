@@ -2,4 +2,5 @@ package factory
 
 import "errors"
 
-var errUnknownConnectionWatcherType = errors.New("unknown connection type")
+// ErrUnknownConnectionWatcherType signals that an unknown connection watcher type was provided
+var ErrUnknownConnectionWatcherType = errors.New("unknown connection type")

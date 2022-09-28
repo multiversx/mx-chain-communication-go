@@ -1,4 +1,4 @@
-package libp2p
+package libp2p_test
 
 import (
 	"errors"
@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetPort_InvalidStringShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("NaN", checkFreePort)
+	port, err := libp2p.GetPort("NaN", libp2p.CheckFreePort)
 
 	assert.Equal(t, 0, port)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidPortsRangeString))
@@ -22,7 +23,7 @@ func TestGetPort_InvalidStringShouldErr(t *testing.T) {
 func TestGetPort_InvalidPortNumberShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("-1", checkFreePort)
+	port, err := libp2p.GetPort("-1", libp2p.CheckFreePort)
 	assert.Equal(t, 0, port)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidPortValue))
 }
@@ -30,12 +31,12 @@ func TestGetPort_InvalidPortNumberShouldErr(t *testing.T) {
 func TestGetPort_SinglePortShouldWork(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("0", checkFreePort)
+	port, err := libp2p.GetPort("0", libp2p.CheckFreePort)
 	assert.Equal(t, 0, port)
 	assert.Nil(t, err)
 
 	p := 3638
-	port, err = getPort(fmt.Sprintf("%d", p), checkFreePort)
+	port, err = libp2p.GetPort(fmt.Sprintf("%d", p), libp2p.CheckFreePort)
 	assert.Equal(t, p, port)
 	assert.Nil(t, err)
 }
@@ -43,11 +44,11 @@ func TestGetPort_SinglePortShouldWork(t *testing.T) {
 func TestCheckFreePort_InvalidStartingPortShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("NaN-10000", checkFreePort)
+	port, err := libp2p.GetPort("NaN-10000", libp2p.CheckFreePort)
 	assert.Equal(t, 0, port)
 	assert.Equal(t, p2p.ErrInvalidStartingPortValue, err)
 
-	port, err = getPort("1024-10000", checkFreePort)
+	port, err = libp2p.GetPort("1024-10000", libp2p.CheckFreePort)
 	assert.Equal(t, 0, port)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
@@ -55,7 +56,7 @@ func TestCheckFreePort_InvalidStartingPortShouldErr(t *testing.T) {
 func TestCheckFreePort_InvalidEndingPortShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("10000-NaN", checkFreePort)
+	port, err := libp2p.GetPort("10000-NaN", libp2p.CheckFreePort)
 	assert.Equal(t, 0, port)
 	assert.Equal(t, p2p.ErrInvalidEndingPortValue, err)
 }
@@ -63,7 +64,7 @@ func TestCheckFreePort_InvalidEndingPortShouldErr(t *testing.T) {
 func TestGetPort_EndPortLargerThanSendPort(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("10000-9999", checkFreePort)
+	port, err := libp2p.GetPort("10000-9999", libp2p.CheckFreePort)
 	assert.Equal(t, 0, port)
 	assert.Equal(t, p2p.ErrEndPortIsSmallerThanStartPort, err)
 }
@@ -81,7 +82,7 @@ func TestGetPort_RangeOfOneShouldWork(t *testing.T) {
 		return nil
 	}
 
-	result, err := getPort(fmt.Sprintf("%d-%d", port, port), handler)
+	result, err := libp2p.GetPort(fmt.Sprintf("%d-%d", port, port), handler)
 	assert.Nil(t, err)
 	assert.Equal(t, port, result)
 }
@@ -98,7 +99,7 @@ func TestGetPort_RangeOccupiedShouldErrorShouldWork(t *testing.T) {
 		return expectedErr
 	}
 
-	result, err := getPort(fmt.Sprintf("%d-%d", portStart, portEnd), handler)
+	result, err := libp2p.GetPort(fmt.Sprintf("%d-%d", portStart, portEnd), handler)
 
 	assert.True(t, errors.Is(err, p2p.ErrNoFreePortInRange))
 	assert.Equal(t, portEnd-portStart+1, len(portsTried))
@@ -106,13 +107,13 @@ func TestGetPort_RangeOccupiedShouldErrorShouldWork(t *testing.T) {
 }
 
 func TestCheckFreePort_PortZeroAlwaysWorks(t *testing.T) {
-	err := checkFreePort(0)
+	err := libp2p.CheckFreePort(0)
 
 	assert.Nil(t, err)
 }
 
 func TestCheckFreePort_InvalidPortShouldErr(t *testing.T) {
-	err := checkFreePort(-1)
+	err := libp2p.CheckFreePort(-1)
 
 	assert.NotNil(t, err)
 }
@@ -136,7 +137,7 @@ func TestCheckFreePort_OccupiedPortShouldErr(t *testing.T) {
 	port := l.Addr().(*net.TCPAddr).Port
 
 	fmt.Printf("testing port %d\n", port)
-	err = checkFreePort(port)
+	err = libp2p.CheckFreePort(port)
 	assert.NotNil(t, err)
 
 	_ = l.Close()

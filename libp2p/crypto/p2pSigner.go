@@ -17,7 +17,7 @@ type p2pSigner struct {
 // NewP2PSigner creates a new p2pSigner instance
 func NewP2PSigner(privateKey libp2pCrypto.PrivKey) (*p2pSigner, error) {
 	if check.IfNilReflect(privateKey) {
-		return nil, errNilPrivateKey
+		return nil, ErrNilPrivateKey
 	}
 
 	return &p2pSigner{

@@ -2,4 +2,5 @@ package crypto
 
 import "errors"
 
-var errNilPrivateKey = errors.New("nil private key")
+// ErrNilPrivateKey signals that a nil private key was provided
+var ErrNilPrivateKey = errors.New("nil private key")

@@ -1,10 +1,11 @@
-package metrics
+package metrics_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestDisabledConnectionsWatcher_MethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	dcw := NewDisabledConnectionsWatcher()
+	dcw := metrics.NewDisabledConnectionsWatcher()
 	assert.False(t, check.IfNil(dcw))
 	dcw.NewKnownConnection("", "")
 	err := dcw.Close()
