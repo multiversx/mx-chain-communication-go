@@ -30,7 +30,7 @@ func (m *Message) Data() []byte {
 	return m.DataField
 }
 
-// Payload returns the encapsulated message along with meta data such as timestamp
+// Payload returns the encapsulated message along with metadata such as timestamp
 func (m *Message) Payload() []byte {
 	return m.PayloadField
 }
@@ -50,7 +50,7 @@ func (m *Message) Signature() []byte {
 	return m.SignatureField
 }
 
-// Key returns the message public key (if it can not be recovered from From field)
+// Key returns the message public key (if it can not be recovered from the From field)
 func (m *Message) Key() []byte {
 	return m.KeyField
 }

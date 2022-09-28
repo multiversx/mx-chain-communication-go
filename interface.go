@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
@@ -17,14 +15,6 @@ import (
 type MessageProcessor interface {
 	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID) error
 	IsInterfaceNil() bool
-}
-
-// SendableData represents the struct used in data throttler implementation
-type SendableData struct {
-	Buff  []byte
-	Topic string
-	Sk    crypto.PrivKey
-	ID    peer.ID
 }
 
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
@@ -160,16 +150,6 @@ type MessageP2P interface {
 	Key() []byte
 	Peer() core.PeerID
 	Timestamp() int64
-	IsInterfaceNil() bool
-}
-
-// ChannelLoadBalancer defines what a load balancer that uses chans should do
-type ChannelLoadBalancer interface {
-	AddChannel(channel string) error
-	RemoveChannel(channel string) error
-	GetChannelOrDefault(channel string) chan *SendableData
-	CollectOneElementFromChannels() *SendableData
-	Close() error
 	IsInterfaceNil() bool
 }
 
