@@ -128,7 +128,7 @@ func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) e
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshaller,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
