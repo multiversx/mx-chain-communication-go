@@ -42,6 +42,12 @@ var timeoutWaitResponses = time.Second * 2
 var log = logger.GetOrCreate("p2p/libp2p/tests")
 var noSigCheckHandler = func(sigSize int) bool { return true }
 
+func closeMessengers(messengers ...p2p.Messenger) {
+	for _, mes := range messengers {
+		_ = mes.Close()
+	}
+}
+
 type noSigner struct {
 	p2p.SignerVerifier
 }
@@ -189,11 +195,10 @@ func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T)
 	netw := mocknet.New()
 
 	messenger, err := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(messenger))
-
-	_ = messenger.Close()
 }
 
 // ------- NewNetworkMessenger
@@ -237,11 +242,10 @@ func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
 	arg := createMockNetworkArgs()
 	messenger, err := libp2p.NewNetworkMessenger(arg)
+	defer closeMessengers(messenger)
 
 	assert.NotNil(t, messenger)
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
@@ -253,11 +257,10 @@ func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
 		arg := createMockNetworkArgs()
 		arg.P2pPrivateKeyBytes = []byte{}
 		messenger, err := libp2p.NewNetworkMessenger(arg)
+		defer closeMessengers(messenger)
 
 		assert.NotNil(t, messenger)
 		assert.Nil(t, err)
-
-		_ = messenger.Close()
 	})
 
 	t.Run("with invalid private key bytes", func(t *testing.T) {
@@ -280,11 +283,10 @@ func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
 		arg := createMockNetworkArgs()
 		arg.P2pPrivateKeyBytes = pkBytes
 		messenger, err := libp2p.NewNetworkMessenger(arg)
+		defer closeMessengers(messenger)
 
 		assert.NotNil(t, messenger)
 		assert.Nil(t, err)
-
-		_ = messenger.Close()
 	})
 }
 
@@ -322,11 +324,10 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 		TargetPeerCount: 10,
 	}
 	messenger, err := libp2p.NewNetworkMessenger(arg)
+	defer closeMessengers(messenger)
 
 	assert.False(t, check.IfNil(messenger))
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestNewNetworkMessenger_WithListenAddrWithIp4AndTcpShouldWork(t *testing.T) {
@@ -346,11 +347,10 @@ func TestNewNetworkMessenger_WithListenAddrWithIp4AndTcpShouldWork(t *testing.T)
 		TargetPeerCount: 10,
 	}
 	messenger, err := libp2p.NewNetworkMessenger(arg)
+	defer closeMessengers(messenger)
 
 	assert.False(t, check.IfNil(messenger))
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 // ------- Messenger functionality
@@ -359,7 +359,7 @@ func TestLibp2pMessenger_ConnectToPeerShouldCallUpgradedHost(t *testing.T) {
 	netw := mocknet.New()
 
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
-	_ = messenger.Close()
+	closeMessengers(messenger)
 
 	wasCalled := false
 
@@ -381,6 +381,7 @@ func TestLibp2pMessenger_ConnectToPeerShouldCallUpgradedHost(t *testing.T) {
 
 func TestLibp2pMessenger_IsConnectedShouldWork(t *testing.T) {
 	_, messenger1, messenger2 := createMockNetworkOf2()
+	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -390,86 +391,78 @@ func TestLibp2pMessenger_IsConnectedShouldWork(t *testing.T) {
 
 	assert.True(t, messenger1.IsConnected(messenger2.ID()))
 	assert.True(t, messenger2.IsConnected(messenger1.ID()))
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_CreateTopicOkValsShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	err := messenger.CreateTopic("test", true)
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_CreateTopicTwiceShouldNotErr(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 	err := messenger.CreateTopic("test", false)
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_HasTopicIfHaveTopicShouldReturnTrue(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 
 	assert.True(t, messenger.HasTopic("test"))
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 
 	assert.False(t, messenger.HasTopic("one topic"))
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 
 	err := messenger.RegisterMessageProcessor("test", "identifier", nil)
 
 	assert.True(t, errors.Is(err, p2p.ErrNilValidator))
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 
 	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
+
 	_ = messenger.CreateTopic("test", false)
 	// registration
 	_ = messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
@@ -477,23 +470,21 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldNotErr(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 	err := messenger.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
 
 	_ = messenger.CreateTopic("test", false)
 
@@ -504,12 +495,12 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	err := messenger.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
+
 	_ = messenger.CreateTopic("test", false)
 	// registration
 	_ = messenger.CreateTopic("test1", false)
@@ -523,7 +514,6 @@ func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	err = messenger.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing.T) {
@@ -535,6 +525,8 @@ func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing
 	}()
 
 	messenger := createMockMessenger()
+	defer closeMessengers(messenger)
+
 	topic := "test topic"
 	_ = messenger.CreateTopic(topic, false)
 
@@ -564,12 +556,13 @@ func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing
 	}
 
 	wg.Wait()
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
 	msg := make([]byte, libp2p.MaxSendBuffSize+1)
 	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	defer closeMessengers(messenger)
+
 	messenger.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
 		GetChannelOrDefaultCalled: func(pipe string) chan *libp2p.SendableData {
 			assert.Fail(t, "should have not got to this line")
@@ -582,14 +575,13 @@ func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T
 	})
 
 	messenger.Broadcast("topic", msg)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
 	_, messenger1, messenger2 := createMockNetworkOf2()
+	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -617,9 +609,6 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 	messenger1.Broadcast("test", msg)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines(t *testing.T) {
@@ -636,6 +625,8 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	wg.Add(numBroadcasts)
 
 	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	defer closeMessengers(messenger)
+
 	messenger.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
 		CollectOneElementFromChannelsCalled: func() *libp2p.SendableData {
 			return nil
@@ -669,14 +660,13 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	}
 
 	assert.True(t, atomic.LoadUint32(&numErrors) > 0)
-
-	_ = messenger.Close()
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *testing.T) {
 	msg := bytes.Repeat([]byte{'A'}, libp2p.MaxSendBuffSize)
 
 	_, messenger1, messenger2 := createMockNetworkOf2()
+	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -704,13 +694,11 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *tes
 	messenger1.Broadcast("test", msg)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_Peers(t *testing.T) {
 	_, messenger1, messenger2 := createMockNetworkOf2()
+	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -734,14 +722,12 @@ func TestLibp2pMessenger_Peers(t *testing.T) {
 	}
 
 	assert.True(t, foundCurrent && foundConnected)
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3)
 
 	_ = netw.LinkAll()
 
@@ -758,15 +744,12 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	assert.Equal(t, []core.PeerID{messenger2.ID()}, messenger3.ConnectedPeers())
 	assert.Equal(t, 2, len(messenger2.ConnectedPeers()))
 	// no need to further test that messenger2 is connected to messenger1 and messenger3 as this was tested in first 2 asserts
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
 }
 
 func TestLibp2pMessenger_ConnectedAddresses(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3)
 
 	_ = netw.LinkAll()
 
@@ -800,15 +783,12 @@ func TestLibp2pMessenger_ConnectedAddresses(t *testing.T) {
 	assert.True(t, foundAddr3)
 	assert.Equal(t, 2, len(messenger2.ConnectedAddresses()))
 	// no need to further test that messenger2 is connected to messenger1 and messenger3 as this was tested in first 2 asserts
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
 }
 
 func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3)
 
 	_ = netw.LinkAll()
 
@@ -820,12 +800,6 @@ func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 	_ = messenger3.ConnectToPeer(adr2)
 
 	// connected peers:  1 ----- 2 ----- 3
-
-	defer func() {
-		_ = messenger1.Close()
-		_ = messenger2.Close()
-		_ = messenger3.Close()
-	}()
 
 	addressesRecov := messenger2.PeerAddresses(messenger1.ID())
 	for _, addr := range messenger1.Addresses() {
@@ -843,6 +817,7 @@ func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *testing.T) {
 	netw := mocknet.New()
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger)
 
 	networkHandler := &mock.NetworkStub{
 		ConnsCalled: func() []network.Conn {
@@ -885,6 +860,7 @@ func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *tes
 func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3)
 
 	_ = netw.LinkAll()
 
@@ -894,12 +870,6 @@ func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
 
 	_ = messenger1.ConnectToPeer(adr2)
 	_ = messenger3.ConnectToPeer(adr2)
-
-	defer func() {
-		_ = messenger1.Close()
-		_ = messenger2.Close()
-		_ = messenger3.Close()
-	}()
 
 	_ = netw.UnlinkPeers(peer.ID(messenger1.ID().Bytes()), peer.ID(messenger2.ID().Bytes()))
 	_ = netw.DisconnectPeers(peer.ID(messenger1.ID().Bytes()), peer.ID(messenger2.ID().Bytes()))
@@ -911,11 +881,8 @@ func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_PeerAddressUnknownPeerShouldReturnEmpty(t *testing.T) {
-	_, messenger1, _ := createMockNetworkOf2()
-
-	defer func() {
-		_ = messenger1.Close()
-	}()
+	_, messenger1, messenger2 := createMockNetworkOf2()
+	defer closeMessengers(messenger1, messenger2)
 
 	adr1Recov := messenger1.PeerAddresses("unknown peer")
 	assert.Equal(t, 0, len(adr1Recov))
@@ -926,6 +893,8 @@ func TestLibp2pMessenger_PeerAddressUnknownPeerShouldReturnEmpty(t *testing.T) {
 func TestLibp2pMessenger_ConnectedPeersOnTopicInvalidTopicShouldRetEmptyList(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3)
+
 	_ = netw.LinkAll()
 
 	adr2 := messenger2.Addresses()[0]
@@ -936,16 +905,14 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicInvalidTopicShouldRetEmptyList(t *
 	// connected peers:  1 ----- 2 ----- 3
 	connPeers := messenger1.ConnectedPeersOnTopic("non-existent topic")
 	assert.Equal(t, 0, len(connPeers))
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicShouldWork(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	messenger4, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3, messenger4)
+
 	_ = netw.LinkAll()
 
 	adr2 := messenger2.Addresses()[0]
@@ -970,17 +937,14 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(peersOnTopic123))
 	assert.True(t, containsPeerID(peersOnTopic123, messenger1.ID()))
 	assert.True(t, containsPeerID(peersOnTopic123, messenger3.ID()))
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
-	_ = messenger4.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicDifferentViewsShouldWork(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	messenger4, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3, messenger4)
+
 	_ = netw.LinkAll()
 
 	adr2 := messenger2.Addresses()[0]
@@ -1010,17 +974,14 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicDifferentViewsShouldWork(t
 
 	assert.Equal(t, 1, len(peersOnTopic123FromMessenger4))
 	assert.True(t, containsPeerID(peersOnTopic123FromMessenger4, messenger2.ID()))
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
-	_ = messenger4.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) {
 	netw, messenger1, messenger2 := createMockNetworkOf2()
 	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	messenger4, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger1, messenger2, messenger3, messenger4)
+
 	_ = netw.LinkAll()
 
 	adr2 := messenger2.Addresses()[0]
@@ -1053,17 +1014,13 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 
 	assert.Equal(t, 1, len(peersOnTopic24))
 	assert.True(t, containsPeerID(peersOnTopic24, messenger4.ID()))
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
-	_ = messenger4.Close()
 }
 
 // ------- ConnectedFullHistoryPeersOnTopic
 
 func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T) {
 	messenger1, messenger2, messenger3 := createMockNetworkOf3()
+	defer closeMessengers(messenger1, messenger2, messenger3)
 
 	adr2 := messenger2.Addresses()[0]
 	adr3 := messenger3.Addresses()[0]
@@ -1091,10 +1048,6 @@ func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T
 
 	assert.Equal(t, 2, len(messenger3.ConnectedPeersOnTopic("topic123")))
 	assert.Equal(t, 2, len(messenger3.ConnectedFullHistoryPeersOnTopic("topic123")))
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
-	_ = messenger3.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
@@ -1131,13 +1084,13 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	}
 
 	netw := mocknet.New()
-	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	// we can safely close the host as the next operations will be done on a mock
-	_ = mes.Close()
+	closeMessengers(messenger)
 
-	mes.SetHost(hs)
+	messenger.SetHost(hs)
 
-	peerList := mes.ConnectedPeers()
+	peerList := messenger.ConnectedPeers()
 
 	assert.Equal(t, 4, len(peerList))
 	assert.True(t, existInList(peerList, pid1))
@@ -1188,6 +1141,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 	}
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
 	messenger2, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -1224,9 +1178,6 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(t *testing.T) {
@@ -1256,6 +1207,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 	messenger1.SetSignerInDirectSender(&noSigner{messenger1})
 
 	messenger2, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -1292,9 +1244,6 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
@@ -1305,6 +1254,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 
 	fmt.Println("Messenger 2:")
 	messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	defer closeMessengers(messenger1, messenger2)
 
 	err := messenger1.ConnectToPeer(getConnectableAddress(messenger2))
 	assert.Nil(t, err)
@@ -1334,16 +1284,14 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = messenger1.Close()
-	_ = messenger2.Close()
 }
 
 func TestLibp2pMessenger_SendDirectWithRealNetToSelfShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
 	fmt.Println("Messenger 1:")
-	mes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	defer closeMessengers(messenger)
 
 	wg := &sync.WaitGroup{}
 	chanDone := make(chan bool)
@@ -1354,17 +1302,15 @@ func TestLibp2pMessenger_SendDirectWithRealNetToSelfShouldWork(t *testing.T) {
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(mes, msg, wg, noSigCheckHandler)
+	prepareMessengerForMatchDataReceive(messenger, msg, wg, noSigCheckHandler)
 
-	fmt.Printf("Messenger 1 is sending message from %s to self...\n", mes.ID().Pretty())
-	err := mes.SendToConnectedPeer("test", msg, mes.ID())
+	fmt.Printf("Messenger 1 is sending message from %s to self...\n", messenger.ID().Pretty())
+	err := messenger.SendToConnectedPeer("test", msg, messenger.ID())
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = mes.Close()
 }
 
 // ------- Bootstrap
@@ -1382,23 +1328,21 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 			return nil
 		},
 	}
-	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
-	mes.SetPeerDiscoverer(pdm)
+	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	defer closeMessengers(messenger)
 
-	_ = mes.Bootstrap()
+	messenger.SetPeerDiscoverer(pdm)
+
+	_ = messenger.Bootstrap()
 
 	assert.True(t, wasCalled)
-
-	_ = mes.Close()
 }
 
 // ------- SetThresholdMinConnectedPeers
 
 func TestNetworkMessenger_SetThresholdMinConnectedPeersInvalidValueShouldErr(t *testing.T) {
 	messenger := createMockMessenger()
-	defer func() {
-		_ = messenger.Close()
-	}()
+	defer closeMessengers(messenger)
 
 	err := messenger.SetThresholdMinConnectedPeers(-1)
 
@@ -1407,9 +1351,7 @@ func TestNetworkMessenger_SetThresholdMinConnectedPeersInvalidValueShouldErr(t *
 
 func TestNetworkMessenger_SetThresholdMinConnectedPeersShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
-	defer func() {
-		_ = messenger.Close()
-	}()
+	defer closeMessengers(messenger)
 
 	minConnectedPeers := 56
 	err := messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
@@ -1422,9 +1364,7 @@ func TestNetworkMessenger_SetThresholdMinConnectedPeersShouldWork(t *testing.T) 
 
 func TestNetworkMessenger_IsConnectedToTheNetworkRetFalse(t *testing.T) {
 	messenger := createMockMessenger()
-	defer func() {
-		_ = messenger.Close()
-	}()
+	defer closeMessengers(messenger)
 
 	minConnectedPeers := 56
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
@@ -1434,9 +1374,7 @@ func TestNetworkMessenger_IsConnectedToTheNetworkRetFalse(t *testing.T) {
 
 func TestNetworkMessenger_IsConnectedToTheNetworkWithZeroRetTrue(t *testing.T) {
 	messenger := createMockMessenger()
-	defer func() {
-		_ = messenger.Close()
-	}()
+	defer closeMessengers(messenger)
 
 	minConnectedPeers := 0
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
@@ -1448,9 +1386,7 @@ func TestNetworkMessenger_IsConnectedToTheNetworkWithZeroRetTrue(t *testing.T) {
 
 func TestNetworkMessenger_SetPeerShardResolverNilShouldErr(t *testing.T) {
 	messenger := createMockMessenger()
-	defer func() {
-		_ = messenger.Close()
-	}()
+	defer closeMessengers(messenger)
 
 	err := messenger.SetPeerShardResolver(nil)
 
@@ -1459,9 +1395,7 @@ func TestNetworkMessenger_SetPeerShardResolverNilShouldErr(t *testing.T) {
 
 func TestNetworkMessenger_SetPeerShardResolver(t *testing.T) {
 	messenger := createMockMessenger()
-	defer func() {
-		_ = messenger.Close()
-	}()
+	defer closeMessengers(messenger)
 
 	err := messenger.SetPeerShardResolver(&mock.PeerShardResolverStub{})
 
@@ -1501,7 +1435,8 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
@@ -1511,9 +1446,9 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		},
 	}
 
-	callBackFunc := mes.PubsubCallback(handler, "")
+	callBackFunc := messenger.PubsubCallback(handler, "")
 	ctx := context.Background()
-	pid := peer.ID(mes.ID())
+	pid := peer.ID(messenger.ID())
 	timeStamp := time.Now().Unix() - 1
 	timeStamp -= int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds())
 	timeStamp -= int64(libp2p.PubsubTimeCacheDuration.Seconds())
@@ -1542,8 +1477,6 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	assert.False(t, callBackFunc(ctx, pid, msg)) // this will not call
 	assert.False(t, callBackFunc(ctx, pid, msg)) // this will not call
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalled))
-
-	_ = mes.Close()
 }
 
 func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t *testing.T) {
@@ -1567,9 +1500,11 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
+
 	numUpserts := int32(0)
-	_ = mes.SetPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
+	_ = messenger.SetPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
 		UpsertPeerIDCalled: func(pid core.PeerID, duration time.Duration) error {
 			atomic.AddInt32(&numUpserts, 1)
 			// any error thrown here should not impact the execution
@@ -1588,9 +1523,9 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		},
 	}
 
-	callBackFunc := mes.PubsubCallback(handler, "")
+	callBackFunc := messenger.PubsubCallback(handler, "")
 	ctx := context.Background()
-	pid := peer.ID(mes.ID())
+	pid := peer.ID(messenger.ID())
 	innerMessage := &data.TopicMessage{
 		Payload:   []byte("data"),
 		Timestamp: time.Now().Unix(),
@@ -1615,8 +1550,6 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	assert.False(t, callBackFunc(ctx, pid, msg))
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalled))
 	assert.Equal(t, int32(2), atomic.LoadInt32(&numUpserts))
-
-	_ = mes.Close()
 }
 
 func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T) {
@@ -1640,7 +1573,8 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	numCalled := uint32(0)
 	expectedErr := errors.New("expected error")
@@ -1651,9 +1585,9 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		},
 	}
 
-	callBackFunc := mes.PubsubCallback(handler, "")
+	callBackFunc := messenger.PubsubCallback(handler, "")
 	ctx := context.Background()
-	pid := peer.ID(mes.ID())
+	pid := peer.ID(messenger.ID())
 	innerMessage := &data.TopicMessage{
 		Payload:   []byte("data"),
 		Timestamp: time.Now().Unix(),
@@ -1663,7 +1597,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	topic := "topic"
 	msg := &pubsub.Message{
 		Message: &pb.Message{
-			From:                 []byte(mes.ID()),
+			From:                 []byte(messenger.ID()),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
 			Topic:                &topic,
@@ -1679,8 +1613,6 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 
 	assert.False(t, callBackFunc(ctx, pid, msg))
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalled))
-
-	_ = mes.Close()
 }
 
 func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
@@ -1704,16 +1636,17 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	topic := "topic"
-	_ = mes.CreateTopic(topic, true)
-	assert.True(t, mes.HasTopic(topic))
+	_ = messenger.CreateTopic(topic, true)
+	assert.True(t, messenger.HasTopic(topic))
 
-	err := mes.UnjoinAllTopics()
+	err := messenger.UnjoinAllTopics()
 	assert.Nil(t, err)
 
-	assert.False(t, mes.HasTopic(topic))
+	assert.False(t, messenger.HasTopic(topic))
 }
 
 func TestNetworkMessenger_ValidMessageByTimestampMessageTooOld(t *testing.T) {
@@ -1724,24 +1657,26 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageTooOld(t *testing.T) {
 			return now
 		},
 	}
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	msg := &message.Message{
 		TimestampField: now.Unix() - int64(libp2p.PubsubTimeCacheDuration.Seconds()) - 1,
 	}
-	err := mes.ValidMessageByTimestamp(msg)
+	err := messenger.ValidMessageByTimestamp(msg)
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageTooOld))
 }
 
 func TestNetworkMessenger_ValidMessageByTimestampMessageAtLowerLimitShouldWork(t *testing.T) {
-	mes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	defer closeMessengers(messenger)
 
 	now := time.Now()
 	msg := &message.Message{
 		TimestampField: now.Unix() - int64(libp2p.PubsubTimeCacheDuration.Seconds()) + int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()),
 	}
-	err := mes.ValidMessageByTimestamp(msg)
+	err := messenger.ValidMessageByTimestamp(msg)
 
 	assert.Nil(t, err)
 }
@@ -1754,12 +1689,13 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageTooNew(t *testing.T) {
 			return now
 		},
 	}
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	msg := &message.Message{
 		TimestampField: now.Unix() + int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()) + 1,
 	}
-	err := mes.ValidMessageByTimestamp(msg)
+	err := messenger.ValidMessageByTimestamp(msg)
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageTooNew))
 }
@@ -1772,12 +1708,13 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageAtUpperLimitShouldWork(t
 			return now
 		},
 	}
-	mes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	msg := &message.Message{
 		TimestampField: now.Unix() + int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()),
 	}
-	err := mes.ValidMessageByTimestamp(msg)
+	err := messenger.ValidMessageByTimestamp(msg)
 
 	assert.Nil(t, err)
 }
@@ -1798,8 +1735,10 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 		"obsC4",
 		"unknown",
 	}
-	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
-	mes.SetHost(&mock.ConnectableHostStub{
+	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	closeMessengers(messenger)
+
+	messenger.SetHost(&mock.ConnectableHostStub{
 		NetworkCalled: func() network.Network {
 			return &mock.NetworkStub{
 				PeersCall: func() []peer.ID {
@@ -1813,12 +1752,12 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 	})
 	selfShardID := uint32(0)
 	crossShardID := uint32(1)
-	_ = mes.SetPeerShardResolver(&mock.PeerShardResolverStub{
+	_ = messenger.SetPeerShardResolver(&mock.PeerShardResolverStub{
 		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 			pinfo := core.P2PPeerInfo{
 				PeerType: core.UnknownPeer,
 			}
-			if pid.Pretty() == mes.ID().Pretty() {
+			if pid.Pretty() == messenger.ID().Pretty() {
 				pinfo.ShardID = selfShardID
 				pinfo.PeerType = core.ObserverPeer
 				return pinfo
@@ -1844,7 +1783,7 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 		},
 	})
 
-	cpi := mes.GetConnectedPeersInfo()
+	cpi := messenger.GetConnectedPeersInfo()
 
 	assert.Equal(t, 4, cpi.NumCrossShardObservers)
 	assert.Equal(t, 2, cpi.NumCrossShardValidators)
@@ -1862,7 +1801,8 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	t.Parallel()
 
 	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
+	messenger, _ := libp2p.NewNetworkMessenger(args)
+	defer closeMessengers(messenger)
 
 	inp := map[uint32]int{
 		0:                     5,
@@ -1872,7 +1812,7 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	}
 	output := `shard 0: 5, shard 1: 7, shard 2: 9, meta: 11`
 
-	require.Equal(t, output, netMes.MapHistogram(inp))
+	require.Equal(t, output, messenger.MapHistogram(inp))
 }
 
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
@@ -1915,7 +1855,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		PreferredPeersHolder: &mock.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	netMes, err := libp2p.NewNetworkMessenger(args)
+	messenger, err := libp2p.NewNetworkMessenger(args)
 	require.Nil(t, err)
 
 	go func() {
@@ -1923,10 +1863,10 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		goRoutinesNumberStart := runtime.NumGoroutine()
 		log.Info("before closing", "num go routines", goRoutinesNumberStart)
 
-		_ = netMes.Close()
+		closeMessengers(messenger)
 	}()
 
-	_ = netMes.Bootstrap()
+	_ = messenger.Bootstrap()
 
 	time.Sleep(time.Second * 5)
 
@@ -1941,16 +1881,12 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 		t.Parallel()
 
 		startTime := time.Now()
-		_, mes1, mes2 := createMockNetworkOf2()
-		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
-
-		defer func() {
-			_ = mes1.Close()
-			_ = mes2.Close()
-		}()
+		_, messenger1, messenger2 := createMockNetworkOf2()
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
+		defer closeMessengers(messenger1, messenger2)
 
 		timeToWait := time.Second * 3
-		mes1.WaitForConnections(timeToWait, 0)
+		messenger1.WaitForConnections(timeToWait, 0)
 
 		assert.True(t, timeToWait <= time.Since(startTime))
 	})
@@ -1958,24 +1894,19 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 		t.Parallel()
 
 		startTime := time.Now()
-		netw, mes1, mes2 := createMockNetworkOf2()
-		mes3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+		netw, messenger1, messenger2 := createMockNetworkOf2()
+		messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+		defer closeMessengers(messenger1, messenger2, messenger3)
 		_ = netw.LinkAll()
 
-		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
 		go func() {
 			time.Sleep(time.Second * 2)
-			_ = mes1.ConnectToPeer(mes3.Addresses()[0])
-		}()
-
-		defer func() {
-			_ = mes1.Close()
-			_ = mes2.Close()
-			_ = mes3.Close()
+			_ = messenger1.ConnectToPeer(messenger3.Addresses()[0])
 		}()
 
 		timeToWait := time.Second * 10
-		mes1.WaitForConnections(timeToWait, 2)
+		messenger1.WaitForConnections(timeToWait, 2)
 
 		assert.True(t, timeToWait > time.Since(startTime))
 		assert.True(t, libp2p.PollWaitForConnectionsInterval <= time.Since(startTime))
@@ -1984,17 +1915,13 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 		t.Parallel()
 
 		startTime := time.Now()
-		_, mes1, mes2 := createMockNetworkOf2()
+		_, messenger1, messenger2 := createMockNetworkOf2()
+		defer closeMessengers(messenger1, messenger2)
 
-		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
-
-		defer func() {
-			_ = mes1.Close()
-			_ = mes2.Close()
-		}()
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
 
 		timeToWait := time.Second * 10
-		mes1.WaitForConnections(timeToWait, 2)
+		messenger1.WaitForConnections(timeToWait, 2)
 
 		assert.True(t, timeToWait < time.Since(startTime))
 	})
@@ -2007,13 +1934,10 @@ func TestLibp2pMessenger_SignVerifyPayloadShouldWork(t *testing.T) {
 	fmt.Println("Messenger 2:")
 	messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 
+	defer closeMessengers(messenger1, messenger2)
+
 	err := messenger1.ConnectToPeer(getConnectableAddress(messenger2))
 	assert.Nil(t, err)
-
-	defer func() {
-		_ = messenger1.Close()
-		_ = messenger2.Close()
-	}()
 
 	payload := []byte("payload")
 	sig, err := messenger1.Sign(payload)
@@ -2024,95 +1948,6 @@ func TestLibp2pMessenger_SignVerifyPayloadShouldWork(t *testing.T) {
 
 	err = messenger1.Verify(payload, messenger1.ID(), sig)
 	assert.Nil(t, err)
-}
-
-func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
-	t.Parallel()
-
-	t.Run("create topic should work", func(t *testing.T) {
-		t.Parallel()
-
-		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-
-		topic := p2p.ConnectionTopic
-		err := netMes.CreateTopic(topic, true)
-		assert.Nil(t, err)
-		assert.False(t, netMes.HasTopic(topic))
-		assert.False(t, netMes.PubsubHasTopic(topic))
-
-		err = netMes.CreateTopic(testTopic, true)
-		assert.Nil(t, err)
-		assert.True(t, netMes.HasTopic(testTopic))
-		assert.True(t, netMes.PubsubHasTopic(testTopic))
-
-		err = netMes.UnjoinAllTopics()
-		assert.Nil(t, err)
-		assert.False(t, netMes.HasTopic(topic))
-		assert.False(t, netMes.PubsubHasTopic(topic))
-		assert.False(t, netMes.HasTopic(testTopic))
-		assert.False(t, netMes.PubsubHasTopic(testTopic))
-
-		_ = netMes.Close()
-	})
-	t.Run("register-unregister message processor should work", func(t *testing.T) {
-		t.Parallel()
-
-		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-
-		identifier := "identifier"
-		topic := p2p.ConnectionTopic
-		err := netMes.RegisterMessageProcessor(topic, identifier, &mock.MessageProcessorStub{})
-		assert.Nil(t, err)
-		assert.True(t, netMes.HasProcessorForTopic(topic))
-
-		err = netMes.UnregisterMessageProcessor(topic, identifier)
-		assert.Nil(t, err)
-		assert.False(t, netMes.HasProcessorForTopic(topic))
-
-		_ = netMes.Close()
-	})
-	t.Run("unregister all processors should work", func(t *testing.T) {
-		t.Parallel()
-
-		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-
-		topic := p2p.ConnectionTopic
-		err := netMes.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{})
-		assert.Nil(t, err)
-		assert.True(t, netMes.HasProcessorForTopic(topic))
-
-		err = netMes.RegisterMessageProcessor(testTopic, "identifier", &mock.MessageProcessorStub{})
-		assert.Nil(t, err)
-		assert.True(t, netMes.HasProcessorForTopic(testTopic))
-
-		err = netMes.UnregisterAllMessageProcessors()
-		assert.Nil(t, err)
-		assert.False(t, netMes.HasProcessorForTopic(topic))
-		assert.False(t, netMes.HasProcessorForTopic(testTopic))
-
-		_ = netMes.Close()
-	})
-	t.Run("unregister all processors should work", func(t *testing.T) {
-		t.Parallel()
-
-		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-
-		topic := p2p.ConnectionTopic
-		err := netMes.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{})
-		assert.Nil(t, err)
-		assert.True(t, netMes.HasProcessorForTopic(topic))
-
-		err = netMes.RegisterMessageProcessor(testTopic, "identifier", &mock.MessageProcessorStub{})
-		assert.Nil(t, err)
-		assert.True(t, netMes.HasProcessorForTopic(testTopic))
-
-		err = netMes.UnregisterAllMessageProcessors()
-		assert.Nil(t, err)
-		assert.False(t, netMes.HasProcessorForTopic(topic))
-		assert.False(t, netMes.HasProcessorForTopic(testTopic))
-
-		_ = netMes.Close()
-	})
 }
 
 func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
@@ -2126,18 +1961,20 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 	interceptors := make([]*mock.MessageProcessorMock, 2)
 
 	fmt.Println("Messenger 1:")
-	mes1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-	_ = mes1.CreateTopic(topic, true)
+	messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	_ = messenger1.CreateTopic(topic, true)
 	interceptors[0] = mock.NewMessageProcessorMock()
-	_ = mes1.RegisterMessageProcessor(topic, "", interceptors[0])
+	_ = messenger1.RegisterMessageProcessor(topic, "", interceptors[0])
 
 	fmt.Println("Messenger 2:")
-	mes2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-	_ = mes2.CreateTopic(topic, true)
+	messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	_ = messenger2.CreateTopic(topic, true)
 	interceptors[1] = mock.NewMessageProcessorMock()
-	_ = mes2.RegisterMessageProcessor(topic, "", interceptors[1])
+	_ = messenger2.RegisterMessageProcessor(topic, "", interceptors[1])
 
-	err := mes1.ConnectToPeer(getConnectableAddress(mes2))
+	defer closeMessengers(messenger1, messenger2)
+
+	err := messenger1.ConnectToPeer(getConnectableAddress(messenger2))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second * 2)
@@ -2147,7 +1984,7 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Printf("new identity: %s\n", pid.Pretty())
 
-	mes1.BroadcastUsingPrivateKey(topic, msg, pid, skBuff)
+	messenger1.BroadcastUsingPrivateKey(topic, msg, pid, skBuff)
 
 	time.Sleep(time.Second * 2)
 
@@ -2156,7 +1993,123 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 
 		assert.Equal(t, 1, len(messages))
 		assert.Equal(t, 1, messages[pid])
-		assert.Equal(t, 0, messages[mes1.ID()])
-		assert.Equal(t, 0, messages[mes2.ID()])
+		assert.Equal(t, 0, messages[messenger1.ID()])
+		assert.Equal(t, 0, messages[messenger2.ID()])
 	}
+}
+
+func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	t.Parallel()
+
+	t.Run("nil topic notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		defer closeMessengers(messenger)
+
+		err := messenger.AddPeerTopicNotifier(nil)
+		assert.Equal(t, p2p.ErrNilPeerTopicNotifier, err)
+	})
+	t.Run("2 peers on different topics should not notify", func(t *testing.T) {
+		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		defer closeMessengers(messenger1, messenger2)
+
+		peerTopicNotifier := &mock.PeerTopicNotifierStub{
+			NewPeerFoundCalled: func(pid core.PeerID, topic string) {
+				assert.Fail(t, fmt.Sprintf("should have not notified: topic %s, pid %s", topic, pid.Pretty()))
+			},
+		}
+
+		err := messenger1.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+		err = messenger2.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
+		time.Sleep(time.Second * 2) // wait a bit for pubsub
+
+		_ = messenger1.CreateTopic("topic1", true)
+		_ = messenger1.CreateTopic("topic2", true)
+
+		time.Sleep(time.Second * 2) // wait a bit for pubsub
+	})
+	t.Run("2 peers on same topic should notify", func(t *testing.T) {
+		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		defer closeMessengers(messenger1, messenger2)
+
+		mut := sync.RWMutex{}
+		peersOnTopicsFound := make(map[core.PeerID]map[string]int)
+
+		peerTopicNotifier := &mock.PeerTopicNotifierStub{
+			NewPeerFoundCalled: func(pid core.PeerID, topic string) {
+				mut.Lock()
+				topics := peersOnTopicsFound[pid]
+				if topics == nil {
+					topics = make(map[string]int)
+					peersOnTopicsFound[pid] = topics
+				}
+
+				peersOnTopicsFound[pid][topic]++
+				mut.Unlock()
+			},
+		}
+
+		err := messenger1.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+		err = messenger2.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
+		log.Info("netMes1 connected to netMes2, waiting on pubsub")
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 0, len(peersOnTopicsFound))
+		mut.RUnlock()
+
+		log.Info("creating topic1 on netMes1 and netMes2 an then waiting on pubsub")
+		_ = messenger1.CreateTopic("topic1", true)
+		_ = messenger2.CreateTopic("topic1", true)
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 2, len(peersOnTopicsFound))
+		assert.Equal(t, 1, peersOnTopicsFound[messenger1.ID()]["topic1"])
+		assert.Equal(t, 1, peersOnTopicsFound[messenger2.ID()]["topic1"])
+		mut.RUnlock()
+
+		log.Info("creating topic2 on netMes1 and netMes2 an then waiting on pubsub")
+		_ = messenger1.CreateTopic("topic2", true)
+		_ = messenger2.CreateTopic("topic2", true)
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 2, len(peersOnTopicsFound))
+		assert.Equal(t, 1, peersOnTopicsFound[messenger1.ID()]["topic1"])
+		assert.Equal(t, 1, peersOnTopicsFound[messenger2.ID()]["topic1"])
+		assert.Equal(t, 1, peersOnTopicsFound[messenger1.ID()]["topic2"])
+		assert.Equal(t, 1, peersOnTopicsFound[messenger2.ID()]["topic2"])
+		mut.RUnlock()
+
+		log.Info("disconnecting netMes2 from netMes1...")
+		_ = messenger2.Disconnect(messenger1.ID())
+		time.Sleep(time.Second * 2)
+
+		log.Info("reconnecting netMes2 to netMes1...")
+		_ = messenger2.ConnectToPeer(messenger1.Addresses()[0])
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 2, len(peersOnTopicsFound))
+		assert.Equal(t, 2, peersOnTopicsFound[messenger1.ID()]["topic1"])
+		assert.Equal(t, 2, peersOnTopicsFound[messenger2.ID()]["topic1"])
+		assert.Equal(t, 2, peersOnTopicsFound[messenger1.ID()]["topic2"])
+		assert.Equal(t, 2, peersOnTopicsFound[messenger2.ID()]["topic2"])
+		mut.RUnlock()
+	})
 }
