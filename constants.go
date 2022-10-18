@@ -28,9 +28,6 @@ const (
 	// ConnectionWatcherTypeEmpty - not set, no connection watching should be made
 	ConnectionWatcherTypeEmpty = ""
 
-	// ConnectionTopic represents the topic used when sending the new connection message data
-	ConnectionTopic = "connection"
-
 	// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
 	// do not follow this protocol
 	WrongP2PMessageBlacklistDuration = time.Second * 7200
