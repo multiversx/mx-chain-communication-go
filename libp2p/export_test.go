@@ -77,6 +77,11 @@ func (netMes *networkMessenger) HasProcessorForTopic(expectedTopic string) bool 
 	return found && processor != nil
 }
 
+// Disconnect -
+func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
+	return netMes.p2pHost.Network().ClosePeer(peer.ID(pid))
+}
+
 // ProcessReceivedDirectMessage -
 func (ds *directSender) ProcessReceivedDirectMessage(message *pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
