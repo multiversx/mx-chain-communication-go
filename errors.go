@@ -146,3 +146,6 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilP2PSigner signals that a nil p2p signer has been provided
 var ErrNilP2PSigner = errors.New("nil p2p signer")
+
+// ErrNilPeerTopicNotifier signals that a nil peer topic notifier have been provided
+var ErrNilPeerTopicNotifier = errors.New("nil peer topic notifier")
