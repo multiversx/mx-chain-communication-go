@@ -1,12 +1,14 @@
 package messagecheck
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type messageVerifier struct {
@@ -119,6 +121,13 @@ func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message) (p2p.MessageP2P, 
 		SignatureField: msg.Signature,
 		KeyField:       msg.Key,
 	}
+
+	id, err := peer.IDFromBytes(newMsg.From())
+	if err != nil {
+		return nil, err
+	}
+
+	newMsg.PeerField = core.PeerID(id)
 
 	return newMsg, nil
 }
