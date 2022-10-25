@@ -1,10 +1,13 @@
 package messagecheck
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
@@ -108,7 +111,7 @@ func convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsub_pb.Message, e
 	return newMsg, nil
 }
 
-func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message) (p2p.MessageP2P, error) {
+func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message, marshaller marshal.Marshalizer) (p2p.MessageP2P, error) {
 	if msg == nil {
 		return nil, p2p.ErrNilMessage
 	}
@@ -121,6 +124,15 @@ func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message) (p2p.MessageP2P, 
 		SignatureField: msg.Signature,
 		KeyField:       msg.Key,
 	}
+
+	topicMessage := &data.TopicMessage{}
+	err := marshaller.Unmarshal(topicMessage, msg.Data)
+	if err != nil {
+		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
+	}
+
+	newMsg.DataField = topicMessage.Payload
+	newMsg.TimestampField = topicMessage.Timestamp
 
 	id, err := peer.IDFromBytes(newMsg.From())
 	if err != nil {
@@ -173,7 +185,7 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 			return nil, err
 		}
 
-		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg)
+		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg, m.marshaller)
 		if err != nil {
 			continue
 		}
