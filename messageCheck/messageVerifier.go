@@ -12,6 +12,7 @@ import (
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/rs/zerolog/log"
 )
 
 type messageVerifier struct {
@@ -150,6 +151,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 	for _, msg := range messages {
 		pubsubMsg, err := convertP2PMessagetoPubSubMessage(msg)
 		if err != nil {
+			log.Error("convertP2PMessagetoPubSubMessage", "error", err.Error())
 			continue
 		}
 
@@ -187,6 +189,7 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 
 		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg, m.marshaller)
 		if err != nil {
+			log.Error("convertPubSubMessagestoP2PMessage", "error", err.Error())
 			continue
 		}
 
