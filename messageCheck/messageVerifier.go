@@ -6,14 +6,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/rs/zerolog/log"
 )
+
+var log = logger.GetOrCreate("p2p/messagecheck")
 
 type messageVerifier struct {
 	marshaller marshal.Marshalizer
