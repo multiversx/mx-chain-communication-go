@@ -155,6 +155,10 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 		pubsubMessages = append(pubsubMessages, pubsubMsgBytes)
 	}
 
+	if len(pubsubMessages) == 0 {
+		return []byte{}, nil
+	}
+
 	messagesBytes, err := json.Marshal(pubsubMessages)
 	if err != nil {
 		return nil, err
