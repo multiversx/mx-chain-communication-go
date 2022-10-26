@@ -1,15 +1,13 @@
 package messagecheck
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/message"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var log = logger.GetOrCreate("p2p/messagecheck")
@@ -116,30 +114,23 @@ func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message, marshaller marsha
 		return nil, p2p.ErrNilMessage
 	}
 
-	newMsg := &message.Message{
-		FromField:      msg.From,
-		PayloadField:   msg.Data,
-		SeqNoField:     msg.Seqno,
-		TopicField:     *msg.Topic,
-		SignatureField: msg.Signature,
-		KeyField:       msg.Key,
+	pubsubMsg := &pubsub.Message{
+		Message: &pubsub_pb.Message{
+			From:      msg.From,
+			Data:      msg.Data,
+			Seqno:     msg.Seqno,
+			Topic:     msg.Topic,
+			Signature: msg.Signature,
+			Key:       msg.Key,
+		},
+		ReceivedFrom:  "",
+		ValidatorData: nil,
 	}
 
-	// topicMessage := &data.TopicMessage{}
-	// err := marshaller.Unmarshal(topicMessage, msg.Data)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
-	// }
-
-	// newMsg.DataField = topicMessage.Payload
-	// newMsg.TimestampField = topicMessage.Timestamp
-
-	id, err := peer.IDFromBytes(newMsg.From())
+	newMsg, err := libp2p.NewMessage(pubsubMsg, marshaller)
 	if err != nil {
 		return nil, err
 	}
-
-	newMsg.PeerField = core.PeerID(id)
 
 	return newMsg, nil
 }
@@ -151,7 +142,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 		pubsubMsg, err := convertP2PMessagetoPubSubMessage(msg)
 		if err != nil {
 			log.Error("convertP2PMessagetoPubSubMessage", "error", err.Error())
-			continue
+			return nil, err
 		}
 
 		pubsubMsgBytes, err := pubsubMsg.Marshal()
@@ -189,7 +180,7 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg, m.marshaller)
 		if err != nil {
 			log.Error("convertPubSubMessagestoP2PMessage", "error", err.Error())
-			continue
+			return nil, err
 		}
 
 		p2pMessages = append(p2pMessages, p2pMsg)

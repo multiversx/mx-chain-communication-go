@@ -1,15 +1,21 @@
 package messagecheck_test
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
 	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	messagecheck "github.com/ElrondNetwork/elrond-go-p2p/messageCheck"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
+	"github.com/btcsuite/btcd/btcec"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -111,22 +117,40 @@ func TestSerializeDeserialize(t *testing.T) {
 		args := createMessageVerifierArgs()
 		args.Marshaller = &mock.MarshallerMock{}
 
+		msgData := &data.TopicMessage{
+			Version:        1,
+			Payload:        []byte("payload1"),
+			Timestamp:      1,
+			Pk:             []byte{},
+			SignatureOnPid: []byte{},
+		}
+		msgDataBytes, err := args.Marshaller.Marshal(msgData)
+		require.Nil(t, err)
+
+		peerID := getRandomID()
+
 		expectedMessages := []p2p.MessageP2P{
 			&message.Message{
-				FromField:      []byte("from1"),
-				PayloadField:   []byte("payload1"), // it is used as data field for pubsub
+				FromField:      peerID.Bytes(),
+				PayloadField:   msgDataBytes, // it is used as data field for pubsub
 				SeqNoField:     []byte("seq"),
 				TopicField:     string("topic"),
 				SignatureField: []byte("sig"),
 				KeyField:       []byte("key"),
+				DataField:      []byte("payload1"),
+				TimestampField: 1,
+				PeerField:      peerID,
 			},
 			&message.Message{
-				FromField:      []byte("from2"),
-				PayloadField:   []byte("payload2"),
+				FromField:      peerID.Bytes(),
+				PayloadField:   msgDataBytes,
 				SeqNoField:     []byte("seq"),
 				TopicField:     string("topic"),
 				SignatureField: []byte("sig"),
 				KeyField:       []byte("key"),
+				DataField:      []byte("payload1"),
+				TimestampField: 1,
+				PeerField:      peerID,
 			},
 		}
 
@@ -141,6 +165,14 @@ func TestSerializeDeserialize(t *testing.T) {
 
 		require.Equal(t, expectedMessages, messages)
 	})
+}
+
+func getRandomID() core.PeerID {
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+
+	return core.PeerID(id)
 }
 
 func TestVerify(t *testing.T) {
