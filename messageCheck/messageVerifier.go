@@ -139,7 +139,7 @@ func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message, marshaller marsha
 
 // Serialize will serialize a list of p2p messages
 func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
-	pubsubMessages := make([][]byte, 0, len(messages))
+	pubsubMessages := make([][]byte, 0)
 	for _, msg := range messages {
 		pubsubMsg, err := convertP2PMessagetoPubSubMessage(msg)
 		if err != nil {
