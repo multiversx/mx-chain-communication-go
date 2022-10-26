@@ -1,14 +1,11 @@
 package messagecheck
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
@@ -128,14 +125,14 @@ func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message, marshaller marsha
 		KeyField:       msg.Key,
 	}
 
-	topicMessage := &data.TopicMessage{}
-	err := marshaller.Unmarshal(topicMessage, msg.Data)
-	if err != nil {
-		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
-	}
+	// topicMessage := &data.TopicMessage{}
+	// err := marshaller.Unmarshal(topicMessage, msg.Data)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
+	// }
 
-	newMsg.DataField = topicMessage.Payload
-	newMsg.TimestampField = topicMessage.Timestamp
+	// newMsg.DataField = topicMessage.Payload
+	// newMsg.TimestampField = topicMessage.Timestamp
 
 	id, err := peer.IDFromBytes(newMsg.From())
 	if err != nil {
