@@ -143,8 +143,8 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 	for _, msg := range messages {
 		pubsubMsg, err := convertP2PMessagetoPubSubMessage(msg)
 		if err != nil {
-			log.Error("convertP2PMessagetoPubSubMessage", "error", err.Error())
-			return nil, err
+			log.Trace("convertP2PMessagetoPubSubMessage", "error", err.Error())
+			continue
 		}
 
 		pubsubMsgBytes, err := pubsubMsg.Marshal()
@@ -181,8 +181,8 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 
 		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg, m.marshaller)
 		if err != nil {
-			log.Error("convertPubSubMessagestoP2PMessage", "error", err.Error())
-			return nil, err
+			log.Trace("convertPubSubMessagestoP2PMessage", "error", err.Error())
+			continue
 		}
 
 		p2pMessages = append(p2pMessages, p2pMsg)
