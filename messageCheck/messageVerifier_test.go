@@ -64,53 +64,6 @@ func TestNewMessageVerifier(t *testing.T) {
 func TestSerializeDeserialize(t *testing.T) {
 	t.Parallel()
 
-	t.Run("serialize, marshal should err", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected error")
-
-		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.MarshallerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		messages := []p2p.MessageP2P{
-			&message.Message{
-				FromField:    []byte("from1"),
-				PayloadField: []byte("payload1"),
-			},
-		}
-
-		mv, err := messagecheck.NewMessageVerifier(args)
-		require.Nil(t, err)
-
-		messagesBytes, err := mv.Serialize(messages)
-		require.Nil(t, messagesBytes)
-		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("deserialize, unmarshal should err", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected error")
-
-		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.MarshallerStub{
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
-			},
-		}
-
-		mv, err := messagecheck.NewMessageVerifier(args)
-		require.Nil(t, err)
-
-		messages, err := mv.Deserialize([]byte("messages data"))
-		require.Nil(t, messages)
-		require.Equal(t, expectedErr, err)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

@@ -1,6 +1,8 @@
 package messagecheck
 
 import (
+	"encoding/json"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -153,7 +155,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 		pubsubMessages = append(pubsubMessages, pubsubMsgBytes)
 	}
 
-	messagesBytes, err := m.marshaller.Marshal(pubsubMessages)
+	messagesBytes, err := json.Marshal(pubsubMessages)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +166,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 // Deserialize will deserialize into a list of p2p messages
 func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error) {
 	var pubsubMessagesBytes [][]byte
-	err := m.marshaller.Unmarshal(&pubsubMessagesBytes, messagesBytes)
+	err := json.Unmarshal(messagesBytes, &pubsubMessagesBytes)
 	if err != nil {
 		return nil, err
 	}
