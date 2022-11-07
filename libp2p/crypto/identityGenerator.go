@@ -1,12 +1,10 @@
 package crypto
 
 import (
-	"crypto/ecdsa"
-	"crypto/rand"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/ecdsa"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -48,15 +46,17 @@ func (generator *identityGenerator) CreateRandomP2PIdentity() ([]byte, core.Peer
 // This is useful when we want a private key that never changes, such as in the network seeders
 func (generator *identityGenerator) CreateP2PPrivateKey(privateKeyBytes []byte) (libp2pCrypto.PrivKey, error) {
 	if len(privateKeyBytes) == 0 {
-		randReader := rand.Reader
-		prvKey, err := ecdsa.GenerateKey(btcec.S256(), randReader)
-		if err != nil {
-			return nil, err
-		}
+
+		keyGen := signing.NewKeyGenerator(ecdsa.NewEcdsa())
+		prvKey, _ := keyGen.GeneratePair()
 
 		log.Info("createP2PPrivateKey: generated a new private key for p2p signing")
 
-		return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
+		var err error
+		privateKeyBytes, err = prvKey.ToByteArray()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	prvKey, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(privateKeyBytes)

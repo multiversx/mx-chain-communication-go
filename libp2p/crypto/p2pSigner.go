@@ -10,28 +10,32 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-type p2pSigner struct {
+// TODO: adapt all package to use common crypto interfaces and remove this component
+
+type p2pSignerWrapper struct {
 	privateKey libp2pCrypto.PrivKey
 }
 
-// NewP2PSigner creates a new p2pSigner instance
-func NewP2PSigner(privateKey libp2pCrypto.PrivKey) (*p2pSigner, error) {
+// NewP2PSignerWrapper creates a new p2pSigner instance
+func NewP2PSignerWrapper(
+	privateKey libp2pCrypto.PrivKey,
+) (*p2pSignerWrapper, error) {
 	if check.IfNilReflect(privateKey) {
 		return nil, ErrNilPrivateKey
 	}
 
-	return &p2pSigner{
+	return &p2pSignerWrapper{
 		privateKey: privateKey,
 	}, nil
 }
 
 // Sign will sign a payload with the internal private key
-func (signer *p2pSigner) Sign(payload []byte) ([]byte, error) {
+func (signer *p2pSignerWrapper) Sign(payload []byte) ([]byte, error) {
 	return signer.privateKey.Sign(payload)
 }
 
 // Verify will check that the (payload, peer ID, signature) tuple is valid or not
-func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byte) error {
+func (signer *p2pSignerWrapper) Verify(payload []byte, pid core.PeerID, signature []byte) error {
 	libp2pPid, err := peer.IDFromBytes(pid.Bytes())
 	if err != nil {
 		return err
@@ -54,7 +58,7 @@ func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byt
 }
 
 // SignUsingPrivateKey will sign the payload with provided private key bytes
-func (signer *p2pSigner) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+func (signer *p2pSignerWrapper) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
 	sk, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(skBytes)
 	if err != nil {
 		return nil, err

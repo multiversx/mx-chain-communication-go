@@ -3,7 +3,7 @@ package libp2p
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -25,13 +25,12 @@ func NewMockMessenger(
 		return nil, err
 	}
 
-	keyGen := crypto.NewIdentityGenerator()
-	p2pPrivateKey, err := keyGen.CreateP2PPrivateKey(args.P2pPrivateKeyBytes)
+	p2pPrivateKey, err := crypto.ConvertPrivateKeyToLibp2pPrivateKey(args.P2pPrivateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	signer, err := crypto.NewP2PSigner(p2pPrivateKey)
+	signer, err := crypto.NewP2PSignerWrapper(p2pPrivateKey)
 	if err != nil {
 		return nil, err
 	}
