@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/integrationTests"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
@@ -67,6 +67,8 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 	// Step 1. Create advertiser
 	advertiser, err := libp2p.NewMockMessenger(argSeeder, netw)
@@ -85,6 +87,8 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+			P2pPrivateKey:         &mock.PrivateKeyStub{},
+			P2pSingleSigner:       &mock.SingleSignerStub{},
 		}
 		node, errCreate := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, errCreate)

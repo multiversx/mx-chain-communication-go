@@ -57,6 +57,8 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+			P2pPrivateKey:         &mock.PrivateKeyStub{},
+			P2pSingleSigner:       &mock.SingleSignerStub{},
 		}
 		node, err := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
