@@ -3,7 +3,6 @@ package libp2p_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"runtime"
@@ -17,16 +16,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -120,6 +118,8 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 }
 
@@ -239,6 +239,15 @@ func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, p2p.ErrNilSyncTimer))
 }
 
+func TestNewNetworkMessenger_NilP2pPrivateKey(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.P2pPrivateKey = nil
+	messenger, err := libp2p.NewNetworkMessenger(arg)
+
+	assert.True(t, check.IfNil(messenger))
+	assert.True(t, errors.Is(err, p2p.ErrNilP2pPrivateKey))
+}
+
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
 	arg := createMockNetworkArgs()
 	messenger, err := libp2p.NewNetworkMessenger(arg)
@@ -246,48 +255,6 @@ func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T
 
 	assert.NotNil(t, messenger)
 	assert.Nil(t, err)
-}
-
-func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
-	t.Parallel()
-
-	t.Run("with empty private key bytes, should work", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockNetworkArgs()
-		arg.P2pPrivateKeyBytes = []byte{}
-		messenger, err := libp2p.NewNetworkMessenger(arg)
-		defer closeMessengers(messenger)
-
-		assert.NotNil(t, messenger)
-		assert.Nil(t, err)
-	})
-
-	t.Run("with invalid private key bytes", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockNetworkArgs()
-		arg.P2pPrivateKeyBytes = []byte("invalid pk bytes")
-		messenger, err := libp2p.NewNetworkMessenger(arg)
-
-		assert.Nil(t, messenger)
-		assert.NotNil(t, err)
-	})
-
-	t.Run("valid private key bytes, should work", func(t *testing.T) {
-		t.Parallel()
-
-		pk, _, _ := crypto.GenerateSecp256k1Key(rand.Reader)
-		pkBytes, _ := pk.Raw()
-
-		arg := createMockNetworkArgs()
-		arg.P2pPrivateKeyBytes = pkBytes
-		messenger, err := libp2p.NewNetworkMessenger(arg)
-		defer closeMessengers(messenger)
-
-		assert.NotNil(t, messenger)
-		assert.Nil(t, err)
-	})
 }
 
 func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShouldErr(t *testing.T) {
@@ -1138,6 +1105,8 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: "print",
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
 	messenger2, _ := libp2p.NewNetworkMessenger(args)
@@ -1201,6 +1170,8 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: "print",
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
 	// force messenger1 not to sign a direct message
@@ -1433,6 +1404,8 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1498,6 +1471,8 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1571,6 +1546,8 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1634,6 +1611,8 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1853,6 +1832,8 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		SyncTimer:            &mock.SyncTimerStub{},
 		PeersRatingHandler:   &mock.PeersRatingHandlerStub{},
 		PreferredPeersHolder: &mock.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:   &mock.PrivateKeyStub{},
+		P2pSingleSigner: &mock.SingleSignerStub{},
 	}
 
 	messenger, err := libp2p.NewNetworkMessenger(args)
@@ -1979,8 +1960,7 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	keyGen := p2pCrypto.NewIdentityGenerator()
-	skBuff, pid, err := keyGen.CreateRandomP2PIdentity()
+	skBuff, pid, err := crypto.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 	fmt.Printf("new identity: %s\n", pid.Pretty())
 

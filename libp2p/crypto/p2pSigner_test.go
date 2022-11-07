@@ -28,14 +28,14 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 	t.Run("nil private key should error", func(t *testing.T) {
 		t.Parallel()
 
-		var sig, err = p2pCrypto.NewP2PSigner(nil)
+		var sig, err = p2pCrypto.NewP2PSignerWrapper(nil)
 		assert.Equal(t, p2pCrypto.ErrNilPrivateKey, err)
 		assert.Nil(t, sig)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		sig, err := p2pCrypto.NewP2PSigner(generatePrivateKey())
+		sig, err := p2pCrypto.NewP2PSignerWrapper(generatePrivateKey())
 		assert.Nil(t, err)
 		assert.NotNil(t, sig)
 	})
@@ -44,7 +44,7 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 func TestP2pSigner_Sign(t *testing.T) {
 	t.Parallel()
 
-	signer, _ := p2pCrypto.NewP2PSigner(generatePrivateKey())
+	signer, _ := p2pCrypto.NewP2PSignerWrapper(generatePrivateKey())
 
 	sig, err := signer.Sign([]byte("payload"))
 	assert.Nil(t, err)
@@ -57,7 +57,7 @@ func TestP2pSigner_Verify(t *testing.T) {
 	sk := generatePrivateKey()
 	pk := sk.GetPublic()
 	payload := []byte("payload")
-	signer, _ := p2pCrypto.NewP2PSigner(sk)
+	signer, _ := p2pCrypto.NewP2PSignerWrapper(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 
 	t.Run("invalid public key should error", func(t *testing.T) {
@@ -109,16 +109,15 @@ func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
 
 	payload := []byte("payload")
 
-	generator := p2pCrypto.NewIdentityGenerator()
-	skBytes1, pid1, err := generator.CreateRandomP2PIdentity()
+	skBytes1, pid1, err := p2pCrypto.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 
-	skBytes2, pid2, err := generator.CreateRandomP2PIdentity()
+	skBytes2, pid2, err := p2pCrypto.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 	assert.NotEqual(t, skBytes1, skBytes2)
 
 	sk := generatePrivateKey()
-	signer, _ := p2pCrypto.NewP2PSigner(sk)
+	signer, _ := p2pCrypto.NewP2PSignerWrapper(sk)
 
 	sig1, err := signer.SignUsingPrivateKey(skBytes1, payload)
 	assert.Nil(t, err)
@@ -142,7 +141,7 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 	pk := sk.GetPublic()
 	payload1 := []byte("payload1")
 	payload2 := []byte("payload2")
-	signer, _ := p2pCrypto.NewP2PSigner(sk)
+	signer, _ := p2pCrypto.NewP2PSignerWrapper(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 	pid := core.PeerID(libp2pPid)
 
