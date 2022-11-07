@@ -133,6 +133,8 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pSingleSigner:       &mock.SingleSignerStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -150,6 +152,8 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+			P2pPrivateKey:         &mock.PrivateKeyStub{},
+			P2pSingleSigner:       &mock.SingleSignerStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()
