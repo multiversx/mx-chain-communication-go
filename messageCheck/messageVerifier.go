@@ -1,9 +1,8 @@
 package messagecheck
 
 import (
-	"encoding/json"
-
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
@@ -154,7 +153,10 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	messagesBytes, err := json.Marshal(pubsubMessages)
+	b := batch.Batch{
+		Data: pubsubMessages,
+	}
+	messagesBytes, err := m.marshaller.Marshal(b)
 	if err != nil {
 		return nil, err
 	}
@@ -164,11 +166,14 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 
 // Deserialize will deserialize into a list of p2p messages
 func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error) {
-	var pubsubMessagesBytes [][]byte
-	err := json.Unmarshal(messagesBytes, &pubsubMessagesBytes)
+
+	b := batch.Batch{}
+	err := m.marshaller.Unmarshal(&b, messagesBytes)
 	if err != nil {
 		return nil, err
 	}
+
+	pubsubMessagesBytes := b.Data
 
 	p2pMessages := make([]p2p.MessageP2P, 0)
 	for _, pubsubMessageBytes := range pubsubMessagesBytes {
