@@ -150,7 +150,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 	}
 
 	if len(pubsubMessages) == 0 {
-		return []byte{}, nil
+		return make([]byte, 0), nil
 	}
 
 	b := &batch.Batch{
@@ -166,7 +166,6 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 
 // Deserialize will deserialize into a list of p2p messages
 func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error) {
-
 	b := batch.Batch{}
 	err := m.marshaller.Unmarshal(&b, messagesBytes)
 	if err != nil {

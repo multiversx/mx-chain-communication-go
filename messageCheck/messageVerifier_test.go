@@ -64,6 +64,23 @@ func TestNewMessageVerifier(t *testing.T) {
 func TestSerializeDeserialize(t *testing.T) {
 	t.Parallel()
 
+	t.Run("empty messages array", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMessageVerifierArgs()
+		args.Marshaller = &mock.ProtoMarshallerMock{}
+
+		mv, err := messagecheck.NewMessageVerifier(args)
+		require.Nil(t, err)
+
+		messagesBytes, err := mv.Serialize([]p2p.MessageP2P{})
+		require.Nil(t, err)
+
+		messages, err := mv.Deserialize(messagesBytes)
+		require.Nil(t, err)
+		require.Equal(t, 0, len(messages))
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
