@@ -153,7 +153,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	b := batch.Batch{
+	b := &batch.Batch{
 		Data: pubsubMessages,
 	}
 	messagesBytes, err := m.marshaller.Marshal(b)

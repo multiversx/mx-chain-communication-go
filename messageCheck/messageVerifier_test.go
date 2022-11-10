@@ -68,7 +68,7 @@ func TestSerializeDeserialize(t *testing.T) {
 		t.Parallel()
 
 		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.MarshallerMock{}
+		args.Marshaller = &mock.ProtoMarshallerMock{}
 
 		msgData := &data.TopicMessage{
 			Version:        1,
