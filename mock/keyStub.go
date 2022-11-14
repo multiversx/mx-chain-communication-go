@@ -1,9 +1,11 @@
 package mock
 
 import (
-	"bytes"
+	"crypto/ecdsa"
+	"crypto/rand"
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/btcsuite/btcd/btcec"
 )
 
 // PrivateKeyStub provides stubs for a PrivateKey implementation
@@ -36,7 +38,10 @@ func (privKey *PrivateKeyStub) ToByteArray() ([]byte, error) {
 		return privKey.ToByteArrayStub()
 	}
 
-	return bytes.Repeat([]byte("a"), 32), nil
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+
+	return prvKey.X.Bytes(), nil
+
 }
 
 // GeneratePublic builds a public key for the current private key

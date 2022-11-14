@@ -14,7 +14,7 @@ func (s *SingleSignerStub) Sign(private crypto.PrivateKey, msg []byte) ([]byte, 
 		return s.SignCalled(private, msg)
 	}
 
-	return nil, nil
+	return []byte("sig"), nil
 }
 
 // Verify -
