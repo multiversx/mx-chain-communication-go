@@ -118,7 +118,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1110,8 +1110,10 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
-	messenger1, _ := libp2p.NewNetworkMessenger(args)
-	messenger2, _ := libp2p.NewNetworkMessenger(args)
+	messenger1, err := libp2p.NewNetworkMessenger(args)
+	require.Nil(t, err)
+	messenger2, err := libp2p.NewNetworkMessenger(args)
+	require.Nil(t, err)
 	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
@@ -1145,7 +1147,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 
 	log.Info("sending message", "from", messenger1.ID().Pretty(), "to", messenger2.ID().Pretty())
 
-	err := messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
+	err = messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
@@ -1172,7 +1174,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: "print",
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1409,7 +1411,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1477,7 +1479,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1553,7 +1555,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1619,7 +1621,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1841,7 +1843,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		SyncTimer:            &mock.SyncTimerStub{},
 		PeersRatingHandler:   &mock.PeersRatingHandlerStub{},
 		PreferredPeersHolder: &mock.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:   &mock.PrivateKeyStub{},
+		P2pPrivateKey:   mock.NewPrivateKeyMock(),
 		P2pSingleSigner: &mock.SingleSignerStub{},
 		P2pKeyGenerator: &mock.KeyGenStub{},
 	}
