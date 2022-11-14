@@ -129,6 +129,7 @@ type ArgsNetworkMessenger struct {
 	ConnectionWatcherType string
 	P2pPrivateKey         commonCrypto.PrivateKey
 	P2pSingleSigner       commonCrypto.SingleSigner
+	P2pKeyGenerator       commonCrypto.KeyGenerator
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -153,6 +154,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilP2pPrivateKey)
 	}
 	if check.IfNil(args.P2pSingleSigner) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilP2pSingleSigner)
+	}
+	if check.IfNil(args.P2pKeyGenerator) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilP2pSingleSigner)
 	}
 
@@ -209,7 +213,13 @@ func constructNode(
 		return nil, err
 	}
 
-	p2pSignerInstance, err := crypto.NewP2PSignerWrapper(p2pPrivateKey)
+	p2pSignerArgs := crypto.ArgsP2pSignerWrapper{
+		PrivateKey: args.P2pPrivateKey,
+		Signer:     args.P2pSingleSigner,
+		KeyGen:     args.P2pKeyGenerator,
+	}
+
+	p2pSignerInstance, err := crypto.NewP2PSignerWrapper(p2pSignerArgs)
 	if err != nil {
 		return nil, err
 	}

@@ -25,12 +25,13 @@ func NewMockMessenger(
 		return nil, err
 	}
 
-	p2pPrivateKey, err := crypto.ConvertPrivateKeyToLibp2pPrivateKey(args.P2pPrivateKey)
-	if err != nil {
-		return nil, err
+	p2pSignerArgs := crypto.ArgsP2pSignerWrapper{
+		PrivateKey: args.P2pPrivateKey,
+		Signer:     args.P2pSingleSigner,
+		KeyGen:     args.P2pKeyGenerator,
 	}
 
-	signer, err := crypto.NewP2PSignerWrapper(p2pPrivateKey)
+	signer, err := crypto.NewP2PSignerWrapper(p2pSignerArgs)
 	if err != nil {
 		return nil, err
 	}

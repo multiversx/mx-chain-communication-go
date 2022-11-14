@@ -120,6 +120,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 }
 
@@ -1107,6 +1108,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		ConnectionWatcherType: "print",
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
 	messenger2, _ := libp2p.NewNetworkMessenger(args)
@@ -1172,12 +1174,15 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		ConnectionWatcherType: "print",
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
-	messenger1, _ := libp2p.NewNetworkMessenger(args)
+	messenger1, err := libp2p.NewNetworkMessenger(args)
+	require.Nil(t, err)
 	// force messenger1 not to sign a direct message
 	messenger1.SetSignerInDirectSender(&noSigner{messenger1})
 
-	messenger2, _ := libp2p.NewNetworkMessenger(args)
+	messenger2, err := libp2p.NewNetworkMessenger(args)
+	require.Nil(t, err)
 	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
@@ -1211,7 +1216,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 
 	fmt.Printf("sending message from %s...\n", messenger1.ID().Pretty())
 
-	err := messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
+	err = messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
@@ -1406,6 +1411,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1473,6 +1479,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1548,6 +1555,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1613,6 +1621,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1834,6 +1843,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		PreferredPeersHolder: &mock.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:   &mock.PrivateKeyStub{},
 		P2pSingleSigner: &mock.SingleSignerStub{},
+		P2pKeyGenerator: &mock.KeyGenStub{},
 	}
 
 	messenger, err := libp2p.NewNetworkMessenger(args)
@@ -1910,14 +1920,16 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 
 func TestLibp2pMessenger_SignVerifyPayloadShouldWork(t *testing.T) {
 	fmt.Println("Messenger 1:")
-	messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	messenger1, err := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	require.Nil(t, err)
 
 	fmt.Println("Messenger 2:")
-	messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	messenger2, err := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	require.Nil(t, err)
 
 	defer closeMessengers(messenger1, messenger2)
 
-	err := messenger1.ConnectToPeer(getConnectableAddress(messenger2))
+	err = messenger1.ConnectToPeer(getConnectableAddress(messenger2))
 	assert.Nil(t, err)
 
 	payload := []byte("payload")

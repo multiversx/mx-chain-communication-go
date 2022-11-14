@@ -1,68 +1,76 @@
 package crypto
 
 import (
-	"fmt"
+	"crypto/sha256"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // TODO: adapt all package to use common crypto interfaces and remove this component
 
+// ArgsP2pSignerWrapper defines the arguments needed to create a p2p signer wrapper
+type ArgsP2pSignerWrapper struct {
+	PrivateKey crypto.PrivateKey
+	Signer     crypto.SingleSigner
+	KeyGen     crypto.KeyGenerator
+}
+
 type p2pSignerWrapper struct {
-	privateKey libp2pCrypto.PrivKey
+	privateKey crypto.PrivateKey
+	signer     crypto.SingleSigner
+	keyGen     crypto.KeyGenerator
 }
 
 // NewP2PSignerWrapper creates a new p2pSigner instance
-func NewP2PSignerWrapper(
-	privateKey libp2pCrypto.PrivKey,
-) (*p2pSignerWrapper, error) {
-	if check.IfNilReflect(privateKey) {
+func NewP2PSignerWrapper(args ArgsP2pSignerWrapper) (*p2pSignerWrapper, error) {
+	if check.IfNilReflect(args.PrivateKey) {
 		return nil, ErrNilPrivateKey
+	}
+	if check.IfNilReflect(args.Signer) {
+		return nil, ErrNilSingleSigner
+	}
+	if check.IfNilReflect(args.KeyGen) {
+		return nil, ErrNilKeyGenerator
 	}
 
 	return &p2pSignerWrapper{
-		privateKey: privateKey,
+		privateKey: args.PrivateKey,
+		signer:     args.Signer,
+		keyGen:     args.KeyGen,
 	}, nil
 }
 
 // Sign will sign a payload with the internal private key
-func (signer *p2pSignerWrapper) Sign(payload []byte) ([]byte, error) {
-	return signer.privateKey.Sign(payload)
+func (psw *p2pSignerWrapper) Sign(payload []byte) ([]byte, error) {
+	hash := sha256.Sum256(payload)
+	return psw.signer.Sign(psw.privateKey, hash[:])
 }
 
 // Verify will check that the (payload, peer ID, signature) tuple is valid or not
-func (signer *p2pSignerWrapper) Verify(payload []byte, pid core.PeerID, signature []byte) error {
-	libp2pPid, err := peer.IDFromBytes(pid.Bytes())
+func (psw *p2pSignerWrapper) Verify(payload []byte, pid core.PeerID, signature []byte) error {
+	pubKey, err := ConvertPeerIDToPublicKey(psw.keyGen, pid)
 	if err != nil {
 		return err
 	}
 
-	pubk, err := libp2pPid.ExtractPublicKey()
-	if err != nil {
-		return fmt.Errorf("cannot extract signing key: %s", err.Error())
-	}
-
-	sigOk, err := pubk.Verify(payload, signature)
+	hash := sha256.Sum256(payload)
+	err = psw.signer.Verify(pubKey, hash[:], signature)
 	if err != nil {
 		return err
-	}
-	if !sigOk {
-		return crypto.ErrSigNotValid
 	}
 
 	return nil
 }
 
 // SignUsingPrivateKey will sign the payload with provided private key bytes
-func (signer *p2pSignerWrapper) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
-	sk, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(skBytes)
+func (psw *p2pSignerWrapper) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+	sk, err := psw.keyGen.PrivateKeyFromByteArray(skBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return sk.Sign(payload)
+	hash := sha256.Sum256(payload)
+	return psw.signer.Sign(sk, hash[:])
 }
