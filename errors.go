@@ -147,6 +147,9 @@ var ErrNilP2pPrivateKey = errors.New("nil p2p private key")
 // ErrNilP2pSingleSigner signals that a nil p2p single signer has been provided
 var ErrNilP2pSingleSigner = errors.New("nil p2p single signer")
 
+// ErrNilP2pKeyGenerator signals that a nil p2p key generator has been provided
+var ErrNilP2pKeyGenerator = errors.New("nil p2p key generator")
+
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
