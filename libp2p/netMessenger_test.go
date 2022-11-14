@@ -3,6 +3,8 @@ package libp2p_test
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"runtime"
@@ -15,16 +17,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	commonCrypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/btcsuite/btcd/btcec"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -65,9 +69,9 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 }
 
 func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
-	_ = messenger.CreateTopic(testTopic, false)
+	err := messenger.CreateTopic(testTopic, false)
 
-	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
+	err = messenger.RegisterMessageProcessor(testTopic, "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 				if !bytes.Equal(matchData, message.Data()) {
@@ -85,6 +89,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 				return nil
 			},
 		})
+	_ = err
 }
 
 func getConnectableAddress(messenger p2p.Messenger) string {
@@ -1107,20 +1112,23 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: "print",
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
-		P2pSingleSigner:       &mock.SingleSignerStub{},
-		P2pKeyGenerator:       &mock.KeyGenStub{},
+		P2pSingleSigner: &mock.SingleSignerStub{
+			SignCalled: func(private commonCrypto.PrivateKey, msg []byte) ([]byte, error) {
+				return bytes.Repeat([]byte("a"), 70), nil
+			},
+		},
+		P2pKeyGenerator: &mock.KeyGenStub{},
 	}
-	messenger1, err := libp2p.NewNetworkMessenger(args)
-	require.Nil(t, err)
-	messenger2, err := libp2p.NewNetworkMessenger(args)
-	require.Nil(t, err)
+	messenger1, _ := libp2p.NewNetworkMessenger(args)
+	messenger2, _ := libp2p.NewNetworkMessenger(args)
 	defer closeMessengers(messenger1, messenger2)
 
 	adr2 := messenger2.Addresses()[0]
 
 	fmt.Printf("Connecting to %s...\n", adr2)
 
-	_ = messenger1.ConnectToPeer(adr2)
+	err := messenger1.ConnectToPeer(adr2)
+	require.Nil(t, err)
 
 	wg := &sync.WaitGroup{}
 	chanDone := make(chan bool)
@@ -1132,7 +1140,8 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 	}()
 
 	minimumSigSize := 70
-	_ = messenger1.CreateTopic(testTopic, false)
+	err = messenger1.CreateTopic(testTopic, false)
+	require.Nil(t, err)
 	prepareMessengerForMatchDataReceive(
 		messenger2,
 		msg,
@@ -1174,7 +1183,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: "print",
-		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -1974,8 +1983,9 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	skBuff, pid, err := crypto.CreateRandomP2PIdentity()
-	assert.Nil(t, err)
+	sk, peerID := createP2PPrivKeyAndPid()
+	skBuff, _ := sk.Raw()
+	pid := core.PeerID(peerID)
 	fmt.Printf("new identity: %s\n", pid.Pretty())
 
 	messenger1.BroadcastUsingPrivateKey(topic, msg, pid, skBuff)
@@ -1990,6 +2000,16 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 		assert.Equal(t, 0, messages[messenger1.ID()])
 		assert.Equal(t, 0, messages[messenger2.ID()])
 	}
+}
+
+func createP2PPrivKeyAndPid() (*libp2pCrypto.Secp256k1PrivateKey, peer.ID) {
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	p2pPrivKey := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+
+	p2pPubKey := p2pPrivKey.GetPublic()
+	pid, _ := peer.IDFromPublicKey(p2pPubKey)
+
+	return p2pPrivKey, pid
 }
 
 func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
