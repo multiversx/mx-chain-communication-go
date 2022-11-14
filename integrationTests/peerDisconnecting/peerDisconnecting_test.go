@@ -67,7 +67,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         &mock.PrivateKeyStub{},
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
@@ -88,7 +88,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-			P2pPrivateKey:         &mock.PrivateKeyStub{},
+			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
 		}
