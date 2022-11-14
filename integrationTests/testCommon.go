@@ -137,6 +137,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
