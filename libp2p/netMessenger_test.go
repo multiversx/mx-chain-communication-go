@@ -1155,7 +1155,9 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		},
 		P2pKeyGenerator: &mock.KeyGenStub{},
 	}
+	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
+	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger2, _ := libp2p.NewNetworkMessenger(args)
 	defer closeMessengers(messenger1, messenger2)
 
@@ -1223,11 +1225,13 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
+	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, err := libp2p.NewNetworkMessenger(args)
 	require.Nil(t, err)
 	// force messenger1 not to sign a direct message
 	messenger1.SetSignerInDirectSender(&noSigner{messenger1})
 
+	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger2, err := libp2p.NewNetworkMessenger(args)
 	require.Nil(t, err)
 	defer closeMessengers(messenger1, messenger2)
