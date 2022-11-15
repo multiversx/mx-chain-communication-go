@@ -1,48 +1,47 @@
 package mock
 
 import (
-	"crypto/ecdsa"
 	"crypto/rand"
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/btcsuite/btcd/btcec"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
-// PrivateKeyMock implements common PrivateKey interface
-type PrivateKeyMock struct {
-	privateKey *ecdsa.PrivateKey
+// privateKeyMock implements common PrivateKey interface
+type privateKeyMock struct {
+	privateKey libp2pCrypto.PrivKey
 }
 
 // NewPrivateKeyMock will create a new PrivateKeyMock instance
-func NewPrivateKeyMock() *PrivateKeyMock {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+func NewPrivateKeyMock() *privateKeyMock {
+	privateKey, _, _ := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
 
-	return &PrivateKeyMock{
-		privateKey: prvKey,
+	return &privateKeyMock{
+		privateKey: privateKey,
 	}
 }
 
 // ToByteArray returns the byte array representation of the key
-func (p *PrivateKeyMock) ToByteArray() ([]byte, error) {
-	return p.privateKey.X.Bytes(), nil
+func (p *privateKeyMock) ToByteArray() ([]byte, error) {
+	return p.privateKey.Raw()
 }
 
 // GeneratePublic builds a public key for the current private key
-func (p *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
+func (p *privateKeyMock) GeneratePublic() crypto.PublicKey {
 	return nil
 }
 
 // Suite returns the suite used by this key
-func (p *PrivateKeyMock) Suite() crypto.Suite {
+func (p *privateKeyMock) Suite() crypto.Suite {
 	return nil
 }
 
 // Scalar returns the Scalar corresponding to this Private Key
-func (p *PrivateKeyMock) Scalar() crypto.Scalar {
+func (p *privateKeyMock) Scalar() crypto.Scalar {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (p *PrivateKeyMock) IsInterfaceNil() bool {
+func (p *privateKeyMock) IsInterfaceNil() bool {
 	return p == nil
 }
