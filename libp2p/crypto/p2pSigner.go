@@ -8,8 +8,6 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 )
 
-// TODO: adapt all package to use common crypto interfaces and remove this component
-
 // ArgsP2pSignerWrapper defines the arguments needed to create a p2p signer wrapper
 type ArgsP2pSignerWrapper struct {
 	PrivateKey crypto.PrivateKey
