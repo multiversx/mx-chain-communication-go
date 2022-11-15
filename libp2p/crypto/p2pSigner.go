@@ -23,14 +23,9 @@ type p2pSignerWrapper struct {
 
 // NewP2PSignerWrapper creates a new p2pSigner instance
 func NewP2PSignerWrapper(args ArgsP2pSignerWrapper) (*p2pSignerWrapper, error) {
-	if check.IfNilReflect(args.PrivateKey) {
-		return nil, ErrNilPrivateKey
-	}
-	if check.IfNilReflect(args.Signer) {
-		return nil, ErrNilSingleSigner
-	}
-	if check.IfNilReflect(args.KeyGen) {
-		return nil, ErrNilKeyGenerator
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return &p2pSignerWrapper{
@@ -38,6 +33,20 @@ func NewP2PSignerWrapper(args ArgsP2pSignerWrapper) (*p2pSignerWrapper, error) {
 		signer:     args.Signer,
 		keyGen:     args.KeyGen,
 	}, nil
+}
+
+func checkArgs(args ArgsP2pSignerWrapper) error {
+	if check.IfNil(args.PrivateKey) {
+		return ErrNilPrivateKey
+	}
+	if check.IfNil(args.Signer) {
+		return ErrNilSingleSigner
+	}
+	if check.IfNil(args.KeyGen) {
+		return ErrNilKeyGenerator
+	}
+
+	return nil
 }
 
 // Sign will sign a payload with the internal private key

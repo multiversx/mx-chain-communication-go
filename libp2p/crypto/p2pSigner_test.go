@@ -1,6 +1,7 @@
 package crypto_test
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -45,6 +46,29 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 		assert.Equal(t, p2pCrypto.ErrNilPrivateKey, err)
 		assert.Nil(t, sig)
 	})
+
+	t.Run("nil single signer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultP2PSignerArgs()
+		args.Signer = nil
+
+		sig, err := p2pCrypto.NewP2PSignerWrapper(args)
+		assert.Equal(t, p2pCrypto.ErrNilSingleSigner, err)
+		assert.Nil(t, sig)
+	})
+
+	t.Run("nil key generator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultP2PSignerArgs()
+		args.KeyGen = nil
+
+		sig, err := p2pCrypto.NewP2PSignerWrapper(args)
+		assert.Equal(t, p2pCrypto.ErrNilKeyGenerator, err)
+		assert.Nil(t, sig)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -85,26 +109,52 @@ func TestP2pSigner_Verify(t *testing.T) {
 
 	payload := []byte("payload")
 
-	args := createDefaultP2PSignerArgs()
+	t.Run("fail to verify, should return err", func(t *testing.T) {
+		t.Parallel()
 
-	verifyWasCalled := false
-	args.Signer = &mock.SingleSignerStub{
-		VerifyCalled: func(public crypto.PublicKey, msg, sig []byte) error {
-			verifyWasCalled = true
-			return nil
-		},
-	}
+		args := createDefaultP2PSignerArgs()
 
-	signer, _ := p2pCrypto.NewP2PSignerWrapper(args)
+		expectedErr := errors.New("expected error")
+		args.Signer = &mock.SingleSignerStub{
+			VerifyCalled: func(public crypto.PublicKey, msg, sig []byte) error {
+				return expectedErr
+			},
+		}
 
-	_, pk := generatePrivateKey()
-	peerID, err := peer.IDFromPublicKey(convertPublicKeyToP2PPublicKey(pk))
-	require.Nil(t, err)
+		signer, _ := p2pCrypto.NewP2PSignerWrapper(args)
 
-	err = signer.Verify(payload, core.PeerID(peerID), []byte("sig"))
-	require.Nil(t, err)
+		_, pk := generatePrivateKey()
+		peerID, err := peer.IDFromPublicKey(convertPublicKeyToP2PPublicKey(pk))
+		require.Nil(t, err)
 
-	assert.True(t, verifyWasCalled)
+		err = signer.Verify(payload, core.PeerID(peerID), []byte("sig"))
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultP2PSignerArgs()
+
+		verifyWasCalled := false
+		args.Signer = &mock.SingleSignerStub{
+			VerifyCalled: func(public crypto.PublicKey, msg, sig []byte) error {
+				verifyWasCalled = true
+				return nil
+			},
+		}
+
+		signer, _ := p2pCrypto.NewP2PSignerWrapper(args)
+
+		_, pk := generatePrivateKey()
+		peerID, err := peer.IDFromPublicKey(convertPublicKeyToP2PPublicKey(pk))
+		require.Nil(t, err)
+
+		err = signer.Verify(payload, core.PeerID(peerID), []byte("sig"))
+		require.Nil(t, err)
+
+		assert.True(t, verifyWasCalled)
+	})
 }
 
 func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
@@ -113,32 +163,56 @@ func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
 	payload := []byte("payload")
 	pkBytes := []byte("private key bytes")
 
-	args := createDefaultP2PSignerArgs()
+	t.Run("fail to convert private key", func(t *testing.T) {
+		t.Parallel()
 
-	keyGenWasCalled := false
-	args.KeyGen = &mock.KeyGenStub{
-		PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
-			require.Equal(t, pkBytes, b)
-			keyGenWasCalled = true
-			return &mock.PrivateKeyStub{}, nil
-		},
-	}
-	signerWasCalled := false
-	args.Signer = &mock.SingleSignerStub{
-		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			signerWasCalled = true
-			return []byte{}, nil
-		},
-	}
+		args := createDefaultP2PSignerArgs()
 
-	signer, _ := p2pCrypto.NewP2PSignerWrapper(args)
+		expectedErr := errors.New("expected error")
+		args.KeyGen = &mock.KeyGenStub{
+			PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
+				return nil, expectedErr
+			},
+		}
 
-	sig, err := signer.SignUsingPrivateKey(pkBytes, payload)
-	assert.Nil(t, err)
-	assert.NotNil(t, sig)
+		signer, _ := p2pCrypto.NewP2PSignerWrapper(args)
 
-	assert.True(t, keyGenWasCalled)
-	assert.True(t, signerWasCalled)
+		sig, err := signer.SignUsingPrivateKey(pkBytes, payload)
+		assert.Nil(t, sig)
+		assert.Equal(t, expectedErr, err)
+
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultP2PSignerArgs()
+
+		keyGenWasCalled := false
+		args.KeyGen = &mock.KeyGenStub{
+			PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
+				require.Equal(t, pkBytes, b)
+				keyGenWasCalled = true
+				return &mock.PrivateKeyStub{}, nil
+			},
+		}
+		signerWasCalled := false
+		args.Signer = &mock.SingleSignerStub{
+			SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+				signerWasCalled = true
+				return []byte{}, nil
+			},
+		}
+
+		signer, _ := p2pCrypto.NewP2PSignerWrapper(args)
+
+		sig, err := signer.SignUsingPrivateKey(pkBytes, payload)
+		assert.Nil(t, err)
+		assert.NotNil(t, sig)
+
+		assert.True(t, keyGenWasCalled)
+		assert.True(t, signerWasCalled)
+	})
 }
 
 func TestP2pSigner_ConcurrentOperations(t *testing.T) {

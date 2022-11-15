@@ -209,49 +209,85 @@ func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T)
 
 // ------- NewNetworkMessenger
 
-func TestNewNetworkMessenger_NilMessengerShouldErr(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.Marshalizer = nil
-	messenger, err := libp2p.NewNetworkMessenger(arg)
+func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
+	t.Parallel()
 
-	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
-}
+	t.Run("nil messenger", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewNetworkMessenger_NilPreferredPeersHolderShouldErr(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.PreferredPeersHolder = nil
-	messenger, err := libp2p.NewNetworkMessenger(arg)
+		arg := createMockNetworkArgs()
+		arg.Marshalizer = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
 
-	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
-}
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
+	})
 
-func TestNewNetworkMessenger_NilPeersRatingHandlerShouldErr(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.PeersRatingHandler = nil
-	mes, err := libp2p.NewNetworkMessenger(arg)
+	t.Run("nil preferred peers holder", func(t *testing.T) {
+		t.Parallel()
 
-	assert.True(t, check.IfNil(mes))
-	assert.True(t, errors.Is(err, p2p.ErrNilPeersRatingHandler))
-}
+		arg := createMockNetworkArgs()
+		arg.PreferredPeersHolder = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
 
-func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.SyncTimer = nil
-	messenger, err := libp2p.NewNetworkMessenger(arg)
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
+	})
 
-	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, p2p.ErrNilSyncTimer))
-}
+	t.Run("nil peers rating handler", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewNetworkMessenger_NilP2pPrivateKey(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.P2pPrivateKey = nil
-	messenger, err := libp2p.NewNetworkMessenger(arg)
+		arg := createMockNetworkArgs()
+		arg.PeersRatingHandler = nil
+		mes, err := libp2p.NewNetworkMessenger(arg)
 
-	assert.True(t, check.IfNil(messenger))
-	assert.True(t, errors.Is(err, p2p.ErrNilP2pPrivateKey))
+		assert.True(t, check.IfNil(mes))
+		assert.True(t, errors.Is(err, p2p.ErrNilPeersRatingHandler))
+	})
+
+	t.Run("nil sync timer", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.SyncTimer = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilSyncTimer))
+	})
+
+	t.Run("nil p2p private key", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivateKey = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilP2pPrivateKey))
+	})
+
+	t.Run("nil p2p single signer", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pSingleSigner = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilP2pSingleSigner))
+	})
+
+	t.Run("nil p2p key generator", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pKeyGenerator = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilP2pKeyGenerator))
+	})
 }
 
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {

@@ -57,6 +57,8 @@ const (
 	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) // should be used only in tests
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
+
+	baseErrorSuffix = "when creating a new network messenger"
 )
 
 type messageSigningConfig bool
@@ -139,25 +141,25 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilMarshalizer, baseErrorSuffix)
 	}
 	if check.IfNil(args.SyncTimer) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilSyncTimer)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilSyncTimer, baseErrorSuffix)
 	}
 	if check.IfNil(args.PreferredPeersHolder) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilPreferredPeersHolder, baseErrorSuffix)
 	}
 	if check.IfNil(args.PeersRatingHandler) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilPeersRatingHandler, baseErrorSuffix)
 	}
 	if check.IfNil(args.P2pPrivateKey) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilP2pPrivateKey)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pPrivateKey, baseErrorSuffix)
 	}
 	if check.IfNil(args.P2pSingleSigner) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilP2pSingleSigner)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pSingleSigner, baseErrorSuffix)
 	}
 	if check.IfNil(args.P2pKeyGenerator) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilP2pSingleSigner)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pKeyGenerator, baseErrorSuffix)
 	}
 
 	setupExternalP2PLoggers()
