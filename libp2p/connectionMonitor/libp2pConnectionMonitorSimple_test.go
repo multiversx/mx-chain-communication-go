@@ -221,11 +221,9 @@ func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
 	args := createMockArgsConnectionMonitorSimple()
 	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
-	lcms.ClosedStream(netw, nil)
 	lcms.Disconnected(netw, nil)
 	lcms.Listen(netw, nil)
 	lcms.ListenClose(netw, nil)
-	lcms.OpenedStream(netw, nil)
 }
 
 func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeers(t *testing.T) {

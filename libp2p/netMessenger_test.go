@@ -2004,6 +2004,8 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 	}
 	t.Parallel()
 
+	waitForPubSubTime := time.Second * 3
+
 	t.Run("nil topic notifier should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -2030,12 +2032,12 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 		assert.Nil(t, err)
 
 		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
-		time.Sleep(time.Second * 2) // wait a bit for pubsub
+		time.Sleep(waitForPubSubTime) // wait a bit for pubsub
 
 		_ = messenger1.CreateTopic("topic1", true)
 		_ = messenger1.CreateTopic("topic2", true)
 
-		time.Sleep(time.Second * 2) // wait a bit for pubsub
+		time.Sleep(waitForPubSubTime) // wait a bit for pubsub
 	})
 	t.Run("2 peers on same topic should notify", func(t *testing.T) {
 		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
@@ -2066,7 +2068,7 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 
 		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
 		log.Info("netMes1 connected to netMes2, waiting on pubsub")
-		time.Sleep(time.Second * 2)
+		time.Sleep(waitForPubSubTime)
 
 		mut.RLock()
 		assert.Equal(t, 0, len(peersOnTopicsFound))
@@ -2075,7 +2077,7 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 		log.Info("creating topic1 on netMes1 and netMes2 an then waiting on pubsub")
 		_ = messenger1.CreateTopic("topic1", true)
 		_ = messenger2.CreateTopic("topic1", true)
-		time.Sleep(time.Second * 2)
+		time.Sleep(waitForPubSubTime)
 
 		mut.RLock()
 		assert.Equal(t, 2, len(peersOnTopicsFound))
@@ -2086,7 +2088,7 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 		log.Info("creating topic2 on netMes1 and netMes2 an then waiting on pubsub")
 		_ = messenger1.CreateTopic("topic2", true)
 		_ = messenger2.CreateTopic("topic2", true)
-		time.Sleep(time.Second * 2)
+		time.Sleep(waitForPubSubTime)
 
 		mut.RLock()
 		assert.Equal(t, 2, len(peersOnTopicsFound))
@@ -2098,11 +2100,11 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 
 		log.Info("disconnecting netMes2 from netMes1...")
 		_ = messenger2.Disconnect(messenger1.ID())
-		time.Sleep(time.Second * 2)
+		time.Sleep(waitForPubSubTime)
 
 		log.Info("reconnecting netMes2 to netMes1...")
 		_ = messenger2.ConnectToPeer(messenger1.Addresses()[0])
-		time.Sleep(time.Second * 2)
+		time.Sleep(waitForPubSubTime)
 
 		mut.RLock()
 		assert.Equal(t, 2, len(peersOnTopicsFound))

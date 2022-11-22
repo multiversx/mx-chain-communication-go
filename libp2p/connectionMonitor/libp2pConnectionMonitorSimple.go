@@ -113,12 +113,6 @@ func (lcms *libp2pConnectionMonitorSimple) doReconnectionIfNeeded(netw network.N
 	}
 }
 
-// OpenedStream is called when a stream opened
-func (lcms *libp2pConnectionMonitorSimple) OpenedStream(_ network.Network, _ network.Stream) {}
-
-// ClosedStream is called when a stream closed
-func (lcms *libp2pConnectionMonitorSimple) ClosedStream(_ network.Network, _ network.Stream) {}
-
 func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
 	defer func() {
 		log.Debug("closing the connection monitor main loop")
