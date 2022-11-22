@@ -249,11 +249,7 @@ func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T
 }
 
 func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
-	t.Parallel()
-
 	t.Run("with empty private key bytes, should work", func(t *testing.T) {
-		t.Parallel()
-
 		arg := createMockNetworkArgs()
 		arg.P2pPrivateKeyBytes = []byte{}
 		messenger, err := libp2p.NewNetworkMessenger(arg)
@@ -262,10 +258,7 @@ func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
 		assert.NotNil(t, messenger)
 		assert.Nil(t, err)
 	})
-
 	t.Run("with invalid private key bytes", func(t *testing.T) {
-		t.Parallel()
-
 		arg := createMockNetworkArgs()
 		arg.P2pPrivateKeyBytes = []byte("invalid pk bytes")
 		messenger, err := libp2p.NewNetworkMessenger(arg)
@@ -273,10 +266,7 @@ func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
 		assert.Nil(t, messenger)
 		assert.NotNil(t, err)
 	})
-
 	t.Run("valid private key bytes, should work", func(t *testing.T) {
-		t.Parallel()
-
 		pk, _, _ := crypto.GenerateSecp256k1Key(rand.Reader)
 		pkBytes, _ := pk.Raw()
 
@@ -1798,8 +1788,6 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 }
 
 func TestNetworkMessenger_mapHistogram(t *testing.T) {
-	t.Parallel()
-
 	args := createMockNetworkArgs()
 	messenger, _ := libp2p.NewNetworkMessenger(args)
 	defer closeMessengers(messenger)
@@ -1817,8 +1805,6 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Skip("long test used to debug go routines closing on the netMessenger")
-
-	t.Parallel()
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
@@ -1875,11 +1861,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 }
 
 func TestNetworkMessenger_WaitForConnections(t *testing.T) {
-	t.Parallel()
-
 	t.Run("min num of peers is 0", func(t *testing.T) {
-		t.Parallel()
-
 		startTime := time.Now()
 		_, messenger1, messenger2 := createMockNetworkOf2()
 		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
@@ -1891,8 +1873,6 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 		assert.True(t, timeToWait <= time.Since(startTime))
 	})
 	t.Run("min num of peers is 2", func(t *testing.T) {
-		t.Parallel()
-
 		startTime := time.Now()
 		netw, messenger1, messenger2 := createMockNetworkOf2()
 		messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -1912,8 +1892,6 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 		assert.True(t, libp2p.PollWaitForConnectionsInterval <= time.Since(startTime))
 	})
 	t.Run("min num of peers is 2 but we only connected to 1 peer", func(t *testing.T) {
-		t.Parallel()
-
 		startTime := time.Now()
 		_, messenger1, messenger2 := createMockNetworkOf2()
 		defer closeMessengers(messenger1, messenger2)
@@ -2002,13 +1980,10 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
 
 	waitForPubSubTime := time.Second * 3
 
 	t.Run("nil topic notifier should error", func(t *testing.T) {
-		t.Parallel()
-
 		messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 		defer closeMessengers(messenger)
 
