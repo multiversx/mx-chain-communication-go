@@ -3,7 +3,7 @@ package metrics
 import (
 	"sync/atomic"
 
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -38,10 +38,10 @@ func (conns *Connections) Disconnected(network.Network, network.Conn) {
 }
 
 // OpenedStream is called when a stream opened
-func (conns *Connections) OpenedStream(network.Network, network.Stream) {}
+func (conns *Connections) OpenedStream(_ network.Network, _ network.Stream) {}
 
 // ClosedStream is called when a stream closed
-func (conns *Connections) ClosedStream(network.Network, network.Stream) {}
+func (conns *Connections) ClosedStream(_ network.Network, _ network.Stream) {}
 
 // ResetNumConnections resets the numConnections counter returning the previous value
 func (conns *Connections) ResetNumConnections() uint32 {

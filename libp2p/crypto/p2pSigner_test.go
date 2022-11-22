@@ -1,7 +1,6 @@
 package crypto_test
 
 import (
-	"crypto/ecdsa"
 	cryptoRand "crypto/rand"
 	"sync"
 	"testing"
@@ -10,16 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
-func generatePrivateKey() *libp2pCrypto.Secp256k1PrivateKey {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), cryptoRand.Reader)
+func generatePrivateKey() libp2pCrypto.PrivKey {
+	prvKey, _, _ := libp2pCrypto.GenerateSecp256k1Key(cryptoRand.Reader)
 
-	return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+	return prvKey
 }
 
 func TestP2pSigner_NewP2PSigner(t *testing.T) {
@@ -80,7 +78,7 @@ func TestP2pSigner_Verify(t *testing.T) {
 
 		err = signer.Verify(payload, core.PeerID(libp2pPid), sig)
 		assert.NotNil(t, err)
-		assert.Equal(t, "malformed signature: no header magic", err.Error())
+		assert.Contains(t, err.Error(), "malformed signature: format has wrong type")
 	})
 	t.Run("altered signature should error", func(t *testing.T) {
 		t.Parallel()

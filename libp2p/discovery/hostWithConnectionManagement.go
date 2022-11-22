@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -75,7 +75,7 @@ func (hwcm *hostWithConnectionManagement) canConnectToPeer(pid peer.ID) error {
 
 	evicted := hwcm.sharder.ComputeEvictionList(allPeers)
 	if hwcm.sharder.Has(pid, evicted) {
-		return fmt.Errorf("%w, pid: %s", p2p.ErrUnwantedPeer, pid.Pretty())
+		return fmt.Errorf("%w, pid: %s", p2p.ErrUnwantedPeer, pid.String())
 	}
 
 	return nil
