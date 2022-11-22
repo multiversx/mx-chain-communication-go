@@ -2031,6 +2031,7 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 					peersOnTopicsFound[pid] = topics
 				}
 
+				// warning: pubsub v0.8.1 might call multiple times the handler defined in pubsub.WithPeerFilter call for a new peer found
 				peersOnTopicsFound[pid][topic]++
 				mut.Unlock()
 			},
@@ -2056,8 +2057,8 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 
 		mut.RLock()
 		assert.Equal(t, 2, len(peersOnTopicsFound))
-		assert.Equal(t, 1, peersOnTopicsFound[messenger1.ID()]["topic1"])
-		assert.Equal(t, 1, peersOnTopicsFound[messenger2.ID()]["topic1"])
+		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic1"] >= 1)
+		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic1"] >= 1)
 		mut.RUnlock()
 
 		log.Info("creating topic2 on netMes1 and netMes2 an then waiting on pubsub")
@@ -2067,10 +2068,10 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 
 		mut.RLock()
 		assert.Equal(t, 2, len(peersOnTopicsFound))
-		assert.Equal(t, 1, peersOnTopicsFound[messenger1.ID()]["topic1"])
-		assert.Equal(t, 1, peersOnTopicsFound[messenger2.ID()]["topic1"])
-		assert.Equal(t, 1, peersOnTopicsFound[messenger1.ID()]["topic2"])
-		assert.Equal(t, 1, peersOnTopicsFound[messenger2.ID()]["topic2"])
+		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic1"] >= 1)
+		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic1"] >= 1)
+		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic2"] >= 1)
+		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic2"] >= 1)
 		mut.RUnlock()
 
 		log.Info("disconnecting netMes2 from netMes1...")
@@ -2083,10 +2084,10 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 
 		mut.RLock()
 		assert.Equal(t, 2, len(peersOnTopicsFound))
-		assert.Equal(t, 2, peersOnTopicsFound[messenger1.ID()]["topic1"])
-		assert.Equal(t, 2, peersOnTopicsFound[messenger2.ID()]["topic1"])
-		assert.Equal(t, 2, peersOnTopicsFound[messenger1.ID()]["topic2"])
-		assert.Equal(t, 2, peersOnTopicsFound[messenger2.ID()]["topic2"])
+		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic1"] >= 2)
+		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic1"] >= 2)
+		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic2"] >= 2)
+		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic2"] >= 2)
 		mut.RUnlock()
 	})
 }
