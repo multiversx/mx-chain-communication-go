@@ -7,8 +7,8 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pubsub_pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-pubsub"
+	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 )
 
 var log = logger.GetOrCreate("p2p/messagecheck")
@@ -91,14 +91,14 @@ func withSignPrefix(bytes []byte) []byte {
 	return append([]byte(pubsub.SignPrefix), bytes...)
 }
 
-func convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsub_pb.Message, error) {
+func convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsubPb.Message, error) {
 	if check.IfNil(msg) {
 		return nil, p2p.ErrNilMessage
 	}
 
 	topic := msg.Topic()
 
-	newMsg := &pubsub_pb.Message{
+	newMsg := &pubsubPb.Message{
 		From:      msg.From(),
 		Data:      msg.Payload(),
 		Seqno:     msg.SeqNo(),
@@ -110,13 +110,13 @@ func convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsub_pb.Message, e
 	return newMsg, nil
 }
 
-func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message, marshaller marshal.Marshalizer) (p2p.MessageP2P, error) {
+func convertPubSubMessagestoP2PMessage(msg *pubsubPb.Message, marshaller marshal.Marshalizer) (p2p.MessageP2P, error) {
 	if msg == nil {
 		return nil, p2p.ErrNilMessage
 	}
 
 	pubsubMsg := &pubsub.Message{
-		Message: &pubsub_pb.Message{
+		Message: &pubsubPb.Message{
 			From:      msg.From,
 			Data:      msg.Data,
 			Seqno:     msg.Seqno,
@@ -176,7 +176,7 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 
 	p2pMessages := make([]p2p.MessageP2P, 0)
 	for _, pubsubMessageBytes := range pubsubMessagesBytes {
-		var pubsubMsg pubsub_pb.Message
+		var pubsubMsg pubsubPb.Message
 		err = pubsubMsg.Unmarshal(pubsubMessageBytes)
 		if err != nil {
 			return nil, err

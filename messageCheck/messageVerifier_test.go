@@ -1,7 +1,6 @@
 package messagecheck_test
 
 import (
-	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
 	"testing"
@@ -13,9 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	messagecheck "github.com/ElrondNetwork/elrond-go-p2p/messageCheck"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -104,7 +102,7 @@ func TestSerializeDeserialize(t *testing.T) {
 				FromField:      peerID.Bytes(),
 				PayloadField:   msgDataBytes, // it is used as data field for pubsub
 				SeqNoField:     []byte("seq"),
-				TopicField:     string("topic"),
+				TopicField:     "topic",
 				SignatureField: []byte("sig"),
 				KeyField:       []byte("key"),
 				DataField:      []byte("payload1"),
@@ -115,7 +113,7 @@ func TestSerializeDeserialize(t *testing.T) {
 				FromField:      peerID.Bytes(),
 				PayloadField:   msgDataBytes,
 				SeqNoField:     []byte("seq"),
-				TopicField:     string("topic"),
+				TopicField:     "topic",
 				SignatureField: []byte("sig"),
 				KeyField:       []byte("key"),
 				DataField:      []byte("payload1"),
@@ -138,9 +136,8 @@ func TestSerializeDeserialize(t *testing.T) {
 }
 
 func getRandomID() core.PeerID {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	prvKey, _, _ := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
+	id, _ := peer.IDFromPublicKey(prvKey.GetPublic())
 
 	return core.PeerID(id)
 }
@@ -177,7 +174,7 @@ func TestVerify(t *testing.T) {
 			FromField:      []byte("from1"),
 			PayloadField:   []byte("payload1"),
 			SeqNoField:     []byte("seq"),
-			TopicField:     string("topic"),
+			TopicField:     "topic",
 			SignatureField: []byte("sig"),
 			KeyField:       []byte("key"),
 		}
@@ -206,7 +203,7 @@ func TestVerify(t *testing.T) {
 			FromField:      []byte("from1"),
 			PayloadField:   []byte("payload1"),
 			SeqNoField:     []byte("seq"),
-			TopicField:     string("topic"),
+			TopicField:     "topic",
 			SignatureField: []byte("sig"),
 			KeyField:       []byte("key"),
 		}
