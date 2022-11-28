@@ -1,7 +1,6 @@
 package libp2p_test
 
 import (
-	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
 	"testing"
@@ -9,23 +8,21 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	"github.com/ElrondNetwork/go-libp2p-pubsub"
-	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-pubsub"
+	pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func getRandomID() []byte {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	prvKey, _, _ := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
+	id, _ := peer.IDFromPublicKey(prvKey.GetPublic())
 
 	return []byte(id)
 }

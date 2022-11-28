@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	"github.com/libp2p/go-libp2p-core/event"
+	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/stretchr/testify/assert"
 )
 

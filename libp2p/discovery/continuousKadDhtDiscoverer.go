@@ -9,10 +9,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)

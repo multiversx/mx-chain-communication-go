@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/debug"
@@ -24,14 +24,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
 	metricsFactory "github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/factory"
-	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-pubsub"
+	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 const (
@@ -56,6 +56,7 @@ const (
 	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) // should be used only in tests
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
+	pubSubMaxMessageSize            = 1 << 21 // 2 MB
 )
 
 type messageSigningConfig bool
@@ -320,7 +321,10 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
-	optsPS = append(optsPS, pubsub.WithPeerFilter(netMes.newPeerFound))
+	optsPS = append(optsPS,
+		pubsub.WithPeerFilter(netMes.newPeerFound),
+		pubsub.WithMaxMessageSize(pubSubMaxMessageSize),
+	)
 
 	var err error
 	netMes.pb, err = pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
@@ -389,11 +393,13 @@ func (netMes *networkMessenger) newPeerFound(pid peer.ID, topic string) bool {
 }
 
 func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *SendableData, packedSendableDataBuff []byte) error {
-	if data.Sk == nil {
-		return topic.Publish(netMes.ctx, packedSendableDataBuff)
+	options := make([]pubsub.PubOpt, 0, 1)
+
+	if data.Sk != nil {
+		options = append(options, pubsub.WithSecretKeyAndPeerId(data.Sk, data.ID))
 	}
 
-	return topic.PublishWithSk(netMes.ctx, packedSendableDataBuff, data.Sk, data.ID)
+	return topic.Publish(netMes.ctx, packedSendableDataBuff, options...)
 }
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
@@ -784,7 +790,7 @@ func (netMes *networkMessenger) ConnectedAddresses() []string {
 	conns := make([]string, 0)
 
 	for _, c := range h.Network().Conns() {
-		conns = append(conns, c.RemoteMultiaddr().String()+"/p2p/"+c.RemotePeer().Pretty())
+		conns = append(conns, c.RemoteMultiaddr().String()+"/p2p/"+c.RemotePeer().String())
 	}
 	return conns
 }
@@ -1366,7 +1372,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		conns := netMes.p2pHost.Network().ConnsToPeer(p)
 		connString := "[invalid connection string]"
 		if len(conns) > 0 {
-			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
+			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.String()
 		}
 
 		pid := core.PeerID(p)

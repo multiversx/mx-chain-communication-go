@@ -1,14 +1,12 @@
 package crypto_test
 
 import (
-	"crypto/ecdsa"
 	"crypto/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,14 +23,14 @@ func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 
 	generator := crypto.NewIdentityGenerator()
 
-	skKey1, errGenerate := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	skKey1, _, errGenerate := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
 	require.Nil(t, errGenerate)
-	skBuff1, errMarshal := (*libp2pCrypto.Secp256k1PrivateKey)(skKey1).Raw()
+	skBuff1, errMarshal := skKey1.Raw()
 	require.Nil(t, errMarshal)
 
-	skKey2, errGenerate := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	skKey2, _, errGenerate := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
 	require.Nil(t, errGenerate)
-	skBuff2, errMarshal := (*libp2pCrypto.Secp256k1PrivateKey)(skKey2).Raw()
+	skBuff2, errMarshal := skKey2.Raw()
 	require.Nil(t, errMarshal)
 
 	t.Run("same private key bytes should produce the same private key", func(t *testing.T) {

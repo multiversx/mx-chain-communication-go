@@ -6,11 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -96,8 +96,6 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 	listenCalled := false
 	listenCloseCalled := false
 	disconnectCalled := false
-	openedCalled := false
-	closedCalled := false
 	cmw := libp2p.NewConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{
@@ -110,12 +108,6 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 			DisconnectedCalled: func(network.Network, network.Conn) {
 				disconnectCalled = true
 			},
-			OpenedStreamCalled: func(network.Network, network.Stream) {
-				openedCalled = true
-			},
-			ClosedStreamCalled: func(network.Network, network.Stream) {
-				closedCalled = true
-			},
 		},
 		&mock.PeerDenialEvaluatorStub{},
 	)
@@ -123,14 +115,10 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 	cmw.Listen(nil, nil)
 	cmw.ListenClose(nil, nil)
 	cmw.Disconnected(nil, nil)
-	cmw.OpenedStream(nil, nil)
-	cmw.ClosedStream(nil, nil)
 
 	assert.True(t, listenCalled)
 	assert.True(t, listenCloseCalled)
 	assert.True(t, disconnectCalled)
-	assert.True(t, openedCalled)
-	assert.True(t, closedCalled)
 }
 
 // ------- SetBlackListHandler
