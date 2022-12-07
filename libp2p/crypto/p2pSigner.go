@@ -49,19 +49,21 @@ func checkArgs(args ArgsP2pSignerWrapper) error {
 	return nil
 }
 
-// Sign will sign a payload with the internal private key
+// Sign will sign the hash of the payload with the internal private key
 func (psw *p2pSignerWrapper) Sign(payload []byte) ([]byte, error) {
+	// added hash over the payload to comply with libp2p internal implementation
 	hash := sha256.Sum256(payload)
 	return psw.signer.Sign(psw.privateKey, hash[:])
 }
 
-// Verify will check that the (payload, peer ID, signature) tuple is valid or not
+// Verify will check that the (hash of the payload, peer ID, signature) tuple is valid or not
 func (psw *p2pSignerWrapper) Verify(payload []byte, pid core.PeerID, signature []byte) error {
 	pubKey, err := ConvertPeerIDToPublicKey(psw.keyGen, pid)
 	if err != nil {
 		return err
 	}
 
+	// added hash over the payload to comply with libp2p internal implementation
 	hash := sha256.Sum256(payload)
 	err = psw.signer.Verify(pubKey, hash[:], signature)
 	if err != nil {
@@ -71,13 +73,14 @@ func (psw *p2pSignerWrapper) Verify(payload []byte, pid core.PeerID, signature [
 	return nil
 }
 
-// SignUsingPrivateKey will sign the payload with provided private key bytes
+// SignUsingPrivateKey will sign the hash of the payload with provided private key bytes
 func (psw *p2pSignerWrapper) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
 	sk, err := psw.keyGen.PrivateKeyFromByteArray(skBytes)
 	if err != nil {
 		return nil, err
 	}
 
+	// added hash over the payload to comply with libp2p internal implementation
 	hash := sha256.Sum256(payload)
 	return psw.signer.Sign(sk, hash[:])
 }
