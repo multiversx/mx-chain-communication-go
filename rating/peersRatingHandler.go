@@ -3,6 +3,7 @@ package rating
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -27,14 +28,24 @@ var log = logger.GetOrCreate("p2p/peersRatingHandler")
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
-	TopRatedCache types.Cacher
-	BadRatedCache types.Cacher
+	TopRatedCache    types.Cacher
+	BadRatedCache    types.Cacher
+	AppStatusHandler core.AppStatusHandler
+}
+
+type ratingInfo struct {
+	rating                       int32
+	timestampLastRequestToPid    int64
+	timestampLastResponseFromPid int64
 }
 
 type peersRatingHandler struct {
-	topRatedCache types.Cacher
-	badRatedCache types.Cacher
-	mut           sync.Mutex
+	topRatedCache    types.Cacher
+	badRatedCache    types.Cacher
+	mut              sync.Mutex
+	ratingsMap       map[core.PeerID]*ratingInfo
+	appStatusHandler core.AppStatusHandler
+	getTimeHandler   func() time.Time
 }
 
 // NewPeersRatingHandler returns a new peers rating handler
@@ -45,8 +56,11 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, err
 	}
 
 	prh := &peersRatingHandler{
-		topRatedCache: args.TopRatedCache,
-		badRatedCache: args.BadRatedCache,
+		topRatedCache:    args.TopRatedCache,
+		badRatedCache:    args.BadRatedCache,
+		appStatusHandler: args.AppStatusHandler,
+		ratingsMap:       make(map[core.PeerID]*ratingInfo),
+		getTimeHandler:   time.Now,
 	}
 
 	return prh, nil
@@ -58,6 +72,9 @@ func checkArgs(args ArgPeersRatingHandler) error {
 	}
 	if check.IfNil(args.BadRatedCache) {
 		return fmt.Errorf("%w for BadRatedCache", p2p.ErrNilCacher)
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return p2p.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -75,6 +92,8 @@ func (prh *peersRatingHandler) AddPeer(pid core.PeerID) {
 	}
 
 	prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
+	prh.updateRatingsMap(pid, defaultRating, 0)
+	prh.updateMetrics()
 }
 
 // IncreaseRating increases the rating of a peer with the increase factor
@@ -110,17 +129,20 @@ func (prh *peersRatingHandler) getOldRating(pid core.PeerID) (int32, bool) {
 }
 
 func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFactor int32) {
+	defer prh.updateMetrics()
+
 	oldRating, found := prh.getOldRating(pid)
 	if !found {
 		// new pid, add it with default rating
 		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
-		return
+		prh.updateRatingsMap(pid, defaultRating, updateFactor)
 	}
 
 	decreasingUnderMin := oldRating == minRating && updateFactor == decreaseFactor
 	increasingOverMax := oldRating == maxRating && updateFactor == increaseFactor
 	shouldSkipUpdate := decreasingUnderMin || increasingOverMax
 	if shouldSkipUpdate {
+		prh.updateRatingsMap(pid, oldRating, updateFactor)
 		return
 	}
 
@@ -134,6 +156,7 @@ func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFacto
 	}
 
 	prh.updateRating(pid, oldRating, newRating)
+	prh.updateRatingsMap(pid, newRating, updateFactor)
 }
 
 func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRating int32) {
@@ -230,6 +253,41 @@ func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.Pe
 	}
 
 	return topRated, badRated
+}
+
+func (prh *peersRatingHandler) updateRatingsMap(pid core.PeerID, newRating int32, updateFactor int32) {
+	peerRatingInfo, exists := prh.ratingsMap[pid]
+	if !exists {
+		prh.ratingsMap[pid] = &ratingInfo{
+			rating:                       newRating,
+			timestampLastRequestToPid:    0,
+			timestampLastResponseFromPid: 0,
+		}
+		return
+	}
+
+	peerRatingInfo.rating = newRating
+
+	newTimeStamp := prh.getTimeHandler().Unix()
+	if updateFactor == decreaseFactor {
+		peerRatingInfo.timestampLastRequestToPid = newTimeStamp
+		return
+	}
+
+	peerRatingInfo.timestampLastResponseFromPid = newTimeStamp
+}
+
+func (prh *peersRatingHandler) updateMetrics() {
+	prh.appStatusHandler.SetStringValue(p2p.MetricP2PPeersRating, prh.ratingsToString())
+}
+
+func (prh *peersRatingHandler) ratingsToString() string {
+	ratingsString := ""
+	for pid, pidRatingInfo := range prh.ratingsMap {
+		ratingsString += fmt.Sprintf("\n%s: rating=%d, timestampLastRequestToPID=%d, timestampLastResponseFromPID=%d",
+			pid.Pretty(), pidRatingInfo.rating, pidRatingInfo.timestampLastRequestToPid, pidRatingInfo.timestampLastResponseFromPid)
+	}
+	return ratingsString
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
