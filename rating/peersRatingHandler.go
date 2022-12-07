@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -34,9 +35,9 @@ type ArgPeersRatingHandler struct {
 }
 
 type ratingInfo struct {
-	rating                       int32
-	timestampLastRequestToPid    int64
-	timestampLastResponseFromPid int64
+	Rating                       int32 `json:"rating"`
+	TimestampLastRequestToPid    int64 `json:"timestampLastRequestToPid"`
+	TimestampLastResponseFromPid int64 `json:"timestampLastResponseFromPid"`
 }
 
 type peersRatingHandler struct {
@@ -259,35 +260,32 @@ func (prh *peersRatingHandler) updateRatingsMap(pid core.PeerID, newRating int32
 	peerRatingInfo, exists := prh.ratingsMap[pid]
 	if !exists {
 		prh.ratingsMap[pid] = &ratingInfo{
-			rating:                       newRating,
-			timestampLastRequestToPid:    0,
-			timestampLastResponseFromPid: 0,
+			Rating:                       newRating,
+			TimestampLastRequestToPid:    0,
+			TimestampLastResponseFromPid: 0,
 		}
 		return
 	}
 
-	peerRatingInfo.rating = newRating
+	peerRatingInfo.Rating = newRating
 
 	newTimeStamp := prh.getTimeHandler().Unix()
 	if updateFactor == decreaseFactor {
-		peerRatingInfo.timestampLastRequestToPid = newTimeStamp
+		peerRatingInfo.TimestampLastRequestToPid = newTimeStamp
 		return
 	}
 
-	peerRatingInfo.timestampLastResponseFromPid = newTimeStamp
+	peerRatingInfo.TimestampLastResponseFromPid = newTimeStamp
 }
 
 func (prh *peersRatingHandler) updateMetrics() {
-	prh.appStatusHandler.SetStringValue(p2p.MetricP2PPeersRating, prh.ratingsToString())
-}
-
-func (prh *peersRatingHandler) ratingsToString() string {
-	ratingsString := ""
-	for pid, pidRatingInfo := range prh.ratingsMap {
-		ratingsString += fmt.Sprintf("\n%s: rating=%d, timestampLastRequestToPID=%d, timestampLastResponseFromPID=%d",
-			pid.Pretty(), pidRatingInfo.rating, pidRatingInfo.timestampLastRequestToPid, pidRatingInfo.timestampLastResponseFromPid)
+	jsonMap, err := json.Marshal(&prh.ratingsMap)
+	if err != nil {
+		log.Debug("could not update metrics", "metric", p2p.MetricP2PPeersRating, "error", err.Error())
+		return
 	}
-	return ratingsString
+
+	prh.appStatusHandler.SetStringValue(p2p.MetricP2PPeersRating, string(jsonMap))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

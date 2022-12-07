@@ -2,6 +2,7 @@ package rating
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -98,7 +99,7 @@ func TestPeersRatingHandler_AddPeer(t *testing.T) {
 		args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				assert.Equal(t, p2p.MetricP2PPeersRating, key)
-				assert.True(t, strings.Contains(value, providedPid.Pretty()))
+				testReceivedValue(t, value, providedPid, defaultRating)
 				counter++
 			},
 		}
@@ -209,7 +210,7 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 		args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				assert.Equal(t, p2p.MetricP2PPeersRating, key)
-				assert.True(t, strings.Contains(value, providedPid.Pretty()))
+				testReceivedValue(t, value, providedPid, increaseFactor)
 				counter++
 			},
 		}
@@ -240,8 +241,8 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 		args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				assert.Equal(t, p2p.MetricP2PPeersRating, key)
-				assert.True(t, strings.Contains(value, providedPid.Pretty()))
 				counter++
+				testReceivedValue(t, value, providedPid, increaseFactor*int32(counter))
 			},
 		}
 
@@ -294,7 +295,7 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 		args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				assert.Equal(t, p2p.MetricP2PPeersRating, key)
-				assert.True(t, strings.Contains(value, providedPid.Pretty()))
+				testReceivedValue(t, value, providedPid, decreaseFactor)
 				counter++
 			},
 		}
@@ -339,11 +340,16 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 			},
 		}
 		counter := 0
+		numOfCalls := 200
 		args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				assert.Equal(t, p2p.MetricP2PPeersRating, key)
-				assert.True(t, strings.Contains(value, providedPid.Pretty()))
 				counter++
+				if counter <= numOfCalls+1 {
+					testReceivedValue(t, value, providedPid, decreaseFactor*int32(counter))
+				} else {
+					testReceivedValue(t, value, providedPid, minRating+increaseFactor*int32(counter-numOfCalls-1))
+				}
 			},
 		}
 
@@ -357,7 +363,6 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 		assert.Equal(t, int32(-1), val)
 
 		// exceed the limit
-		numOfCalls := 200
 		for i := 0; i < numOfCalls; i++ {
 			prh.DecreaseRating(providedPid)
 		}
@@ -551,4 +556,23 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 	wg.Wait()
+}
+
+func testReceivedValue(
+	t *testing.T,
+	value string,
+	expectedPid core.PeerID,
+	expectedRating int32,
+) {
+	rInfoMap := map[core.PeerID]*ratingInfo{}
+	assert.Nil(t, json.Unmarshal([]byte(value), &rInfoMap))
+	rInfo, exists := rInfoMap[expectedPid]
+	assert.True(t, exists)
+	if expectedRating > maxRating {
+		expectedRating = maxRating
+	}
+	if expectedRating < minRating {
+		expectedRating = minRating
+	}
+	assert.Equal(t, expectedRating, rInfo.Rating)
 }
