@@ -10,10 +10,11 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1/singlesig"
 	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -212,6 +213,66 @@ func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
 
 		assert.True(t, keyGenWasCalled)
 		assert.True(t, signerWasCalled)
+	})
+}
+
+func TestP2PSigner_FullTest(t *testing.T) {
+	t.Parallel()
+
+	payload := []byte("payload")
+
+	t.Run("sign and verify", func(t *testing.T) {
+		t.Parallel()
+
+		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+
+		privateKey, _ := generatePrivateKey()
+		p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
+		pid, _ := peer.IDFromPublicKey(p2pPrivKey.GetPublic())
+		signerArgs := p2pCrypto.ArgsP2pSignerWrapper{
+			PrivateKey: privateKey,
+			Signer:     &singlesig.Secp256k1Signer{},
+			KeyGen:     keyGen,
+		}
+		signer, _ := p2pCrypto.NewP2PSignerWrapper(signerArgs)
+
+		sig, err := signer.Sign(payload)
+		assert.Nil(t, err)
+		assert.Nil(t, signer.Verify(payload, core.PeerID(pid), sig))
+	})
+
+	t.Run("sign using private key", func(t *testing.T) {
+		t.Parallel()
+
+		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+
+		prvKey1, _ := keyGen.GeneratePair()
+		p2pPrivKey1, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey1)
+		p2pPrivKeyBytes1, _ := p2pPrivKey1.Raw()
+		pid1, _ := peer.IDFromPublicKey(p2pPrivKey1.GetPublic())
+
+		prvKey2, _ := keyGen.GeneratePair()
+		p2pPrivKey2, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey2)
+		p2pPrivKeyBytes2, _ := p2pPrivKey2.Raw()
+		pid2, _ := peer.IDFromPublicKey(p2pPrivKey2.GetPublic())
+
+		privateKey, _ := generatePrivateKey()
+		signerArgs := p2pCrypto.ArgsP2pSignerWrapper{
+			PrivateKey: privateKey,
+			Signer:     &singlesig.Secp256k1Signer{},
+			KeyGen:     keyGen,
+		}
+		signer, _ := p2pCrypto.NewP2PSignerWrapper(signerArgs)
+
+		sig1, err := signer.SignUsingPrivateKey(p2pPrivKeyBytes1, payload)
+		assert.Nil(t, err)
+
+		sig2, err := signer.SignUsingPrivateKey(p2pPrivKeyBytes2, payload)
+		assert.Nil(t, err)
+		assert.NotEqual(t, sig1, sig2)
+
+		assert.Nil(t, signer.Verify(payload, core.PeerID(pid1), sig1))
+		assert.Nil(t, signer.Verify(payload, core.PeerID(pid2), sig2))
 	})
 }
 
