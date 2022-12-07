@@ -31,4 +31,7 @@ const (
 	// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
 	// do not follow this protocol
 	WrongP2PMessageBlacklistDuration = time.Second * 7200
+
+	// MetricP2PPeersRating is the metric that outputs the peers ratings
+	MetricP2PPeersRating = "erd_p2p_peers_rating"
 )

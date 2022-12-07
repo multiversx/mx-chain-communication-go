@@ -149,3 +149,6 @@ var ErrNilP2PSigner = errors.New("nil p2p signer")
 
 // ErrNilPeerTopicNotifier signals that a nil peer topic notifier have been provided
 var ErrNilPeerTopicNotifier = errors.New("nil peer topic notifier")
+
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
