@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // privateKeyMock implements common PrivateKey interface
