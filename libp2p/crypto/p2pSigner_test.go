@@ -1,7 +1,11 @@
 package crypto_test
 
 import (
+<<<<<<< HEAD
 	"errors"
+=======
+	cryptoRand "crypto/rand"
+>>>>>>> master
 	"sync"
 	"testing"
 	"time"
@@ -11,13 +15,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
+<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+=======
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+>>>>>>> master
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+<<<<<<< HEAD
 func generatePrivateKey() (crypto.PrivateKey, crypto.PublicKey) {
 	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, pubKey := keyGen.GeneratePair()
@@ -31,6 +41,12 @@ func createDefaultP2PSignerArgs() p2pCrypto.ArgsP2pSignerWrapper {
 		Signer:     &mock.SingleSignerStub{},
 		KeyGen:     &mock.KeyGenStub{},
 	}
+=======
+func generatePrivateKey() libp2pCrypto.PrivKey {
+	prvKey, _, _ := libp2pCrypto.GenerateSecp256k1Key(cryptoRand.Reader)
+
+	return prvKey
+>>>>>>> master
 }
 
 func TestP2pSigner_NewP2PSigner(t *testing.T) {
@@ -127,8 +143,14 @@ func TestP2pSigner_Verify(t *testing.T) {
 		peerID, err := peer.IDFromPublicKey(convertPublicKeyToP2PPublicKey(pk))
 		require.Nil(t, err)
 
+<<<<<<< HEAD
 		err = signer.Verify(payload, core.PeerID(peerID), []byte("sig"))
 		require.Equal(t, expectedErr, err)
+=======
+		err = signer.Verify(payload, core.PeerID(libp2pPid), sig)
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "malformed signature: format has wrong type")
+>>>>>>> master
 	})
 
 	t.Run("should work", func(t *testing.T) {

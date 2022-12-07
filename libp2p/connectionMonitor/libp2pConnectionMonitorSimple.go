@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -112,12 +112,6 @@ func (lcms *libp2pConnectionMonitorSimple) doReconnectionIfNeeded(netw network.N
 		lcms.doReconn()
 	}
 }
-
-// OpenedStream is called when a stream opened
-func (lcms *libp2pConnectionMonitorSimple) OpenedStream(network.Network, network.Stream) {}
-
-// ClosedStream is called when a stream closed
-func (lcms *libp2pConnectionMonitorSimple) ClosedStream(network.Network, network.Stream) {}
 
 func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
 	defer func() {

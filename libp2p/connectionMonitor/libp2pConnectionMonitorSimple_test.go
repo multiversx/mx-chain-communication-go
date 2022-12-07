@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -221,11 +221,9 @@ func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
 	args := createMockArgsConnectionMonitorSimple()
 	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
-	lcms.ClosedStream(netw, nil)
 	lcms.Disconnected(netw, nil)
 	lcms.Listen(netw, nil)
 	lcms.ListenClose(netw, nil)
-	lcms.OpenedStream(netw, nil)
 }
 
 func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeers(t *testing.T) {

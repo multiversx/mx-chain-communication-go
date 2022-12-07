@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -341,7 +341,7 @@ func TestListsSharder_ComputeEvictionListEvictFromAllShouldWork(t *testing.T) {
 	ls, _ := networksharding.NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
-		"ip6/" + seeder.Pretty(),
+		"ip6/" + seeder.String(),
 	})
 
 	pids := []peer.ID{
@@ -409,7 +409,7 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 	ls, _ := networksharding.NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
-		"ip6/" + seeder.Pretty(),
+		"ip6/" + seeder.String(),
 	})
 
 	evictList := ls.ComputeEvictionList(pids)
@@ -466,7 +466,7 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 	ls, _ := networksharding.NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
-		"ip6/" + seeder.Pretty(),
+		"ip6/" + seeder.String(),
 	})
 
 	evictList := ls.ComputeEvictionList(pids)
@@ -474,21 +474,21 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 		require.False(t, strings.HasPrefix(string(peerID), preferredHexPrefix))
 	}
 
-	found := arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP0).Pretty()))
+	found := arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP0).String()))
 	require.True(t, found)
 
-	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP1).Pretty()))
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP1).String()))
 	require.True(t, found)
 
-	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP2).Pretty()))
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP2).String()))
 	require.True(t, found)
 
 	peers := arg.PreferredPeersHolder.Get()
 	expectedMap := map[uint32][]core.PeerID{
 		0: {
-			core.PeerID(peer.ID(prefP0).Pretty()),
-			core.PeerID(peer.ID(prefP1).Pretty()),
-			core.PeerID(peer.ID(prefP2).Pretty()),
+			core.PeerID(peer.ID(prefP0).String()),
+			core.PeerID(peer.ID(prefP1).String()),
+			core.PeerID(peer.ID(prefP2).String()),
 		},
 	}
 	require.Equal(t, expectedMap, peers)
