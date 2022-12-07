@@ -57,12 +57,9 @@ const (
 	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) // should be used only in tests
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
-<<<<<<< HEAD
 
-	baseErrorSuffix = "when creating a new network messenger"
-=======
-	pubSubMaxMessageSize            = 1 << 21 // 2 MB
->>>>>>> master
+	baseErrorSuffix      = "when creating a new network messenger"
+	pubSubMaxMessageSize = 1 << 21 // 2 MB
 )
 
 type messageSigningConfig bool

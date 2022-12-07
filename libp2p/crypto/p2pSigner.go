@@ -6,11 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-<<<<<<< HEAD
-=======
-	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/peer"
->>>>>>> master
 )
 
 // ArgsP2pSignerWrapper defines the arguments needed to create a p2p signer wrapper
