@@ -1,15 +1,19 @@
 package messagecheck_test
 
 import (
+	"crypto/rand"
 	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	messagecheck "github.com/ElrondNetwork/elrond-go-p2p/messageCheck"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,75 +62,63 @@ func TestNewMessageVerifier(t *testing.T) {
 func TestSerializeDeserialize(t *testing.T) {
 	t.Parallel()
 
-	t.Run("serialize, marshal should err", func(t *testing.T) {
+	t.Run("empty messages array", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
-
 		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.MarshallerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		messages := []p2p.MessageP2P{
-			&message.Message{
-				FromField:    []byte("from1"),
-				PayloadField: []byte("payload1"),
-			},
-		}
+		args.Marshaller = &mock.ProtoMarshallerMock{}
 
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, err)
 
-		messagesBytes, err := mv.Serialize(messages)
-		require.Nil(t, messagesBytes)
-		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("deserialize, unmarshal should err", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected error")
-
-		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.MarshallerStub{
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
-			},
-		}
-
-		mv, err := messagecheck.NewMessageVerifier(args)
+		messagesBytes, err := mv.Serialize([]p2p.MessageP2P{})
 		require.Nil(t, err)
 
-		messages, err := mv.Deserialize([]byte("messages data"))
-		require.Nil(t, messages)
-		require.Equal(t, expectedErr, err)
+		messages, err := mv.Deserialize(messagesBytes)
+		require.Nil(t, err)
+		require.Equal(t, 0, len(messages))
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.MarshallerMock{}
+		args.Marshaller = &mock.ProtoMarshallerMock{}
+
+		msgData := &data.TopicMessage{
+			Version:        1,
+			Payload:        []byte("payload1"),
+			Timestamp:      1,
+			Pk:             []byte{},
+			SignatureOnPid: []byte{},
+		}
+		msgDataBytes, err := args.Marshaller.Marshal(msgData)
+		require.Nil(t, err)
+
+		peerID := getRandomID()
 
 		expectedMessages := []p2p.MessageP2P{
 			&message.Message{
-				FromField:      []byte("from1"),
-				PayloadField:   []byte("payload1"), // it is used as data field for pubsub
+				FromField:      peerID.Bytes(),
+				PayloadField:   msgDataBytes, // it is used as data field for pubsub
 				SeqNoField:     []byte("seq"),
-				TopicField:     string("topic"),
+				TopicField:     "topic",
 				SignatureField: []byte("sig"),
 				KeyField:       []byte("key"),
+				DataField:      []byte("payload1"),
+				TimestampField: 1,
+				PeerField:      peerID,
 			},
 			&message.Message{
-				FromField:      []byte("from2"),
-				PayloadField:   []byte("payload2"),
+				FromField:      peerID.Bytes(),
+				PayloadField:   msgDataBytes,
 				SeqNoField:     []byte("seq"),
-				TopicField:     string("topic"),
+				TopicField:     "topic",
 				SignatureField: []byte("sig"),
 				KeyField:       []byte("key"),
+				DataField:      []byte("payload1"),
+				TimestampField: 1,
+				PeerField:      peerID,
 			},
 		}
 
@@ -141,6 +133,13 @@ func TestSerializeDeserialize(t *testing.T) {
 
 		require.Equal(t, expectedMessages, messages)
 	})
+}
+
+func getRandomID() core.PeerID {
+	prvKey, _, _ := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
+	id, _ := peer.IDFromPublicKey(prvKey.GetPublic())
+
+	return core.PeerID(id)
 }
 
 func TestVerify(t *testing.T) {
@@ -175,7 +174,7 @@ func TestVerify(t *testing.T) {
 			FromField:      []byte("from1"),
 			PayloadField:   []byte("payload1"),
 			SeqNoField:     []byte("seq"),
-			TopicField:     string("topic"),
+			TopicField:     "topic",
 			SignatureField: []byte("sig"),
 			KeyField:       []byte("key"),
 		}
@@ -204,7 +203,7 @@ func TestVerify(t *testing.T) {
 			FromField:      []byte("from1"),
 			PayloadField:   []byte("payload1"),
 			SeqNoField:     []byte("seq"),
-			TopicField:     string("topic"),
+			TopicField:     "topic",
 			SignatureField: []byte("sig"),
 			KeyField:       []byte("key"),
 		}

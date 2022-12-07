@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/integrationTests"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
