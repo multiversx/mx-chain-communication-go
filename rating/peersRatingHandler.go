@@ -44,7 +44,7 @@ type peersRatingHandler struct {
 	topRatedCache    types.Cacher
 	badRatedCache    types.Cacher
 	mut              sync.Mutex
-	ratingsMap       map[core.PeerID]*ratingInfo
+	ratingsMap       map[string]*ratingInfo
 	appStatusHandler core.AppStatusHandler
 	getTimeHandler   func() time.Time
 }
@@ -60,7 +60,7 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, err
 		topRatedCache:    args.TopRatedCache,
 		badRatedCache:    args.BadRatedCache,
 		appStatusHandler: args.AppStatusHandler,
-		ratingsMap:       make(map[core.PeerID]*ratingInfo),
+		ratingsMap:       make(map[string]*ratingInfo),
 		getTimeHandler:   time.Now,
 	}
 
@@ -257,9 +257,10 @@ func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.Pe
 }
 
 func (prh *peersRatingHandler) updateRatingsMap(pid core.PeerID, newRating int32, updateFactor int32) {
-	peerRatingInfo, exists := prh.ratingsMap[pid]
+	prettyPID := pid.Pretty()
+	peerRatingInfo, exists := prh.ratingsMap[prettyPID]
 	if !exists {
-		prh.ratingsMap[pid] = &ratingInfo{
+		prh.ratingsMap[prettyPID] = &ratingInfo{
 			Rating:                       newRating,
 			TimestampLastRequestToPid:    0,
 			TimestampLastResponseFromPid: 0,

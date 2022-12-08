@@ -564,9 +564,9 @@ func testReceivedValue(
 	expectedPid core.PeerID,
 	expectedRating int32,
 ) {
-	rInfoMap := map[core.PeerID]*ratingInfo{}
+	rInfoMap := map[string]*ratingInfo{}
 	assert.Nil(t, json.Unmarshal([]byte(value), &rInfoMap))
-	rInfo, exists := rInfoMap[expectedPid]
+	rInfo, exists := rInfoMap[expectedPid.Pretty()]
 	assert.True(t, exists)
 	if expectedRating > maxRating {
 		expectedRating = maxRating
