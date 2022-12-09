@@ -123,6 +123,10 @@ func checkArgs(args ArgPeersRatingHandler) error {
 // AddPeers adds a new list of peers to the cache with rating 0
 // this is called when peers list is refreshed
 func (prh *peersRatingHandler) AddPeers(pids []core.PeerID) {
+	if len(pids) == 0 {
+		return
+	}
+
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
@@ -184,14 +188,16 @@ func (prh *peersRatingHandler) markInactivePIDsForRemoval(receivedPIDs map[strin
 	topRatedPIDs := prh.topRatedCache.Keys()
 	for _, pid := range topRatedPIDs {
 		_, isPIDStillActive := receivedPIDs[string(pid)]
-		if !isPIDStillActive {
+		alreadyMarked := prh.markedForRemovalCache.Has(pid)
+		if !isPIDStillActive && !alreadyMarked {
 			prh.markedForRemovalCache.Put(pid, removalTimestamp, int64Size)
 		}
 	}
 	badRatedPIDs := prh.badRatedCache.Keys()
 	for _, pid := range badRatedPIDs {
 		_, isPIDStillActive := receivedPIDs[string(pid)]
-		if !isPIDStillActive {
+		alreadyMarked := prh.markedForRemovalCache.Has(pid)
+		if !isPIDStillActive && !alreadyMarked {
 			prh.markedForRemovalCache.Put(pid, removalTimestamp, int64Size)
 		}
 	}
