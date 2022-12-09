@@ -615,14 +615,17 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 func TestPeersRatingHandler_LoopsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testsMut := sync.Mutex{}
 	// add peers from pid0 to pid9
 	numPIDs := 10
 	providedPIDs := &[]core.PeerID{}
+	testsMut.Lock()
 	for i := 0; i < numPIDs; i++ {
 		pid := core.PeerID(fmt.Sprintf("pid%d", i))
 		*providedPIDs = append(*providedPIDs, pid)
 	}
 	expectedRatings := &[]int32{0, 2, 4, 6, 8, -1, -2, -3, -4, -5}
+	testsMut.Unlock()
 
 	args := createMockArgs()
 	args.TimeWaitingForReconnection = time.Second * 4
@@ -633,7 +636,9 @@ func TestPeersRatingHandler_LoopsShouldWork(t *testing.T) {
 	args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
 			assert.Equal(t, p2p.MetricP2PPeersRating, key)
+			testsMut.Lock()
 			testReceivedValue(t, value, *providedPIDs, *expectedRatings)
+			testsMut.Unlock()
 			log.Info(value)
 		},
 	}
@@ -668,6 +673,7 @@ func TestPeersRatingHandler_LoopsShouldWork(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	// add even pids again(mark odd pids for deletion)
+	testsMut.Lock()
 	providedPIDs = &[]core.PeerID{}
 	newExpectedRatings := &[]int32{}
 	for i := 0; i < numPIDs; i++ {
@@ -678,6 +684,7 @@ func TestPeersRatingHandler_LoopsShouldWork(t *testing.T) {
 		}
 	}
 	*expectedRatings = *newExpectedRatings
+	testsMut.Unlock()
 
 	prh.AddPeers(*providedPIDs)
 
