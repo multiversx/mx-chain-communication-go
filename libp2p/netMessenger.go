@@ -1058,10 +1058,6 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 		}
 		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
 
-		if messageOk {
-			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
-		}
-
 		return messageOk
 	}
 }

@@ -127,8 +127,8 @@ func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
 	for i, pid := range list {
 		peerID := core.PeerID(pid)
 		connectedPeers[i] = peerID
-		poc.peersRatingHandler.AddPeer(peerID)
 	}
+	poc.peersRatingHandler.AddPeers(connectedPeers)
 
 	poc.updateConnectedPeersOnTopic(topic, connectedPeers)
 	return connectedPeers
