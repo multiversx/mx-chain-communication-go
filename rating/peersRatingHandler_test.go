@@ -122,6 +122,13 @@ func TestNewPeersRatingHandler(t *testing.T) {
 func TestPeersRatingHandler_AddPeers(t *testing.T) {
 	t.Parallel()
 
+	t.Run("empty peers should return work", func(t *testing.T) {
+		t.Parallel()
+
+		prh := newPeersRatingHandlerWithoutGoRoutines(createMockArgs())
+		assert.False(t, check.IfNil(prh))
+		prh.AddPeers(nil)
+	})
 	t.Run("new peer should add", func(t *testing.T) {
 		t.Parallel()
 
