@@ -23,7 +23,6 @@ func createMockArgs() ArgPeersRatingHandler {
 	return ArgPeersRatingHandler{
 		TopRatedCache:              &mock.CacherStub{},
 		BadRatedCache:              &mock.CacherStub{},
-		MarkedForRemovalCache:      &mock.CacherStub{},
 		AppStatusHandler:           &coreMocks.AppStatusHandlerStub{},
 		TimeWaitingForReconnection: time.Second,
 		TimeBetweenMetricsUpdate:   time.Second,
@@ -33,12 +32,12 @@ func createMockArgs() ArgPeersRatingHandler {
 
 func newPeersRatingHandlerWithoutGoRoutines(args ArgPeersRatingHandler) *peersRatingHandler {
 	return &peersRatingHandler{
-		topRatedCache:         args.TopRatedCache,
-		badRatedCache:         args.BadRatedCache,
-		markedForRemovalCache: args.MarkedForRemovalCache,
-		ratingsMap:            make(map[string]*ratingInfo),
-		appStatusHandler:      args.AppStatusHandler,
-		getTimeHandler:        time.Now,
+		topRatedCache:        args.TopRatedCache,
+		badRatedCache:        args.BadRatedCache,
+		removalTimestampsMap: make(map[string]int64),
+		ratingsMap:           make(map[string]*ratingInfo),
+		appStatusHandler:     args.AppStatusHandler,
+		getTimeHandler:       time.Now,
 	}
 }
 
@@ -65,17 +64,6 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		prh, err := NewPeersRatingHandler(args)
 		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
-		assert.True(t, check.IfNil(prh))
-	})
-	t.Run("nil marked for removal cache should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.MarkedForRemovalCache = nil
-
-		prh, err := NewPeersRatingHandler(args)
-		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
-		assert.True(t, strings.Contains(err.Error(), "MarkedForRemovalCache"))
 		assert.True(t, check.IfNil(prh))
 	})
 	t.Run("nil app status handler should error", func(t *testing.T) {
@@ -238,23 +226,15 @@ func TestPeersRatingHandler_AddPeers(t *testing.T) {
 				return nil, false
 			},
 		}
-		wasRemoveCalled := false
-		args.MarkedForRemovalCache = &mock.CacherStub{
-			HasCalled: func(key []byte) bool {
-				return string(key) == string(providedPidMarkedForRemoval.Bytes())
-			},
-			RemoveCalled: func(key []byte) {
-				assert.Equal(t, providedPidMarkedForRemoval.Bytes(), key)
-				wasRemoveCalled = true
-			},
-		}
 
 		prh := newPeersRatingHandlerWithoutGoRoutines(args)
 		assert.False(t, check.IfNil(prh))
+		prh.removalTimestampsMap[string(providedPidMarkedForRemoval.Bytes())] = time.Now().Unix() - int64(args.TimeWaitingForReconnection.Seconds()) - 1
 
 		prh.AddPeers([]core.PeerID{providedPid, providedPidMarkedForRemoval})
 		assert.Equal(t, 2, putTopRatedCalledCounter)
-		assert.True(t, wasRemoveCalled)
+		_, exists := prh.removalTimestampsMap[string(providedPidMarkedForRemoval.Bytes())]
+		assert.False(t, exists)
 	})
 	t.Run("inactive peers should be added to cache", func(t *testing.T) {
 		t.Parallel()
@@ -267,14 +247,15 @@ func TestPeersRatingHandler_AddPeers(t *testing.T) {
 		args.TopRatedCache.Put(providedInactiveTopPid.Bytes(), "", 0)
 		args.BadRatedCache = coreMocks.NewCacherMock()
 		args.BadRatedCache.Put(providedInactiveBadPid.Bytes(), "", 0)
-		args.MarkedForRemovalCache = coreMocks.NewCacherMock()
 
 		prh := newPeersRatingHandlerWithoutGoRoutines(args)
 		assert.False(t, check.IfNil(prh))
 
 		prh.AddPeers([]core.PeerID{providedPid})
-		assert.True(t, args.MarkedForRemovalCache.Has(providedInactiveTopPid.Bytes()))
-		assert.True(t, args.MarkedForRemovalCache.Has(providedInactiveBadPid.Bytes()))
+		_, exists := prh.removalTimestampsMap[string(providedInactiveTopPid.Bytes())]
+		assert.True(t, exists)
+		_, exists = prh.removalTimestampsMap[string(providedInactiveBadPid.Bytes())]
+		assert.True(t, exists)
 	})
 }
 
@@ -632,7 +613,6 @@ func TestPeersRatingHandler_LoopsShouldWork(t *testing.T) {
 	args.TimeBetweenMetricsUpdate = time.Second * 2
 	args.TopRatedCache = coreMocks.NewCacherMock()
 	args.BadRatedCache = coreMocks.NewCacherMock()
-	args.MarkedForRemovalCache = coreMocks.NewCacherMock()
 	args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
 			assert.Equal(t, p2p.MetricP2PPeersRating, key)
