@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	commonCrypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
@@ -56,7 +57,9 @@ const (
 	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) // should be used only in tests
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
-	pubSubMaxMessageSize            = 1 << 21 // 2 MB
+
+	baseErrorSuffix      = "when creating a new network messenger"
+	pubSubMaxMessageSize = 1 << 21 // 2 MB
 )
 
 type messageSigningConfig bool
@@ -127,7 +130,9 @@ type ArgsNetworkMessenger struct {
 	NodeOperationMode     p2p.NodeOperation
 	PeersRatingHandler    p2p.PeersRatingHandler
 	ConnectionWatcherType string
-	P2pPrivateKeyBytes    []byte
+	P2pPrivateKey         commonCrypto.PrivateKey
+	P2pSingleSigner       commonCrypto.SingleSigner
+	P2pKeyGenerator       commonCrypto.KeyGenerator
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -137,27 +142,30 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilMarshalizer, baseErrorSuffix)
 	}
 	if check.IfNil(args.SyncTimer) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilSyncTimer)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilSyncTimer, baseErrorSuffix)
 	}
 	if check.IfNil(args.PreferredPeersHolder) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilPreferredPeersHolder, baseErrorSuffix)
 	}
 	if check.IfNil(args.PeersRatingHandler) {
-		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilPeersRatingHandler, baseErrorSuffix)
 	}
-
-	keyGen := crypto.NewIdentityGenerator()
-	p2pPrivateKey, err := keyGen.CreateP2PPrivateKey(args.P2pPrivateKeyBytes)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.P2pPrivateKey) {
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pPrivateKey, baseErrorSuffix)
+	}
+	if check.IfNil(args.P2pSingleSigner) {
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pSingleSigner, baseErrorSuffix)
+	}
+	if check.IfNil(args.P2pKeyGenerator) {
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pKeyGenerator, baseErrorSuffix)
 	}
 
 	setupExternalP2PLoggers()
 
-	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivateKey)
+	p2pNode, err := constructNodeWithPortRetry(args)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +181,6 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 func constructNode(
 	args ArgsNetworkMessenger,
-	p2pPrivateKey libp2pCrypto.PrivKey,
 ) (*networkMessenger, error) {
 
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
@@ -183,6 +190,11 @@ func constructNode(
 
 	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
 	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
+	if err != nil {
+		return nil, err
+	}
+
+	p2pPrivateKey, err := crypto.ConvertPrivateKeyToLibp2pPrivateKey(args.P2pPrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +216,13 @@ func constructNode(
 		return nil, err
 	}
 
-	p2pSignerInstance, err := crypto.NewP2PSigner(p2pPrivateKey)
+	p2pSignerArgs := crypto.ArgsP2pSignerWrapper{
+		PrivateKey: args.P2pPrivateKey,
+		Signer:     args.P2pSingleSigner,
+		KeyGen:     args.P2pKeyGenerator,
+	}
+
+	p2pSignerInstance, err := crypto.NewP2PSignerWrapper(p2pSignerArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -226,12 +244,11 @@ func constructNode(
 
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
-	p2pPrivateKey libp2pCrypto.PrivKey,
 ) (*networkMessenger, error) {
 
 	var lastErr error
 	for i := 0; i < maxRetriesIfBindError; i++ {
-		p2pNode, err := constructNode(args, p2pPrivateKey)
+		p2pNode, err := constructNode(args)
 		if err == nil {
 			return p2pNode, nil
 		}
