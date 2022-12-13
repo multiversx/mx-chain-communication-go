@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
@@ -35,6 +35,9 @@ func createMessenger() p2p.Messenger {
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SingleSignerStub{},
+		P2pKeyGenerator:       &mock.KeyGenStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
