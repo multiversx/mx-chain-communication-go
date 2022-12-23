@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,9 +17,9 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("from a nil public key should error", func(t *testing.T) {
 		t.Parallel()
 
-		pid, err := crypto.ConvertPublicKeyToPeerID(nil)
+		pid, err := p2pCrypto.ConvertPublicKeyToPeerID(nil)
 		assert.Empty(t, pid)
-		assert.Equal(t, crypto.ErrNilPublicKey, err)
+		assert.Equal(t, p2pCrypto.ErrNilPublicKey, err)
 	})
 	t.Run("ToByteArray errors, should error", func(t *testing.T) {
 		t.Parallel()
@@ -31,7 +31,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 			},
 		}
 
-		pid, err := crypto.ConvertPublicKeyToPeerID(mockPk)
+		pid, err := p2pCrypto.ConvertPublicKeyToPeerID(mockPk)
 		assert.Empty(t, pid)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -44,7 +44,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 			},
 		}
 
-		pid, err := crypto.ConvertPublicKeyToPeerID(mockPk)
+		pid, err := p2pCrypto.ConvertPublicKeyToPeerID(mockPk)
 		assert.Empty(t, pid)
 		assert.NotNil(t, err)
 		assert.Equal(t, "malformed public key: invalid length: 20", err.Error())
@@ -52,26 +52,26 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("should work using a generated key with the KeyGenerator", func(t *testing.T) {
 		t.Parallel()
 
-		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 		_, pk := keyGen.GeneratePair()
 
-		pid, err := crypto.ConvertPublicKeyToPeerID(pk)
+		pid, err := p2pCrypto.ConvertPublicKeyToPeerID(pk)
 		assert.NotEmpty(t, pid)
 		assert.Nil(t, err)
 	})
 	t.Run("should work using a generated identity", func(t *testing.T) {
 		t.Parallel()
 
-		generator := crypto.NewIdentityGenerator()
+		generator := p2pCrypto.NewIdentityGenerator()
 		skBytes, pid, err := generator.CreateRandomP2PIdentity()
 		assert.Nil(t, err)
 
-		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 		sk, err := keyGen.PrivateKeyFromByteArray(skBytes)
 		assert.Nil(t, err)
 
 		pk := sk.GeneratePublic()
-		recoveredPid, err := crypto.ConvertPublicKeyToPeerID(pk)
+		recoveredPid, err := p2pCrypto.ConvertPublicKeyToPeerID(pk)
 		assert.Nil(t, err)
 
 		assert.Equal(t, pid, recoveredPid)

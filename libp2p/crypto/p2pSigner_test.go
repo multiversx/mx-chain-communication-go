@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1/singlesig"
 	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
@@ -20,7 +19,7 @@ import (
 )
 
 func generatePrivateKey() (crypto.PrivateKey, crypto.PublicKey) {
-	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+	keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, pubKey := keyGen.GeneratePair()
 
 	return prvKey, pubKey
@@ -224,7 +223,7 @@ func TestP2PSigner_FullTest(t *testing.T) {
 	t.Run("sign and verify", func(t *testing.T) {
 		t.Parallel()
 
-		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 		privateKey, _ := generatePrivateKey()
 		p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
@@ -244,7 +243,7 @@ func TestP2PSigner_FullTest(t *testing.T) {
 	t.Run("sign using private key", func(t *testing.T) {
 		t.Parallel()
 
-		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 		prvKey1, _ := keyGen.GeneratePair()
 		p2pPrivKey1, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey1)

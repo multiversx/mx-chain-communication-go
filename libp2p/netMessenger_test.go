@@ -15,15 +15,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	commonCrypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/config"
 	"github.com/ElrondNetwork/elrond-go-p2p/data"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -2029,10 +2029,10 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 }
 
 func createP2PPrivKeyAndPid() ([]byte, peer.ID) {
-	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+	keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, _ := keyGen.GeneratePair()
 
-	p2pPrivKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
+	p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
 	p2pPubKey := p2pPrivKey.GetPublic()
 	pid, _ := peer.IDFromPublicKey(p2pPubKey)
 
