@@ -43,3 +43,27 @@ func ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (cryp
 
 	return keyGen.PublicKeyFromByteArray(pubKeyBytes)
 }
+
+// ConvertPublicKeyToPeerID will convert a public key to core.PeerID
+func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
+	if check.IfNil(pk) {
+		return "", ErrNilPublicKey
+	}
+
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return "", err
+	}
+
+	libp2pPk, err := libp2pCrypto.UnmarshalSecp256k1PublicKey(pkBytes)
+	if err != nil {
+		return "", err
+	}
+
+	pid, err := peer.IDFromPublicKey(libp2pPk)
+	if err != nil {
+		return "", err
+	}
+
+	return core.PeerID(pid), nil
+}
