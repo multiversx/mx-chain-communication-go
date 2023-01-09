@@ -3,7 +3,7 @@ package metrics_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
+	"github.com/mutliversx/mx-chain-p2p-go/libp2p/metrics"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/disabled"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/mutliversx/mx-chain-p2p-go/libp2p/disabled"
 	"github.com/stretchr/testify/assert"
 )
 

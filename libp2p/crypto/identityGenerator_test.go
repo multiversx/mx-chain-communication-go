@@ -4,9 +4,9 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/mutliversx/mx-chain-p2p-go/libp2p/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

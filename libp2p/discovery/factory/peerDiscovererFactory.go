@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/config"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/mutliversx/mx-chain-p2p-go/config"
+	"github.com/mutliversx/mx-chain-p2p-go/libp2p/discovery"
 )
 
 const typeLegacy = "legacy"

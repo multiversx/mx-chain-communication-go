@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder/connectionStringValidator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/mutliversx/mx-chain-p2p-go/peersHolder/connectionStringValidator"
 )
 
 type peerInfo struct {

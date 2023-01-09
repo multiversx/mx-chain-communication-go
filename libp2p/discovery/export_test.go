@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/mutliversx/mx-chain-p2p-go"
 )
 
 const KadDhtName = kadDhtName

@@ -6,8 +6,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
+	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/mutliversx/mx-chain-p2p-go/libp2p"
 	"github.com/stretchr/testify/assert"
 )
 
