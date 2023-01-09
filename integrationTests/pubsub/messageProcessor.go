@@ -3,8 +3,8 @@ package peerDisconnecting
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	p2p "github.com/mutliversx/mx-chain-p2p-go"
 )
 
 type messageProcessor struct {

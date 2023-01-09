@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/integrationTests"
-	"github.com/ElrondNetwork/elrond-go-p2p/integrationTests/peerDiscovery"
+	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/mutliversx/mx-chain-p2p-go/integrationTests"
+	"github.com/mutliversx/mx-chain-p2p-go/integrationTests/peerDiscovery"
 	"github.com/stretchr/testify/assert"
 )
 
