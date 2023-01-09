@@ -1,7 +1,7 @@
 package mock
 
 import (
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // PrivateKeyStub provides stubs for a PrivateKey implementation

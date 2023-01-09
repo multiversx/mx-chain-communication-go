@@ -3,8 +3,8 @@ package mock
 import (
 	"crypto/rand"
 
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // privateKeyMock implements common PrivateKey interface
