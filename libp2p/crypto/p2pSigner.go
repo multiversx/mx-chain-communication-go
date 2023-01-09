@@ -3,9 +3,9 @@ package crypto
 import (
 	"crypto/sha256"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // ArgsP2pSignerWrapper defines the arguments needed to create a p2p signer wrapper

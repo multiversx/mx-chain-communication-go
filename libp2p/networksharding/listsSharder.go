@@ -8,14 +8,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/config"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding/sorting"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/mutliversx/mx-chain-p2p-go/config"
+	"github.com/mutliversx/mx-chain-p2p-go/libp2p/networksharding/sorting"
 )
 
 var _ p2p.Sharder = (*listsSharder)(nil)

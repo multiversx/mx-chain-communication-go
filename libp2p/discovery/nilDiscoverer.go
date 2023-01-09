@@ -3,7 +3,7 @@ package discovery
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/mutliversx/mx-chain-p2p-go"
 )
 
 var _ p2p.PeerDiscoverer = (*NilDiscoverer)(nil)

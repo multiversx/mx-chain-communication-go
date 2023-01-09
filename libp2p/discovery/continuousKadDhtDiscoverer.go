@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	p2p "github.com/mutliversx/mx-chain-p2p-go"
 )
 
 var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)
