@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)

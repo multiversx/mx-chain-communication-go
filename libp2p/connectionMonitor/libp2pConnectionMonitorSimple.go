@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() too often

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/metrics"
+	"github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/metrics"
 )
 
 // NewConnectionsWatcher creates a new ConnectionWatcher instance based on the input parameters

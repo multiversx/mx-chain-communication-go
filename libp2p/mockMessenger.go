@@ -4,9 +4,9 @@ import (
 	"context"
 
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/crypto"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/metrics/factory"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/metrics/factory"
 )
 
 // NewMockMessenger creates a new sandbox testable instance of libP2P messenger

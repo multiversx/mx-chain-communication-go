@@ -13,8 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1/singlesig"
-	p2pCrypto "github.com/mutliversx/mx-chain-p2p-go/libp2p/crypto"
-	"github.com/mutliversx/mx-chain-p2p-go/mock"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

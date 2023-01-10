@@ -9,8 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-core-go/core"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 	"github.com/multiversx/mx-chain-storage-go/types"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
 	"github.com/whyrusleeping/timecache"
 )
 

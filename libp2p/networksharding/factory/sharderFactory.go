@@ -5,9 +5,9 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/config"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/networksharding"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/networksharding"
 )
 
 var log = logger.GetOrCreate("p2p/networksharding/factory")
