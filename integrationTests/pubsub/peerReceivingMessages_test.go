@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/integrationTests"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -7,8 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
 )
 
 var log = logger.GetOrCreate("p2p/messagecheck")

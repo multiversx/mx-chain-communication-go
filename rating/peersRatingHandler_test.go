@@ -8,8 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/mock"
+	"github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
 
