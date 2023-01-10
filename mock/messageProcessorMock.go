@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // MessageProcessorMock -
