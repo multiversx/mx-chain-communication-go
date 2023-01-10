@@ -2,7 +2,7 @@ package message
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 var _ p2p.MessageP2P = (*Message)(nil)
