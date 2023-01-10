@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/networksharding/sorting"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/networksharding/sorting"
 	"github.com/stretchr/testify/assert"
 )
 

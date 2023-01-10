@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core/random"
-	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 func getPort(port string, handler func(int) error) (int, error) {

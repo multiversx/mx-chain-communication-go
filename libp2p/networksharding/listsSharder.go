@@ -13,9 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/config"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/networksharding/sorting"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/networksharding/sorting"
 )
 
 var _ p2p.Sharder = (*listsSharder)(nil)

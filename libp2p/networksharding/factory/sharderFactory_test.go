@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/config"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/networksharding"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p/networksharding/factory"
-	"github.com/mutliversx/mx-chain-p2p-go/mock"
+	"github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/networksharding"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/networksharding/factory"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
 

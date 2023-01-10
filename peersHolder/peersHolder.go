@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/peersHolder/connectionStringValidator"
+	"github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/peersHolder/connectionStringValidator"
 )
 
 type peerInfo struct {

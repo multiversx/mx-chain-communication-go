@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 type topicProcessors struct {

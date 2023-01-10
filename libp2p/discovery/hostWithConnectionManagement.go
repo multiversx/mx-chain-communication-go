@@ -10,7 +10,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 // ArgsHostWithConnectionManagement is the argument DTO used in the NewHostWithConnectionManagement function

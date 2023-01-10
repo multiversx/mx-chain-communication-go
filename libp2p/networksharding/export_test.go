@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 const MinAllowedConnectedPeersListSharder = minAllowedConnectedPeersListSharder

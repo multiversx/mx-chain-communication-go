@@ -8,7 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 // peersOnChannel manages peers on topics
