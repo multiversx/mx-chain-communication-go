@@ -5,11 +5,11 @@ import (
 
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/config"
-	"github.com/mutliversx/mx-chain-p2p-go/integrationTests"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p"
-	"github.com/mutliversx/mx-chain-p2p-go/mock"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/integrationTests"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

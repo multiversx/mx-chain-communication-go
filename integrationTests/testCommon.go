@@ -7,10 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/mutliversx/mx-chain-p2p-go"
-	"github.com/mutliversx/mx-chain-p2p-go/config"
-	"github.com/mutliversx/mx-chain-p2p-go/libp2p"
-	"github.com/mutliversx/mx-chain-p2p-go/mock"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 )
 
 var log = logger.GetOrCreate("integrationtests")
