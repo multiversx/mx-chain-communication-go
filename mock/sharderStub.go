@@ -2,7 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/mutliversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 // SharderStub -
