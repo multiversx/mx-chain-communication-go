@@ -91,8 +91,8 @@ var ErrNilSharder = errors.New("nil sharder")
 // ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
 
-// ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
-var ErrNilMarshalizer = errors.New("nil marshalizer")
+// ErrNilMarshaller signals that an operation has been attempted to or with a nil marshaller implementation
+var ErrNilMarshaller = errors.New("nil marshaller")
 
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
@@ -158,3 +158,27 @@ var ErrNilP2PSigner = errors.New("nil p2p signer")
 
 // ErrNilPeerTopicNotifier signals that a nil peer topic notifier have been provided
 var ErrNilPeerTopicNotifier = errors.New("nil peer topic notifier")
+
+// ErrNilPubSub signals that a nil pubSub has been provided
+var ErrNilPubSub = errors.New("nil pubSub")
+
+// ErrNilDirectSender signals that a nil direct sender has been provided
+var ErrNilDirectSender = errors.New("nil direct sender")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrNilChannelLoadBalancer signals that a nil channel load balancer has been provided
+var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer")
+
+// ErrNilTopicsHandler signals that a nil topics handler has been provided
+var ErrNilTopicsHandler = errors.New("nil topics handler")
+
+// ErrNilConnectionMonitorWrapper signals that a nil connections monitor wrapper has been provided
+var ErrNilConnectionMonitorWrapper = errors.New("nil connections monitor wrapper")
+
+// ErrNilDebugger signals that a nil debugger has been provided
+var ErrNilDebugger = errors.New("nil debugger")
+
+// ErrNilIDProvider signals that a nil id provider has been provided
+var ErrNilIDProvider = errors.New("nil id provider")
