@@ -39,7 +39,7 @@ func NewMessageVerifier(args ArgsMessageVerifier) (*messageVerifier, error) {
 
 func checkArgs(args ArgsMessageVerifier) error {
 	if check.IfNil(args.Marshaller) {
-		return p2p.ErrNilMarshalizer
+		return p2p.ErrNilMarshaller
 	}
 	if args.P2PSigner == nil {
 		return p2p.ErrNilP2PSigner
