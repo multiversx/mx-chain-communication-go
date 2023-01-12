@@ -46,7 +46,7 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 // PubsubCallback -
 func (handler *messagesHandler) PubsubCallback(msgProc p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	topicProcs := newTopicProcessors()
-	_ = topicProcs.addTopicProcessor("identifier", msgProc)
+	_ = topicProcs.AddTopicProcessor("identifier", msgProc)
 
 	return handler.pubsubCallback(topicProcs, topic)
 }
@@ -195,18 +195,6 @@ func CheckFreePort(port int) error {
 
 func NewTopicProcessors() *topicProcessors {
 	return newTopicProcessors()
-}
-
-func (tp *topicProcessors) AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error {
-	return tp.addTopicProcessor(identifier, processor)
-}
-
-func (tp *topicProcessors) RemoveTopicProcessor(identifier string) error {
-	return tp.removeTopicProcessor(identifier)
-}
-
-func (tp *topicProcessors) GetList() ([]string, []p2p.MessageProcessor) {
-	return tp.getList()
 }
 
 func NewUnknownPeerShardResolver() *unknownPeerShardResolver {

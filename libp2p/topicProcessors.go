@@ -18,7 +18,8 @@ func newTopicProcessors() *topicProcessors {
 	}
 }
 
-func (tp *topicProcessors) addTopicProcessor(identifier string, processor p2p.MessageProcessor) error {
+// AddTopicProcessor adds a new topic processor for the provided identifier
+func (tp *topicProcessors) AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error {
 	tp.mutProcessors.Lock()
 	defer tp.mutProcessors.Unlock()
 
@@ -35,7 +36,8 @@ func (tp *topicProcessors) addTopicProcessor(identifier string, processor p2p.Me
 	return nil
 }
 
-func (tp *topicProcessors) removeTopicProcessor(identifier string) error {
+// RemoveTopicProcessor removes the topic processor for the provided identifier
+func (tp *topicProcessors) RemoveTopicProcessor(identifier string) error {
 	tp.mutProcessors.Lock()
 	defer tp.mutProcessors.Unlock()
 
@@ -52,7 +54,8 @@ func (tp *topicProcessors) removeTopicProcessor(identifier string) error {
 	return nil
 }
 
-func (tp *topicProcessors) getList() ([]string, []p2p.MessageProcessor) {
+// GetList returns the list of identifiers and processors
+func (tp *topicProcessors) GetList() ([]string, []p2p.MessageProcessor) {
 	tp.mutProcessors.RLock()
 	defer tp.mutProcessors.RUnlock()
 
@@ -65,4 +68,9 @@ func (tp *topicProcessors) getList() ([]string, []p2p.MessageProcessor) {
 	}
 
 	return identifiers, list
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tp *topicProcessors) IsInterfaceNil() bool {
+	return tp == nil
 }

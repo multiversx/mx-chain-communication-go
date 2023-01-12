@@ -9,7 +9,7 @@ import (
 // TODO[Sorin]: add unit tests
 type topicsHandler struct {
 	mutTopics     sync.RWMutex
-	processors    map[string]*topicProcessors
+	processors    map[string]TopicProcessor
 	topics        map[string]*pubsub.Topic
 	subscriptions map[string]*pubsub.Subscription
 }
@@ -17,7 +17,7 @@ type topicsHandler struct {
 // NewTopicsHandler creates a new topicsHandler instance
 func NewTopicsHandler() *topicsHandler {
 	return &topicsHandler{
-		processors:    make(map[string]*topicProcessors),
+		processors:    make(map[string]TopicProcessor),
 		topics:        make(map[string]*pubsub.Topic),
 		subscriptions: make(map[string]*pubsub.Subscription),
 	}
@@ -65,7 +65,7 @@ func (handler *topicsHandler) GetAllTopics() map[string]*pubsub.Topic {
 }
 
 // GetTopicProcessors returns the topic processors for the given topic
-func (handler *topicsHandler) GetTopicProcessors(topic string) *topicProcessors {
+func (handler *topicsHandler) GetTopicProcessors(topic string) TopicProcessor {
 	handler.mutTopics.RLock()
 	defer handler.mutTopics.RUnlock()
 
@@ -73,7 +73,7 @@ func (handler *topicsHandler) GetTopicProcessors(topic string) *topicProcessors 
 }
 
 // AddNewTopicProcessors adds a new topic processors for the given topic, returning it
-func (handler *topicsHandler) AddNewTopicProcessors(topic string) *topicProcessors {
+func (handler *topicsHandler) AddNewTopicProcessors(topic string) TopicProcessor {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 
@@ -91,7 +91,7 @@ func (handler *topicsHandler) RemoveTopicProcessors(topic string) {
 }
 
 // GetAllTopicsProcessors returns all topic processors for all topics
-func (handler *topicsHandler) GetAllTopicsProcessors() map[string]*topicProcessors {
+func (handler *topicsHandler) GetAllTopicsProcessors() map[string]TopicProcessor {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 

@@ -64,10 +64,10 @@ type TopicsHandler interface {
 	AddTopic(topic string, pubSubTopic *pubsub.Topic)
 	RemoveTopic(topic string)
 	GetAllTopics() map[string]*pubsub.Topic
-	GetTopicProcessors(topic string) *topicProcessors
-	AddNewTopicProcessors(topic string) *topicProcessors
+	GetTopicProcessors(topic string) TopicProcessor
+	AddNewTopicProcessors(topic string) TopicProcessor
 	RemoveTopicProcessors(topic string)
-	GetAllTopicsProcessors() map[string]*topicProcessors
+	GetAllTopicsProcessors() map[string]TopicProcessor
 	GetSubscription(topic string) *pubsub.Subscription
 	AddSubscription(topic string, sub *pubsub.Subscription)
 	IsInterfaceNil() bool
@@ -76,5 +76,13 @@ type TopicsHandler interface {
 // IDProvider interface defines a component able to provide its own peer ID
 type IDProvider interface {
 	ID() peer.ID
+	IsInterfaceNil() bool
+}
+
+// TopicProcessor interface defines what a topic processor can do
+type TopicProcessor interface {
+	AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error
+	RemoveTopicProcessor(identifier string) error
+	GetList() ([]string, []p2p.MessageProcessor)
 	IsInterfaceNil() bool
 }

@@ -304,7 +304,7 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 		}
 	}
 
-	err := topicProcs.addTopicProcessor(identifier, msgProcessor)
+	err := topicProcs.AddTopicProcessor(identifier, msgProcessor)
 	if err != nil {
 		return fmt.Errorf("%w, topic %s", err, topic)
 	}
@@ -312,7 +312,7 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 	return nil
 }
 
-func (handler *messagesHandler) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := handler.transformAndCheckMessage(message, fromConnectedPeer, topic)
@@ -321,7 +321,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs *topicProcessors, topi
 			return false
 		}
 
-		identifiers, msgProcessors := topicProcs.getList()
+		identifiers, msgProcessors := topicProcs.GetList()
 		messageOk := true
 		for index, msgProc := range msgProcessors {
 			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer)
@@ -433,12 +433,12 @@ func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identif
 		return nil
 	}
 
-	err := topicProcs.removeTopicProcessor(identifier)
+	err := topicProcs.RemoveTopicProcessor(identifier)
 	if err != nil {
 		return err
 	}
 
-	identifiers, _ := topicProcs.getList()
+	identifiers, _ := topicProcs.GetList()
 	if len(identifiers) == 0 {
 		handler.topicsHandler.RemoveTopicProcessors(topic)
 
@@ -510,7 +510,7 @@ func (handler *messagesHandler) directMessageHandler(message *pubsub.Message, fr
 	if topicProcs == nil {
 		return fmt.Errorf("%w on directMessageHandler for topic %s", p2p.ErrNilValidator, topic)
 	}
-	identifiers, msgProcessors := topicProcs.getList()
+	identifiers, msgProcessors := topicProcs.GetList()
 
 	go func(msg p2p.MessageP2P) {
 		if check.IfNil(msg) {
