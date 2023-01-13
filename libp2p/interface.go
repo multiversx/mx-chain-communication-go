@@ -1,6 +1,8 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-p2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -59,17 +61,17 @@ type PubSub interface {
 
 // TopicsHandler interface defines what a component able to handle topics should do
 type TopicsHandler interface {
-	GetTopic(topic string) *pubsub.Topic
+	GetTopic(topic string) PubSubTopic
 	HasTopic(topic string) bool
-	AddTopic(topic string, pubSubTopic *pubsub.Topic)
+	AddTopic(topic string, pubSubTopic PubSubTopic)
 	RemoveTopic(topic string)
-	GetAllTopics() map[string]*pubsub.Topic
+	GetAllTopics() map[string]PubSubTopic
 	GetTopicProcessors(topic string) TopicProcessor
 	AddNewTopicProcessors(topic string) TopicProcessor
 	RemoveTopicProcessors(topic string)
 	GetAllTopicsProcessors() map[string]TopicProcessor
-	GetSubscription(topic string) *pubsub.Subscription
-	AddSubscription(topic string, sub *pubsub.Subscription)
+	GetSubscription(topic string) PubSubSubscription
+	AddSubscription(topic string, sub PubSubSubscription)
 	IsInterfaceNil() bool
 }
 
@@ -85,4 +87,18 @@ type TopicProcessor interface {
 	RemoveTopicProcessor(identifier string) error
 	GetList() ([]string, []p2p.MessageProcessor)
 	IsInterfaceNil() bool
+}
+
+// PubSubSubscription interface defines what a pubSub subscription can do
+type PubSubSubscription interface {
+	Topic() string
+	Next(ctx context.Context) (*pubsub.Message, error)
+	Cancel()
+}
+
+// PubSubTopic interface defines what a pubSub topic can do
+type PubSubTopic interface {
+	Subscribe(opts ...pubsub.SubOpt) (*pubsub.Subscription, error)
+	Publish(ctx context.Context, data []byte, opts ...pubsub.PubOpt) error
+	Close() error
 }

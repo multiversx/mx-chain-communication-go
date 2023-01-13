@@ -2,29 +2,27 @@ package libp2p
 
 import (
 	"sync"
-
-	"github.com/libp2p/go-libp2p-pubsub"
 )
 
 // TODO[Sorin]: add unit tests
 type topicsHandler struct {
 	mutTopics     sync.RWMutex
 	processors    map[string]TopicProcessor
-	topics        map[string]*pubsub.Topic
-	subscriptions map[string]*pubsub.Subscription
+	topics        map[string]PubSubTopic
+	subscriptions map[string]PubSubSubscription
 }
 
 // NewTopicsHandler creates a new topicsHandler instance
 func NewTopicsHandler() *topicsHandler {
 	return &topicsHandler{
 		processors:    make(map[string]TopicProcessor),
-		topics:        make(map[string]*pubsub.Topic),
-		subscriptions: make(map[string]*pubsub.Subscription),
+		topics:        make(map[string]PubSubTopic),
+		subscriptions: make(map[string]PubSubSubscription),
 	}
 }
 
 // GetTopic returns the pubsub topic for the given topic
-func (handler *topicsHandler) GetTopic(topic string) *pubsub.Topic {
+func (handler *topicsHandler) GetTopic(topic string) PubSubTopic {
 	handler.mutTopics.RLock()
 	defer handler.mutTopics.RUnlock()
 
@@ -41,7 +39,7 @@ func (handler *topicsHandler) HasTopic(topic string) bool {
 }
 
 // AddTopic adds a new topic to the handler
-func (handler *topicsHandler) AddTopic(topic string, pubSubTopic *pubsub.Topic) {
+func (handler *topicsHandler) AddTopic(topic string, pubSubTopic PubSubTopic) {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 
@@ -57,7 +55,7 @@ func (handler *topicsHandler) RemoveTopic(topic string) {
 }
 
 // GetAllTopics returns all topics
-func (handler *topicsHandler) GetAllTopics() map[string]*pubsub.Topic {
+func (handler *topicsHandler) GetAllTopics() map[string]PubSubTopic {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 
@@ -99,7 +97,7 @@ func (handler *topicsHandler) GetAllTopicsProcessors() map[string]TopicProcessor
 }
 
 // GetSubscription returns the topic subscription for the given topic
-func (handler *topicsHandler) GetSubscription(topic string) *pubsub.Subscription {
+func (handler *topicsHandler) GetSubscription(topic string) PubSubSubscription {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 
@@ -107,7 +105,7 @@ func (handler *topicsHandler) GetSubscription(topic string) *pubsub.Subscription
 }
 
 // AddSubscription adds a new topic subscription for the given topic
-func (handler *topicsHandler) AddSubscription(topic string, sub *pubsub.Subscription) {
+func (handler *topicsHandler) AddSubscription(topic string, sub PubSubSubscription) {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 

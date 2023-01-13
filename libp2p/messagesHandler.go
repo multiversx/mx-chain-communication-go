@@ -162,7 +162,7 @@ func (handler *messagesHandler) processChannelLoadBalancer() {
 	}
 }
 
-func (handler *messagesHandler) publish(topic *pubsub.Topic, data *SendableData, packedSendableDataBuff []byte) error {
+func (handler *messagesHandler) publish(topic PubSubTopic, data *SendableData, packedSendableDataBuff []byte) error {
 	options := make([]pubsub.PubOpt, 0, 1)
 
 	if data.Sk != nil {
