@@ -84,7 +84,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		return nil, err
 	}
 
-	go handler.processChannelLoadBalancer()
+	go handler.processChannelLoadBalancer(handler.outgoingCLB)
 
 	return handler, nil
 }
@@ -127,7 +127,7 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	return nil
 }
 
-func (handler *messagesHandler) processChannelLoadBalancer() {
+func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLoadBalancer) {
 	for {
 		select {
 		case <-time.After(durationBetweenSends):
@@ -136,7 +136,7 @@ func (handler *messagesHandler) processChannelLoadBalancer() {
 			return
 		}
 
-		sendableData := handler.outgoingCLB.CollectOneElementFromChannels()
+		sendableData := outgoingCLB.CollectOneElementFromChannels()
 		if sendableData == nil {
 			continue
 		}
