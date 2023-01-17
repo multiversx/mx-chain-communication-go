@@ -171,14 +171,8 @@ var ErrNilThrottler = errors.New("nil throttler")
 // ErrNilChannelLoadBalancer signals that a nil channel load balancer has been provided
 var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer")
 
-// ErrNilTopicsHandler signals that a nil topics handler has been provided
-var ErrNilTopicsHandler = errors.New("nil topics handler")
-
 // ErrNilConnectionMonitorWrapper signals that a nil connections monitor wrapper has been provided
 var ErrNilConnectionMonitorWrapper = errors.New("nil connections monitor wrapper")
 
 // ErrNilDebugger signals that a nil debugger has been provided
 var ErrNilDebugger = errors.New("nil debugger")
-
-// ErrNilIDProvider signals that a nil id provider has been provided
-var ErrNilIDProvider = errors.New("nil id provider")
