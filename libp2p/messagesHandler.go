@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -29,30 +30,33 @@ type ArgMessagesHandler struct {
 	DirectSender       p2p.DirectSender
 	Throttler          core.Throttler
 	OutgoingCLB        ChannelLoadBalancer
-	TopicsHandler      TopicsHandler
 	Marshaller         p2p.Marshaller
 	ConnMonitorWrapper p2p.ConnectionMonitorWrapper
 	PeersRatingHandler p2p.PeersRatingHandler
 	Debugger           p2p.Debugger
 	SyncTimer          p2p.SyncTimer
-	IDProvider         IDProvider
+	PeerID             core.PeerID
 }
 
 // TODO[Sorin]: add unit tests
 type messagesHandler struct {
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
-	pb                 PubSub
-	ds                 p2p.DirectSender
+	pubSub             PubSub
+	directSender       p2p.DirectSender
 	throttler          core.Throttler
 	outgoingCLB        ChannelLoadBalancer
-	topicsHandler      TopicsHandler
 	marshaller         p2p.Marshaller
 	connMonitorWrapper p2p.ConnectionMonitorWrapper
 	peersRatingHandler p2p.PeersRatingHandler
 	debugger           p2p.Debugger
 	syncTimer          p2p.SyncTimer
-	idProvider         IDProvider
+	peerID             core.PeerID
+
+	mutTopics     sync.RWMutex
+	processors    map[string]TopicProcessor
+	topics        map[string]PubSubTopic
+	subscriptions map[string]PubSubSubscription
 }
 
 // NewMessagesHandler creates a new instance of messages handler
@@ -66,20 +70,22 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 	handler := &messagesHandler{
 		ctx:                ctx,
 		cancelFunc:         cancel,
-		pb:                 args.PubSub,
-		ds:                 args.DirectSender,
+		pubSub:             args.PubSub,
+		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
 		outgoingCLB:        args.OutgoingCLB,
-		topicsHandler:      args.TopicsHandler,
 		marshaller:         args.Marshaller,
 		connMonitorWrapper: args.ConnMonitorWrapper,
 		peersRatingHandler: args.PeersRatingHandler,
 		debugger:           args.Debugger,
 		syncTimer:          args.SyncTimer,
-		idProvider:         args.IDProvider,
+		peerID:             args.PeerID,
+		processors:         make(map[string]TopicProcessor),
+		topics:             make(map[string]PubSubTopic),
+		subscriptions:      make(map[string]PubSubSubscription),
 	}
 
-	err = handler.ds.RegisterMessageHandler(handler.directMessageHandler)
+	err = handler.directSender.RegisterDirectMessageProcessor(handler)
 	if err != nil {
 		return nil, err
 	}
@@ -102,9 +108,6 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	if check.IfNil(args.OutgoingCLB) {
 		return p2p.ErrNilChannelLoadBalancer
 	}
-	if check.IfNil(args.TopicsHandler) {
-		return p2p.ErrNilTopicsHandler
-	}
 	if check.IfNil(args.Marshaller) {
 		return p2p.ErrNilMarshaller
 	}
@@ -119,9 +122,6 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	}
 	if check.IfNil(args.SyncTimer) {
 		return p2p.ErrNilSyncTimer
-	}
-	if check.IfNil(args.IDProvider) {
-		return p2p.ErrNilIDProvider
 	}
 
 	return nil
@@ -141,7 +141,9 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 			continue
 		}
 
-		topic := handler.topicsHandler.GetTopic(sendableData.Topic)
+		handler.mutTopics.RLock()
+		topic := handler.topics[sendableData.Topic]
+		handler.mutTopics.RUnlock()
 		if topic == nil {
 			log.Warn("writing on a topic that the node did not register on - message dropped",
 				"topic", sendableData.Topic,
@@ -204,7 +206,7 @@ func (handler *messagesHandler) broadcastOnChannelBlocking(channel string, topic
 	sendable := &SendableData{
 		Buff:  buff,
 		Topic: topic,
-		ID:    handler.idProvider.ID(),
+		ID:    peer.ID(handler.peerID),
 	}
 	handler.outgoingCLB.GetChannelOrDefault(channel) <- sendable
 	handler.throttler.EndProcessing()
@@ -294,11 +296,15 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 			p2p.ErrNilValidator, topic)
 	}
 
-	topicProcs := handler.topicsHandler.GetTopicProcessors(topic)
-	if topicProcs == nil {
-		topicProcs = handler.topicsHandler.AddNewTopicProcessors(topic)
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
 
-		err := handler.pb.RegisterTopicValidator(topic, handler.pubsubCallback(topicProcs, topic))
+	topicProcs := handler.processors[topic]
+	if topicProcs == nil {
+		topicProcs = newTopicProcessors()
+		handler.processors[topic] = topicProcs
+
+		err := handler.pubSub.RegisterTopicValidator(topic, handler.pubsubCallback(topicProcs, topic))
 		if err != nil {
 			return err
 		}
@@ -359,6 +365,15 @@ func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, 
 		return nil, errUnmarshal
 	}
 
+	err := handler.checkMessage(msg, pid, topic)
+	if err != nil {
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+func (handler *messagesHandler) checkMessage(msg p2p.MessageP2P, pid core.PeerID, topic string) error {
 	err := handler.validateMessageByTimestamp(msg)
 	if err != nil {
 		// not reprocessing nor re-broadcasting the same message over and over again
@@ -371,10 +386,10 @@ func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, 
 		)
 		handler.processDebugMessage(topic, pid, uint64(len(msg.Data())), true)
 
-		return nil, err
+		return err
 	}
 
-	return msg, nil
+	return nil
 }
 
 func (handler *messagesHandler) blacklistPid(pid core.PeerID, banDuration time.Duration) {
@@ -419,7 +434,7 @@ func (handler *messagesHandler) validateMessageByTimestamp(msg p2p.MessageP2P) e
 }
 
 func (handler *messagesHandler) processDebugMessage(topic string, fromConnectedPeer core.PeerID, size uint64, isRejected bool) {
-	if fromConnectedPeer == handler.peerID() {
+	if fromConnectedPeer == handler.peerID {
 		handler.debugger.AddOutgoingMessage(topic, size, isRejected)
 	} else {
 		handler.debugger.AddIncomingMessage(topic, size, isRejected)
@@ -428,7 +443,10 @@ func (handler *messagesHandler) processDebugMessage(topic string, fromConnectedP
 
 // UnregisterMessageProcessor unregisters a message processes on a topic
 func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identifier string) error {
-	topicProcs := handler.topicsHandler.GetTopicProcessors(topic)
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
+
+	topicProcs := handler.processors[topic]
 	if topicProcs == nil {
 		return nil
 	}
@@ -440,9 +458,9 @@ func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identif
 
 	identifiers, _ := topicProcs.GetList()
 	if len(identifiers) == 0 {
-		handler.topicsHandler.RemoveTopicProcessors(topic)
+		handler.processors[topic] = nil
 
-		return handler.pb.UnregisterTopicValidator(topic)
+		return handler.pubSub.UnregisterTopicValidator(topic)
 	}
 
 	return nil
@@ -450,14 +468,16 @@ func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identif
 
 // UnregisterAllMessageProcessors will unregister all message processors for topics
 func (handler *messagesHandler) UnregisterAllMessageProcessors() error {
-	processors := handler.topicsHandler.GetAllTopicsProcessors()
-	for topic := range processors {
-		err := handler.pb.UnregisterTopicValidator(topic)
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
+
+	for topic := range handler.processors {
+		err := handler.pubSub.UnregisterTopicValidator(topic)
 		if err != nil {
 			return err
 		}
 
-		handler.topicsHandler.RemoveTopicProcessors(topic)
+		delete(handler.processors, topic)
 	}
 	return nil
 }
@@ -474,41 +494,49 @@ func (handler *messagesHandler) SendToConnectedPeer(topic string, buff []byte, p
 		return nil
 	}
 
-	if peerID == handler.peerID() {
+	if peerID == handler.peerID {
 		return handler.sendDirectToSelf(topic, buffToSend)
 	}
 
-	err = handler.ds.Send(topic, buffToSend, peerID)
+	err = handler.directSender.Send(topic, buffToSend, peerID)
 	handler.debugger.AddOutgoingMessage(topic, uint64(len(buffToSend)), err != nil)
 
 	return err
 }
 
 func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) error {
-	msg := &pubsub.Message{
+	pubSubMsg := &pubsub.Message{
 		Message: &pubsubPb.Message{
-			From:      handler.peerID().Bytes(),
+			From:      handler.peerID.Bytes(),
 			Data:      buff,
-			Seqno:     handler.ds.NextSequenceNumber(),
+			Seqno:     handler.directSender.NextSequenceNumber(),
 			Topic:     &topic,
-			Signature: handler.peerID().Bytes(),
+			Signature: handler.peerID.Bytes(),
 		},
 	}
 
-	return handler.directMessageHandler(msg, handler.peerID())
-}
-
-func (handler *messagesHandler) directMessageHandler(message *pubsub.Message, fromConnectedPeer core.PeerID) error {
-	topic := *message.Topic
-	msg, err := handler.transformAndCheckMessage(message, fromConnectedPeer, topic)
+	msg, err := NewMessage(pubSubMsg, handler.marshaller)
 	if err != nil {
 		return err
 	}
 
-	topicProcs := handler.topicsHandler.GetTopicProcessors(topic)
+	return handler.ProcessReceivedMessage(msg, handler.peerID)
+}
 
-	if topicProcs == nil {
-		return fmt.Errorf("%w on directMessageHandler for topic %s", p2p.ErrNilValidator, topic)
+// ProcessReceivedMessage handles received direct messages
+func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	topic := message.Topic()
+	err := handler.checkMessage(message, fromConnectedPeer, topic)
+	if err != nil {
+		return err
+	}
+
+	handler.mutTopics.RLock()
+	topicProcs := handler.processors[topic]
+	handler.mutTopics.RUnlock()
+
+	if check.IfNil(topicProcs) {
+		return fmt.Errorf("%w on HandleDirectMessageReceived for topic %s", p2p.ErrNilValidator, topic)
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
@@ -540,7 +568,7 @@ func (handler *messagesHandler) directMessageHandler(message *pubsub.Message, fr
 		if messageOk {
 			handler.peersRatingHandler.IncreaseRating(fromConnectedPeer)
 		}
-	}(msg)
+	}(message)
 
 	return nil
 }
@@ -561,28 +589,28 @@ func (handler *messagesHandler) createMessageBytes(buff []byte) []byte {
 	return buffToSend
 }
 
-func (handler *messagesHandler) peerID() core.PeerID {
-	return core.PeerID(handler.idProvider.ID())
-}
-
 // CreateTopic opens a new topic using pubsub infrastructure
 func (handler *messagesHandler) CreateTopic(name string, createChannelForTopic bool) error {
-	if handler.topicsHandler.HasTopic(name) {
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
+
+	_, found := handler.topics[name]
+	if found {
 		return nil
 	}
 
-	topic, err := handler.pb.Join(name)
+	topic, err := handler.pubSub.Join(name)
 	if err != nil {
 		return fmt.Errorf("%w for topic %s", err, name)
 	}
 
-	handler.topicsHandler.AddTopic(name, topic)
+	handler.topics[name] = topic
 	subscrRequest, err := topic.Subscribe()
 	if err != nil {
 		return fmt.Errorf("%w for topic %s", err, name)
 	}
 
-	handler.topicsHandler.AddSubscription(name, subscrRequest)
+	handler.subscriptions[name] = subscrRequest
 	if createChannelForTopic {
 		err = handler.outgoingCLB.AddChannel(name)
 	}
@@ -607,16 +635,21 @@ func (handler *messagesHandler) CreateTopic(name string, createChannelForTopic b
 
 // HasTopic returns true if the topic has been created
 func (handler *messagesHandler) HasTopic(name string) bool {
-	return handler.topicsHandler.HasTopic(name)
+	handler.mutTopics.RLock()
+	defer handler.mutTopics.RUnlock()
+
+	_, ok := handler.topics[name]
+	return ok
 }
 
 // UnJoinAllTopics call close on all topics
 func (handler *messagesHandler) UnJoinAllTopics() error {
-	topics := handler.topicsHandler.GetAllTopics()
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
 
 	var errFound error
-	for topicName, t := range topics {
-		subscription := handler.topicsHandler.GetSubscription(topicName)
+	for topicName, t := range handler.topics {
+		subscription := handler.subscriptions[topicName]
 		if subscription != nil {
 			subscription.Cancel()
 		}
@@ -630,7 +663,7 @@ func (handler *messagesHandler) UnJoinAllTopics() error {
 			errFound = err
 		}
 
-		handler.topicsHandler.RemoveTopic(topicName)
+		delete(handler.topics, topicName)
 	}
 
 	return errFound

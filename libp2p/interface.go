@@ -59,28 +59,6 @@ type PubSub interface {
 	UnregisterTopicValidator(topic string) error
 }
 
-// TopicsHandler interface defines what a component able to handle topics should do
-type TopicsHandler interface {
-	GetTopic(topic string) PubSubTopic
-	HasTopic(topic string) bool
-	AddTopic(topic string, pubSubTopic PubSubTopic)
-	RemoveTopic(topic string)
-	GetAllTopics() map[string]PubSubTopic
-	GetTopicProcessors(topic string) TopicProcessor
-	AddNewTopicProcessors(topic string) TopicProcessor
-	RemoveTopicProcessors(topic string)
-	GetAllTopicsProcessors() map[string]TopicProcessor
-	GetSubscription(topic string) PubSubSubscription
-	AddSubscription(topic string, sub PubSubSubscription)
-	IsInterfaceNil() bool
-}
-
-// IDProvider interface defines a component able to provide its own peer ID
-type IDProvider interface {
-	ID() peer.ID
-	IsInterfaceNil() bool
-}
-
 // TopicProcessor interface defines what a topic processor can do
 type TopicProcessor interface {
 	AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error
