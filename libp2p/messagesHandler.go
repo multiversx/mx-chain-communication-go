@@ -38,7 +38,6 @@ type ArgMessagesHandler struct {
 	IDProvider         IDProvider
 }
 
-// TODO[Sorin]: add unit tests
 type messagesHandler struct {
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
@@ -352,10 +351,11 @@ func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, 
 	if errUnmarshal != nil {
 		// this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
-		pidFrom := core.PeerID(pbMsg.From)
 		handler.blacklistPid(pid, p2p.WrongP2PMessageBlacklistDuration)
-		handler.blacklistPid(pidFrom, p2p.WrongP2PMessageBlacklistDuration)
-
+		if pbMsg != nil {
+			pidFrom := core.PeerID(pbMsg.From)
+			handler.blacklistPid(pidFrom, p2p.WrongP2PMessageBlacklistDuration)
+		}
 		return nil, errUnmarshal
 	}
 
