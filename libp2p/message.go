@@ -55,8 +55,7 @@ func NewMessage(msg *pubsub.Message, marshaller p2p.Marshaller) (*message.Messag
 	newMsg.DataField = topicMessage.Payload
 	newMsg.TimestampField = topicMessage.Timestamp
 
-	from := newMsg.From()
-	id, err := peer.IDFromBytes(from)
+	id, err := peer.IDFromBytes(newMsg.From())
 	if err != nil {
 		return nil, err
 	}
