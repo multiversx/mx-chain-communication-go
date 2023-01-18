@@ -425,16 +425,14 @@ func testBroadcastOnChannelBlockingShouldWork(skBytes []byte, testingExportedMet
 		assert.False(t, check.IfNil(mh))
 
 		go func() {
-			var err error
-			defer assert.Nil(t, err)
-
 			if isMultikey {
 				if testingExportedMethod {
 					mh.BroadcastUsingPrivateKey(providedTopic, providedData, providedPid, skBytes)
 					return
 				}
 
-				err = mh.BroadcastOnChannelBlockingUsingPrivateKey(providedChannel, providedTopic, providedData, providedPid, skBytes)
+				err := mh.BroadcastOnChannelBlockingUsingPrivateKey(providedChannel, providedTopic, providedData, providedPid, skBytes)
+				assert.Nil(t, err)
 				return
 			}
 
@@ -443,7 +441,8 @@ func testBroadcastOnChannelBlockingShouldWork(skBytes []byte, testingExportedMet
 				return
 			}
 
-			err = mh.BroadcastOnChannelBlocking(providedChannel, providedTopic, providedData)
+			err := mh.BroadcastOnChannelBlocking(providedChannel, providedTopic, providedData)
+			assert.Nil(t, err)
 		}()
 		waitForChannelBlockingWithFinalCheck(t, ch, func() {
 			assert.True(t, wasCalled.IsSet())

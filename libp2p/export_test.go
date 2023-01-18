@@ -90,7 +90,7 @@ func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
 
 // BroadcastOnChannelBlocking -
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
-	return netMes.BroadcastOnChannelBlocking(channel, topic, buff)
+	return netMes.MessageHandler.(*messagesHandler).BroadcastOnChannelBlocking(channel, topic, buff)
 }
 
 // BroadcastOnChannelBlocking -
