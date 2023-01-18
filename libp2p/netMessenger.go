@@ -81,6 +81,7 @@ func init() {
 // TODO[Sorin]: further cleanup of this struct
 type networkMessenger struct {
 	p2pSigner
+	p2p.MessageHandler
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -99,7 +100,6 @@ type networkMessenger struct {
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	mutPeerTopicNotifiers   sync.RWMutex
 	peerTopicNotifiers      []p2p.PeerTopicNotifier
-	messagesHandler         p2p.MessageHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -267,6 +267,7 @@ func addComponentsToNode(
 	p2pNode.peerShardResolver = &unknownPeerShardResolver{}
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	peersRatingHandler := args.PeersRatingHandler
+	marshaller := args.Marshaller
 
 	err = p2pNode.createPubSub(messageSigning, peersRatingHandler)
 	if err != nil {
@@ -290,7 +291,7 @@ func addComponentsToNode(
 
 	p2pNode.createConnectionsMetric()
 
-	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode)
+	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller)
 	if err != nil {
 		return err
 	}
@@ -305,15 +306,14 @@ func addComponentsToNode(
 		DirectSender:       ds,
 		Throttler:          goRoutinesThrottler,
 		OutgoingCLB:        NewOutgoingChannelLoadBalancer(),
-		TopicsHandler:      NewTopicsHandler(),
-		Marshaller:         args.Marshaller,
+		Marshaller:         marshaller,
 		ConnMonitorWrapper: p2pNode.connMonitorWrapper,
 		PeersRatingHandler: peersRatingHandler,
 		Debugger:           debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID())),
 		SyncTimer:          args.SyncTimer,
-		IDProvider:         p2pNode.p2pHost,
+		PeerID:             core.PeerID(p2pNode.p2pHost.ID()),
 	}
-	p2pNode.messagesHandler, err = NewMessagesHandler(argsMessageHandler)
+	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {
 		return err
 	}
@@ -539,7 +539,7 @@ func (netMes *networkMessenger) Close() error {
 
 	var err error
 	log.Debug("closing network messenger's messages handler...")
-	errMH := netMes.messagesHandler.Close()
+	errMH := netMes.MessageHandler.Close()
 	if errMH != nil {
 		err = errMH
 		log.Warn("networkMessenger.Close",
@@ -766,74 +766,6 @@ func (netMes *networkMessenger) ConnectedFullHistoryPeersOnTopic(topic string) [
 	}
 
 	return fullHistoryList
-}
-
-// CreateTopic opens a new topic using pubsub infrastructure
-func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic bool) error {
-	return netMes.messagesHandler.CreateTopic(name, createChannelForTopic)
-}
-
-// HasTopic returns true if the topic has been created
-func (netMes *networkMessenger) HasTopic(name string) bool {
-	return netMes.messagesHandler.HasTopic(name)
-}
-
-// BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
-func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	netMes.messagesHandler.BroadcastOnChannel(channel, topic, buff)
-}
-
-// Broadcast tries to send a byte buffer onto a topic using the topic name as channel
-func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
-	netMes.BroadcastOnChannel(topic, topic, buff)
-}
-
-// BroadcastOnChannelUsingPrivateKey tries to send a byte buffer onto a topic using provided channel
-func (netMes *networkMessenger) BroadcastOnChannelUsingPrivateKey(
-	channel string,
-	topic string,
-	buff []byte,
-	pid core.PeerID,
-	skBytes []byte,
-) {
-	netMes.messagesHandler.BroadcastOnChannelUsingPrivateKey(channel, topic, buff, pid, skBytes)
-}
-
-// BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
-func (netMes *networkMessenger) BroadcastUsingPrivateKey(
-	topic string,
-	buff []byte,
-	pid core.PeerID,
-	skBytes []byte,
-) {
-	netMes.messagesHandler.BroadcastUsingPrivateKey(topic, buff, pid, skBytes)
-}
-
-// RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers
-// on a topic. Each handler should be associated with a new identifier on the same topic. Using same identifier on different
-// topics is allowed. The order of handler calling on a particular topic is not deterministic.
-func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
-	return netMes.messagesHandler.RegisterMessageProcessor(topic, identifier, handler)
-}
-
-// UnregisterAllMessageProcessors will unregister all message processors for topics
-func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
-	return netMes.messagesHandler.UnregisterAllMessageProcessors()
-}
-
-// UnJoinAllTopics call close on all topics
-func (netMes *networkMessenger) UnJoinAllTopics() error {
-	return netMes.messagesHandler.UnJoinAllTopics()
-}
-
-// UnregisterMessageProcessor unregisters a message processes on a topic
-func (netMes *networkMessenger) UnregisterMessageProcessor(topic string, identifier string) error {
-	return netMes.messagesHandler.UnregisterMessageProcessor(topic, identifier)
-}
-
-// SendToConnectedPeer sends a direct message to a connected peer
-func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error {
-	return netMes.messagesHandler.SendToConnectedPeer(topic, buff, peerID)
 }
 
 // IsConnectedToTheNetwork returns true if the current node is connected to the network
