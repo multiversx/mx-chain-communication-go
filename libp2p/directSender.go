@@ -30,22 +30,24 @@ const maxMutexes = 10000
 const sequenceNumberSize = 8
 
 type directSender struct {
-	counter         uint64
-	ctx             context.Context
-	hostP2P         host.Host
-	messageHandler  func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error
-	mutSeenMessages sync.Mutex
-	seenMessages    *timecache.TimeCache
-	mutexForPeer    *MutexHolder
-	signer          p2p.SignerVerifier
+	counter           uint64
+	ctx               context.Context
+	hostP2P           host.Host
+	mutMessageHandler sync.RWMutex
+	messageHandler    p2p.MessageProcessor
+	mutSeenMessages   sync.Mutex
+	seenMessages      *timecache.TimeCache
+	mutexForPeer      *MutexHolder
+	signer            p2p.SignerVerifier
+	marshaller        p2p.Marshaller
 }
 
 // NewDirectSender returns a new instance of direct sender object
 func NewDirectSender(
 	ctx context.Context,
 	h host.Host,
-	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error,
 	signer p2p.SignerVerifier,
+	marshaller p2p.Marshaller,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -54,11 +56,11 @@ func NewDirectSender(
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-	if messageHandler == nil {
-		return nil, p2p.ErrNilDirectSendMessageHandler
-	}
 	if check.IfNil(signer) {
 		return nil, p2p.ErrNilP2PSigner
+	}
+	if check.IfNil(marshaller) {
+		return nil, p2p.ErrNilMarshaller
 	}
 
 	mutexForPeer, err := NewMutexHolder(maxMutexes)
@@ -67,19 +69,32 @@ func NewDirectSender(
 	}
 
 	ds := &directSender{
-		counter:        uint64(time.Now().UnixNano()),
-		ctx:            ctx,
-		hostP2P:        h,
-		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
-		messageHandler: messageHandler,
-		mutexForPeer:   mutexForPeer,
-		signer:         signer,
+		counter:      uint64(time.Now().UnixNano()),
+		ctx:          ctx,
+		hostP2P:      h,
+		seenMessages: timecache.NewTimeCache(timeSeenMessages),
+		mutexForPeer: mutexForPeer,
+		signer:       signer,
+		marshaller:   marshaller,
 	}
 
 	// wire-up a handler for direct messages
 	h.SetStreamHandler(DirectSendID, ds.directStreamHandler)
 
 	return ds, nil
+}
+
+// RegisterDirectMessageProcessor registers the handler to be called when a new direct message is received
+func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageProcessor) error {
+	if check.IfNil(handler) {
+		return p2p.ErrNilDirectSendMessageHandler
+	}
+
+	ds.mutMessageHandler.Lock()
+	ds.messageHandler = handler
+	ds.mutMessageHandler.Unlock()
+
+	return nil
 }
 
 func (ds *directSender) directStreamHandler(s network.Stream) {
@@ -116,6 +131,13 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 }
 
 func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, fromConnectedPeer peer.ID) error {
+	ds.mutMessageHandler.RLock()
+	defer ds.mutMessageHandler.RUnlock()
+
+	if check.IfNil(ds.messageHandler) {
+		return p2p.ErrNilDirectSendMessageHandler
+	}
+
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
@@ -143,7 +165,12 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		Message: message,
 	}
 
-	return ds.messageHandler(pbMessage, core.PeerID(fromConnectedPeer))
+	msg, err := NewMessage(pbMessage, ds.marshaller)
+	if err != nil {
+		return err
+	}
+
+	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer))
 }
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {

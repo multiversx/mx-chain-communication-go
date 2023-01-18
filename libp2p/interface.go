@@ -1,8 +1,11 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -46,4 +49,34 @@ type ChannelLoadBalancer interface {
 	CollectOneElementFromChannels() *SendableData
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// PubSub interface defines what a publish/subscribe system should do
+type PubSub interface {
+	Join(topic string, opts ...pubsub.TopicOpt) (*pubsub.Topic, error)
+	ListPeers(topic string) []peer.ID
+	RegisterTopicValidator(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error
+	UnregisterTopicValidator(topic string) error
+}
+
+// TopicProcessor interface defines what a topic processor can do
+type TopicProcessor interface {
+	AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error
+	RemoveTopicProcessor(identifier string) error
+	GetList() ([]string, []p2p.MessageProcessor)
+	IsInterfaceNil() bool
+}
+
+// PubSubSubscription interface defines what a pubSub subscription can do
+type PubSubSubscription interface {
+	Topic() string
+	Next(ctx context.Context) (*pubsub.Message, error)
+	Cancel()
+}
+
+// PubSubTopic interface defines what a pubSub topic can do
+type PubSubTopic interface {
+	Subscribe(opts ...pubsub.SubOpt) (*pubsub.Subscription, error)
+	Publish(ctx context.Context, data []byte, opts ...pubsub.PubOpt) error
+	Close() error
 }

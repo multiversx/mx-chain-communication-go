@@ -29,8 +29,13 @@ func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 }
 
 // SetLoadBalancer -
-func (netMes *networkMessenger) SetLoadBalancer(outgoingPLB ChannelLoadBalancer) {
-	netMes.outgoingPLB = outgoingPLB
+func (handler *messagesHandler) SetLoadBalancer(outgoingCLB ChannelLoadBalancer) {
+	handler.outgoingCLB = outgoingCLB
+}
+
+// SetLoadBalancer -
+func (netMes *networkMessenger) SetLoadBalancer(outgoingCLB ChannelLoadBalancer) {
+	netMes.MessageHandler.(*messagesHandler).SetLoadBalancer(outgoingCLB)
 }
 
 // SetPeerDiscoverer -
@@ -39,16 +44,26 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 }
 
 // PubsubCallback -
-func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+func (handler *messagesHandler) PubsubCallback(msgProc p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	topicProcs := newTopicProcessors()
-	_ = topicProcs.addTopicProcessor("identifier", handler)
+	_ = topicProcs.AddTopicProcessor("identifier", msgProc)
 
-	return netMes.pubsubCallback(topicProcs, topic)
+	return handler.pubsubCallback(topicProcs, topic)
+}
+
+// PubsubCallback -
+func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+	return netMes.MessageHandler.(*messagesHandler).PubsubCallback(handler, topic)
+}
+
+// ValidMessageByTimestamp -
+func (handler *messagesHandler) ValidMessageByTimestamp(msg p2p.MessageP2P) error {
+	return handler.validateMessageByTimestamp(msg)
 }
 
 // ValidMessageByTimestamp -
 func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) error {
-	return netMes.validMessageByTimestamp(msg)
+	return netMes.MessageHandler.(*messagesHandler).ValidMessageByTimestamp(msg)
 }
 
 // MapHistogram -
@@ -58,9 +73,7 @@ func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
 
 // PubsubHasTopic -
 func (netMes *networkMessenger) PubsubHasTopic(expectedTopic string) bool {
-	netMes.mutTopics.RLock()
 	topics := netMes.pb.GetTopics()
-	netMes.mutTopics.RUnlock()
 
 	for _, topic := range topics {
 		if topic == expectedTopic {
@@ -70,16 +83,14 @@ func (netMes *networkMessenger) PubsubHasTopic(expectedTopic string) bool {
 	return false
 }
 
-// HasProcessorForTopic -
-func (netMes *networkMessenger) HasProcessorForTopic(expectedTopic string) bool {
-	processor, found := netMes.processors[expectedTopic]
-
-	return found && processor != nil
-}
-
 // Disconnect -
 func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
 	return netMes.p2pHost.Network().ClosePeer(peer.ID(pid))
+}
+
+// BroadcastOnChannelBlocking -
+func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
+	return netMes.MessageHandler.(*messagesHandler).broadcastOnChannelBlocking(channel, topic, buff)
 }
 
 // ProcessReceivedDirectMessage -
@@ -102,9 +113,14 @@ func (mh *MutexHolder) Mutexes() types.Cacher {
 	return mh.mutexes
 }
 
+// DirectSender -
+func (handler *messagesHandler) DirectSender() *directSender {
+	return handler.directSender.(*directSender)
+}
+
 // SetSignerInDirectSender sets the signer in the direct sender
 func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifier) {
-	netMes.ds.(*directSender).signer = signer
+	netMes.MessageHandler.(*messagesHandler).DirectSender().signer = signer
 }
 
 func (oplb *OutgoingChannelLoadBalancer) Chans() []chan *SendableData {
@@ -168,18 +184,6 @@ func CheckFreePort(port int) error {
 
 func NewTopicProcessors() *topicProcessors {
 	return newTopicProcessors()
-}
-
-func (tp *topicProcessors) AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error {
-	return tp.addTopicProcessor(identifier, processor)
-}
-
-func (tp *topicProcessors) RemoveTopicProcessor(identifier string) error {
-	return tp.removeTopicProcessor(identifier)
-}
-
-func (tp *topicProcessors) GetList() ([]string, []p2p.MessageProcessor) {
-	return tp.getList()
 }
 
 func NewUnknownPeerShardResolver() *unknownPeerShardResolver {
