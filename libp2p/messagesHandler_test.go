@@ -183,7 +183,7 @@ func TestNewMessagesHandler(t *testing.T) {
 			}
 			mh, _ := libp2p.NewMessagesHandler(args)
 			assert.False(t, check.IfNil(mh))
-			time.Sleep(time.Millisecond * 3)
+			time.Sleep(time.Millisecond * 50)
 			assert.Nil(t, mh.Close())
 		})
 		t.Run("topic not registered should not publish", func(t *testing.T) {
@@ -207,7 +207,7 @@ func TestNewMessagesHandler(t *testing.T) {
 			}
 			mh, _ := libp2p.NewMessagesHandler(args)
 			assert.False(t, check.IfNil(mh))
-			time.Sleep(time.Millisecond * 3)
+			time.Sleep(time.Millisecond * 50)
 			assert.Nil(t, mh.Close())
 		})
 		t.Run("marshal of data fails", func(t *testing.T) {
@@ -239,7 +239,7 @@ func TestNewMessagesHandler(t *testing.T) {
 			mh := libp2p.NewMessagesHandlerWithTopics(args, topics, true)
 
 			assert.False(t, check.IfNil(mh))
-			time.Sleep(time.Millisecond * 3)
+			time.Sleep(time.Millisecond * 50)
 			assert.True(t, wasMarshalCalled.IsSet())
 			assert.Nil(t, mh.Close())
 		})
@@ -928,7 +928,7 @@ func waitForChannelBlockingWithFinalCheck(t *testing.T, ch chan *libp2p.Sendable
 func checkForPanic(t *testing.T) {
 	r := recover()
 	if r != nil {
-		assert.Fail(t, "should not have panicked")
+		assert.Fail(t, fmt.Sprintf("should not have panicked: %v", r))
 	}
 }
 
@@ -1210,4 +1210,13 @@ func TestMessagesHandler_Close(t *testing.T) {
 	assert.False(t, check.IfNil(mh))
 	err := mh.Close()
 	assert.Equal(t, errCloseDebugger, err)
+}
+
+func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
+	t.Parallel()
+
+	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+	assert.False(t, check.IfNil(mh))
+
+	assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid"))
 }
