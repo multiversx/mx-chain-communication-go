@@ -30,113 +30,51 @@ type Reconnecter interface {
 	IsInterfaceNil() bool
 }
 
+// MessageHandler defines the behaviour of a component able to send and process messages
+type MessageHandler interface {
+	io.Closer
+
+	CreateTopic(name string, createChannelForTopic bool) error
+	HasTopic(name string) bool
+	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
+	UnregisterAllMessageProcessors() error
+	UnregisterMessageProcessor(topic string, identifier string) error
+	Broadcast(topic string, buff []byte)
+	BroadcastOnChannel(channel string, topic string, buff []byte)
+	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	BroadcastOnChannelUsingPrivateKey(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
+	UnJoinAllTopics() error
+}
+
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
+	MessageHandler
 
-	// ID is the Messenger's unique peer identifier across the network (a
-	// string). It is derived from the public key of the P2P credentials.
 	ID() core.PeerID
-
-	// Peers is the list of IDs of peers known to the Messenger.
 	Peers() []core.PeerID
-
-	// Addresses is the list of addresses that the Messenger is currently bound
-	// to and listening to.
 	Addresses() []string
-
-	// ConnectToPeer explicitly connect to a specific peer with a known address (note that the
-	// address contains the peer ID). This function is usually not called
-	// manually, because any underlying implementation of the Messenger interface
-	// should be keeping connections to peers open.
 	ConnectToPeer(address string) error
-
-	// IsConnected returns true if the Messenger are connected to a specific peer.
 	IsConnected(peerID core.PeerID) bool
-
-	// ConnectedPeers returns the list of IDs of the peers the Messenger is
-	// currently connected to.
 	ConnectedPeers() []core.PeerID
-
-	// ConnectedAddresses returns the list of addresses of the peers to which the
-	// Messenger is currently connected.
 	ConnectedAddresses() []string
-
-	// PeerAddresses returns the known addresses for the provided peer ID
 	PeerAddresses(pid core.PeerID) []string
-
-	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
-	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []core.PeerID
-
-	// ConnectedFullHistoryPeersOnTopic returns the IDs of the full history peers to which the Messenger
-	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
-
-	// Bootstrap runs the initialization phase which includes peer discovery,
-	// setting up initial connections and self-announcement in the network.
 	Bootstrap() error
-
-	// CreateTopic defines a new topic for sending messages, and optionally
-	// creates a channel in the LoadBalancer for this topic (otherwise, the topic
-	// will use a default channel).
-	CreateTopic(name string, createChannelForTopic bool) error
-
-	// HasTopic returns true if the Messenger has declared interest in a topic
-	// and it is listening to messages referencing it.
-	HasTopic(name string) bool
-
-	// RegisterMessageProcessor adds the provided MessageProcessor to the list
-	// of handlers that are invoked whenever a message is received on the
-	// specified topic.
-	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
-
-	// UnregisterAllMessageProcessors removes all the MessageProcessor set by the
-	// Messenger from the list of registered handlers for the messages on the
-	// given topic.
-	UnregisterAllMessageProcessors() error
-
-	// UnregisterMessageProcessor removes the MessageProcessor set by the
-	// Messenger from the list of registered handlers for the messages on the
-	// given topic.
-	UnregisterMessageProcessor(topic string, identifier string) error
-
-	// BroadcastOnChannelBlocking asynchronously waits until it can send a
-	// message on the channel, but once it is able to, it synchronously sends the
-	// message, blocking until sending is completed.
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
-
-	// BroadcastOnChannel asynchronously sends a message on a given topic
-	// through a specified channel.
-	BroadcastOnChannel(channel string, topic string, buff []byte)
-
-	// BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
-	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
-
-	// Broadcast is a convenience function that calls BroadcastOnChannelBlocking,
-	// but implicitly sets the channel to be identical to the specified topic.
-	Broadcast(topic string, buff []byte)
-
-	// SendToConnectedPeer asynchronously sends a message to a peer directly,
-	// bypassing pubsub and topics. It opens a new connection with the given
-	// peer, but reuses a connection and a stream if possible.
-	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
-
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
-	UnjoinAllTopics() error
 	Port() int
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 	AddPeerTopicNotifier(notifier PeerTopicNotifier) error
-
-	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -158,6 +96,7 @@ type MessageP2P interface {
 type DirectSender interface {
 	NextSequenceNumber() []byte
 	Send(topic string, buff []byte, peer core.PeerID) error
+	RegisterDirectMessageProcessor(handler MessageProcessor) error
 	IsInterfaceNil() bool
 }
 
@@ -231,8 +170,8 @@ type SignerVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// Marshalizer defines the 2 basic operations: serialize (marshal) and deserialize (unmarshal)
-type Marshalizer interface {
+// Marshaller defines the 2 basic operations: serialize (marshal) and deserialize (unmarshal)
+type Marshaller interface {
 	Marshal(obj interface{}) ([]byte, error)
 	Unmarshal(obj interface{}, buff []byte) error
 	IsInterfaceNil() bool
