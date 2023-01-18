@@ -2,14 +2,14 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 )
 
 // DirectSenderStub -
 type DirectSenderStub struct {
-	NextSequenceNumberCalled     func() []byte
-	SendCalled                   func(topic string, buff []byte, peer core.PeerID) error
-	RegisterMessageHandlerCalled func(handler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error) error
+	NextSequenceNumberCalled             func() []byte
+	SendCalled                           func(topic string, buff []byte, peer core.PeerID) error
+	RegisterDirectMessageProcessorCalled func(handler p2p.MessageProcessor) error
 }
 
 // NextSequenceNumber -
@@ -28,10 +28,10 @@ func (stub *DirectSenderStub) Send(topic string, buff []byte, peer core.PeerID) 
 	return nil
 }
 
-// RegisterMessageHandler -
-func (stub *DirectSenderStub) RegisterMessageHandler(handler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error) error {
-	if stub.RegisterMessageHandlerCalled != nil {
-		return stub.RegisterMessageHandlerCalled(handler)
+// RegisterDirectMessageProcessor -
+func (stub *DirectSenderStub) RegisterDirectMessageProcessor(handler p2p.MessageProcessor) error {
+	if stub.RegisterDirectMessageProcessorCalled != nil {
+		return stub.RegisterDirectMessageProcessorCalled(handler)
 	}
 	return nil
 }
