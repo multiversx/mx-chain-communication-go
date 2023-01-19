@@ -57,6 +57,7 @@ type PubSub interface {
 	ListPeers(topic string) []peer.ID
 	RegisterTopicValidator(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error
 	UnregisterTopicValidator(topic string) error
+	GetTopics() []string
 }
 
 // TopicProcessor interface defines what a topic processor can do
@@ -79,4 +80,11 @@ type PubSubTopic interface {
 	Subscribe(opts ...pubsub.SubOpt) (*pubsub.Subscription, error)
 	Publish(ctx context.Context, data []byte, opts ...pubsub.PubOpt) error
 	Close() error
+}
+
+// PeersOnChannel interface defines what a component able to handle peers on a channel should do
+type PeersOnChannel interface {
+	ConnectedPeersOnChannel(topic string) []core.PeerID
+	Close() error
+	IsInterfaceNil() bool
 }

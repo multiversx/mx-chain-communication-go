@@ -24,8 +24,14 @@ const CurrentTopicMessageVersion = currentTopicMessageVersion
 const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval
 
 // SetHost -
+func (handler *connectionsHandler) SetHost(newHost ConnectableHost) {
+	handler.p2pHost = newHost
+}
+
+// SetHost -
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 	netMes.p2pHost = newHost
+	netMes.ConnectionsHandler.(*connectionsHandler).SetHost(newHost)
 }
 
 // SetLoadBalancer -
@@ -72,8 +78,8 @@ func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
 }
 
 // PubsubHasTopic -
-func (netMes *networkMessenger) PubsubHasTopic(expectedTopic string) bool {
-	topics := netMes.pb.GetTopics()
+func (handler *messagesHandler) PubsubHasTopic(expectedTopic string) bool {
+	topics := handler.pubSub.GetTopics()
 
 	for _, topic := range topics {
 		if topic == expectedTopic {
