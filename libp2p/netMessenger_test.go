@@ -286,6 +286,19 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilP2pKeyGenerator))
 	})
+
+	t.Run("self id as seeder should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		p2pPrivateKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(arg.P2pPrivateKey)
+		pid, _ := peer.IDFromPublicKey(p2pPrivateKey.GetPublic())
+		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{pid.String()}
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidConfig))
+	})
 }
 
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
