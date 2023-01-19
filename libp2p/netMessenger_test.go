@@ -293,7 +293,8 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		arg := createMockNetworkArgs()
 		p2pPrivateKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(arg.P2pPrivateKey)
 		pid, _ := peer.IDFromPublicKey(p2pPrivateKey.GetPublic())
-		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{pid.String()}
+		connString := "/ip4/127.0.0.1/tcp/9999/" + pid.String()
+		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{connString}
 		messenger, err := libp2p.NewNetworkMessenger(arg)
 
 		assert.True(t, check.IfNil(messenger))
