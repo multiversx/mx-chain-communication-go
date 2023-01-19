@@ -45,14 +45,13 @@ type MessageHandler interface {
 	BroadcastOnChannelUsingPrivateKey(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopics() error
+	IsInterfaceNil() bool
 }
 
-// Messenger is the main struct used for communication with other peers
-type Messenger interface {
+// ConnectionsHandler defines the behaviour of a component able to handle connections
+type ConnectionsHandler interface {
 	io.Closer
-	MessageHandler
 
-	ID() core.PeerID
 	Peers() []core.PeerID
 	Addresses() []string
 	ConnectToPeer(address string) error
@@ -62,15 +61,25 @@ type Messenger interface {
 	PeerAddresses(pid core.PeerID) []string
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
-	Bootstrap() error
+	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	GetConnectedPeersInfo() *ConnectedPeersInfo
+	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
-	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	IsInterfaceNil() bool
+}
+
+// Messenger is the main struct used for communication with other peers
+type Messenger interface {
+	MessageHandler
+	ConnectionsHandler
+
+	ID() core.PeerID
+	Bootstrap() error
+
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
-	GetConnectedPeersInfo() *ConnectedPeersInfo
 	Port() int
-	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
