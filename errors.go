@@ -176,3 +176,6 @@ var ErrNilConnectionMonitorWrapper = errors.New("nil connections monitor wrapper
 
 // ErrNilDebugger signals that a nil debugger has been provided
 var ErrNilDebugger = errors.New("nil debugger")
+
+// ErrInvalidConfig signals that an invalid config has been provided
+var ErrInvalidConfig = errors.New("invalid config")
