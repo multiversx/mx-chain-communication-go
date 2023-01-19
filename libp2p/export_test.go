@@ -90,7 +90,23 @@ func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
 
 // BroadcastOnChannelBlocking -
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
-	return netMes.MessageHandler.(*messagesHandler).broadcastOnChannelBlocking(channel, topic, buff)
+	return netMes.MessageHandler.(*messagesHandler).BroadcastOnChannelBlocking(channel, topic, buff)
+}
+
+// BroadcastOnChannelBlocking -
+func (handler *messagesHandler) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
+	return handler.broadcastOnChannelBlocking(channel, topic, buff)
+}
+
+// BroadcastOnChannelBlockingUsingPrivateKey -
+func (handler *messagesHandler) BroadcastOnChannelBlockingUsingPrivateKey(
+	channel string,
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) error {
+	return handler.broadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 }
 
 // ProcessReceivedDirectMessage -
@@ -188,4 +204,68 @@ func NewTopicProcessors() *topicProcessors {
 
 func NewUnknownPeerShardResolver() *unknownPeerShardResolver {
 	return &unknownPeerShardResolver{}
+}
+
+// NewMessagesHandlerWithNoRoutine -
+func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
+	ctx, cancel := context.WithCancel(context.Background())
+	handler := &messagesHandler{
+		ctx:                ctx,
+		cancelFunc:         cancel,
+		pubSub:             args.PubSub,
+		directSender:       args.DirectSender,
+		throttler:          args.Throttler,
+		outgoingCLB:        args.OutgoingCLB,
+		marshaller:         args.Marshaller,
+		connMonitorWrapper: args.ConnMonitorWrapper,
+		peersRatingHandler: args.PeersRatingHandler,
+		debugger:           args.Debugger,
+		syncTimer:          args.SyncTimer,
+		peerID:             args.PeerID,
+		processors:         make(map[string]TopicProcessor),
+		topics:             make(map[string]PubSubTopic),
+		subscriptions:      make(map[string]PubSubSubscription),
+	}
+
+	_ = handler.directSender.RegisterDirectMessageProcessor(handler)
+	return handler
+}
+
+// BlacklistPid -
+func (handler *messagesHandler) BlacklistPid(pid core.PeerID, banDuration time.Duration) {
+	handler.blacklistPid(pid, banDuration)
+}
+
+// TransformAndCheckMessage -
+func (handler *messagesHandler) TransformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
+	return handler.transformAndCheckMessage(pbMsg, pid, topic)
+}
+
+// NewMessagesHandlerWithTopics -
+func NewMessagesHandlerWithTopics(args ArgMessagesHandler, topics map[string]PubSubTopic, withRoutine bool) *messagesHandler {
+	handler := NewMessagesHandlerWithNoRoutine(args)
+	handler.topics = topics
+
+	if withRoutine {
+		go handler.processChannelLoadBalancer(handler.outgoingCLB)
+	}
+
+	return handler
+}
+
+// NewMessagesHandlerWithNoRoutineAndProcessors -
+func NewMessagesHandlerWithNoRoutineAndProcessors(args ArgMessagesHandler, processors map[string]TopicProcessor) *messagesHandler {
+	handler := NewMessagesHandlerWithNoRoutine(args)
+	handler.processors = processors
+
+	return handler
+}
+
+// NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions -
+func NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args ArgMessagesHandler, topics map[string]PubSubTopic, subscriptions map[string]PubSubSubscription) *messagesHandler {
+	handler := NewMessagesHandlerWithNoRoutine(args)
+	handler.topics = topics
+	handler.subscriptions = subscriptions
+
+	return handler
 }
