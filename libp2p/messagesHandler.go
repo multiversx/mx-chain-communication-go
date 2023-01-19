@@ -38,7 +38,6 @@ type ArgMessagesHandler struct {
 	PeerID             core.PeerID
 }
 
-// TODO[Sorin]: add unit tests
 type messagesHandler struct {
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
@@ -358,10 +357,11 @@ func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, 
 	if errUnmarshal != nil {
 		// this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
-		pidFrom := core.PeerID(pbMsg.From)
 		handler.blacklistPid(pid, p2p.WrongP2PMessageBlacklistDuration)
-		handler.blacklistPid(pidFrom, p2p.WrongP2PMessageBlacklistDuration)
-
+		if pbMsg != nil && len(pbMsg.From) > 0 {
+			pidFrom := core.PeerID(pbMsg.From)
+			handler.blacklistPid(pidFrom, p2p.WrongP2PMessageBlacklistDuration)
+		}
 		return nil, errUnmarshal
 	}
 
@@ -525,6 +525,10 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 
 // ProcessReceivedMessage handles received direct messages
 func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	if check.IfNil(message) {
+		return nil
+	}
+
 	topic := message.Topic()
 	err := handler.checkMessage(message, fromConnectedPeer, topic)
 	if err != nil {
@@ -541,10 +545,6 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	identifiers, msgProcessors := topicProcs.GetList()
 
 	go func(msg p2p.MessageP2P) {
-		if check.IfNil(msg) {
-			return
-		}
-
 		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
 		messageOk := true
