@@ -45,8 +45,13 @@ func (netMes *networkMessenger) SetLoadBalancer(outgoingCLB ChannelLoadBalancer)
 }
 
 // SetPeerDiscoverer -
+func (handler *connectionsHandler) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer) {
+	handler.peerDiscoverer = discoverer
+}
+
+// SetPeerDiscoverer -
 func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer) {
-	netMes.peerDiscoverer = discoverer
+	netMes.ConnectionsHandler.(*connectionsHandler).SetPeerDiscoverer(discoverer)
 }
 
 // PubsubCallback -
@@ -73,8 +78,13 @@ func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) erro
 }
 
 // MapHistogram -
+func (handler *connectionsHandler) MapHistogram(input map[uint32]int) string {
+	return handler.mapHistogram(input)
+}
+
+// MapHistogram -
 func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
-	return netMes.mapHistogram(input)
+	return netMes.ConnectionsHandler.(*connectionsHandler).MapHistogram(input)
 }
 
 // PubsubHasTopic -
@@ -274,4 +284,27 @@ func NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args ArgMessagesHandl
 	handler.subscriptions = subscriptions
 
 	return handler
+}
+
+// NewConnectionsHandlerWithNoRoutine -
+func NewConnectionsHandlerWithNoRoutine(args ArgConnectionsHandler) *connectionsHandler {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &connectionsHandler{
+		ctx:                  ctx,
+		cancelFunc:           cancel,
+		p2pHost:              args.P2pHost,
+		peersOnChannel:       args.PeersOnChannel,
+		peerShardResolver:    args.PeerShardResolver,
+		sharder:              args.Sharder,
+		preferredPeersHolder: args.PreferredPeersHolder,
+		connMonitor:          args.ConnMonitor,
+		peerDiscoverer:       args.PeerDiscoverer,
+		peerID:               args.PeerID,
+		connectionsMetric:    args.ConnectionsMetric,
+	}
+}
+
+// PrintConnectionsStatus -
+func (handler *connectionsHandler) PrintConnectionsStatus() {
+	handler.printConnectionsStatus()
 }

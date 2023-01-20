@@ -88,3 +88,12 @@ type PeersOnChannel interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// ConnectionsMetric is an extension of the libp2p network notifiee able to track connections metrics
+type ConnectionsMetric interface {
+	network.Notifiee
+
+	ResetNumConnections() uint32
+	ResetNumDisconnections() uint32
+	IsInterfaceNil() bool
+}

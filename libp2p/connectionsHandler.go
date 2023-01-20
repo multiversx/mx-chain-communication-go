@@ -2,6 +2,9 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,6 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const timeBetweenPeerPrints = time.Second * 20
+
 // ArgConnectionsHandler is the DTO struct used to create a new instance of connections handler
 type ArgConnectionsHandler struct {
 	P2pHost              ConnectableHost
@@ -20,6 +25,9 @@ type ArgConnectionsHandler struct {
 	Sharder              p2p.Sharder
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	ConnMonitor          ConnectionMonitor
+	PeerDiscoverer       p2p.PeerDiscoverer
+	PeerID               core.PeerID
+	ConnectionsMetric    ConnectionsMetric
 }
 
 type connectionsHandler struct {
@@ -32,6 +40,9 @@ type connectionsHandler struct {
 	sharder              p2p.Sharder
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
 	connMonitor          ConnectionMonitor
+	peerDiscoverer       p2p.PeerDiscoverer
+	peerID               core.PeerID
+	connectionsMetric    ConnectionsMetric
 }
 
 // NewConnectionsHandler creates a new connections manager
@@ -42,7 +53,7 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	return &connectionsHandler{
+	handler := &connectionsHandler{
 		ctx:                  ctx,
 		cancelFunc:           cancel,
 		p2pHost:              args.P2pHost,
@@ -51,7 +62,14 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 		sharder:              args.Sharder,
 		preferredPeersHolder: args.PreferredPeersHolder,
 		connMonitor:          args.ConnMonitor,
-	}, nil
+		peerDiscoverer:       args.PeerDiscoverer,
+		peerID:               args.PeerID,
+		connectionsMetric:    args.ConnectionsMetric,
+	}
+
+	go handler.printLogs()
+
+	return handler, nil
 }
 
 func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
@@ -73,8 +91,23 @@ func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
 	if check.IfNil(args.ConnMonitor) {
 		return p2p.ErrNilConnectionMonitor
 	}
+	if check.IfNil(args.PeerDiscoverer) {
+		return p2p.ErrNilPeerDiscoverer
+	}
+	if check.IfNil(args.ConnectionsMetric) {
+		return p2p.ErrNilConnectionsMetric
+	}
 
 	return nil
+}
+
+// Bootstrap will start the peer discovery mechanism
+func (handler *connectionsHandler) Bootstrap() error {
+	err := handler.peerDiscoverer.Bootstrap()
+	if err == nil {
+		log.Info("started the network discovery process...")
+	}
+	return err
 }
 
 // Peers returns the list of all known peers ID (including self)
@@ -89,14 +122,13 @@ func (handler *connectionsHandler) Peers() []core.PeerID {
 
 // Addresses returns all addresses found in peerstore
 func (handler *connectionsHandler) Addresses() []string {
-	addrs := make([]string, 0)
-
-	x := handler.p2pHost.Addrs()
-	for _, address := range x {
-		addrs = append(addrs, address.String()+"/p2p/"+handler.peerID().Pretty())
+	addresses := handler.p2pHost.Addrs()
+	result := make([]string, 0, len(addresses))
+	for _, address := range addresses {
+		result = append(result, address.String()+"/p2p/"+handler.peerID.Pretty())
 	}
 
-	return addrs
+	return result
 }
 
 // ConnectToPeer tries to open a new connection to a peer
@@ -158,41 +190,43 @@ func (handler *connectionsHandler) IsConnected(peerID core.PeerID) bool {
 func (handler *connectionsHandler) ConnectedPeers() []core.PeerID {
 	h := handler.p2pHost
 
-	connectedPeers := make(map[core.PeerID]struct{})
-
-	for _, conn := range h.Network().Conns() {
+	connections := h.Network().Conns()
+	result := make([]core.PeerID, 0, len(connections))
+	connectedPeersMap := make(map[core.PeerID]struct{})
+	for _, conn := range connections {
 		p := core.PeerID(conn.RemotePeer())
-
-		if handler.IsConnected(p) {
-			connectedPeers[p] = struct{}{}
+		if !handler.IsConnected(p) {
+			continue
 		}
+
+		_, alreadyAdded := connectedPeersMap[p]
+		if alreadyAdded {
+			continue
+		}
+
+		connectedPeersMap[p] = struct{}{}
+		result = append(result, p)
 	}
 
-	peerList := make([]core.PeerID, len(connectedPeers))
-
-	index := 0
-	for k := range connectedPeers {
-		peerList[index] = k
-		index++
-	}
-
-	return peerList
+	return result
 }
 
 // ConnectedAddresses returns all connected peer's addresses
 func (handler *connectionsHandler) ConnectedAddresses() []string {
 	h := handler.p2pHost
-	conns := make([]string, 0)
 
-	for _, c := range h.Network().Conns() {
-		conns = append(conns, c.RemoteMultiaddr().String()+"/p2p/"+c.RemotePeer().String())
+	connections := h.Network().Conns()
+	addresses := make([]string, 0, len(connections))
+	for _, c := range connections {
+		addresses = append(addresses, c.RemoteMultiaddr().String()+"/p2p/"+c.RemotePeer().String())
 	}
-	return conns
+	return addresses
 }
 
 // PeerAddresses returns the peer's addresses or empty slice if the peer is unknown
 func (handler *connectionsHandler) PeerAddresses(pid core.PeerID) []string {
 	h := handler.p2pHost
+
 	result := make([]string, 0)
 
 	// check if the peer is connected to the node and append its address
@@ -223,10 +257,11 @@ func (handler *connectionsHandler) ConnectedFullHistoryPeersOnTopic(topic string
 	fullHistoryList := make([]core.PeerID, 0)
 
 	handler.mutPeerResolver.RLock()
-	defer handler.mutPeerResolver.RUnlock()
+	peerShardResolver := handler.peerShardResolver
+	handler.mutPeerResolver.RUnlock()
 
 	for _, topicPeer := range peerList {
-		peerInfo := handler.peerShardResolver.GetPeerInfo(topicPeer)
+		peerInfo := peerShardResolver.GetPeerInfo(topicPeer)
 		if peerInfo.PeerSubType == core.FullHistoryObserver {
 			fullHistoryList = append(fullHistoryList, topicPeer)
 		}
@@ -271,9 +306,10 @@ func (handler *connectionsHandler) GetConnectedPeersInfo() *p2p.ConnectedPeersIn
 	}
 
 	handler.mutPeerResolver.RLock()
-	defer handler.mutPeerResolver.RUnlock()
+	peerShardResolver := handler.peerShardResolver
+	handler.mutPeerResolver.RUnlock()
 
-	selfPeerInfo := handler.peerShardResolver.GetPeerInfo(handler.peerID())
+	selfPeerInfo := peerShardResolver.GetPeerInfo(handler.peerID)
 	connPeerInfo.SelfShardID = selfPeerInfo.ShardID
 
 	for _, p := range peers {
@@ -284,7 +320,7 @@ func (handler *connectionsHandler) GetConnectedPeersInfo() *p2p.ConnectedPeersIn
 		}
 
 		pid := core.PeerID(p)
-		peerInfo := handler.peerShardResolver.GetPeerInfo(pid)
+		peerInfo := peerShardResolver.GetPeerInfo(pid)
 		handler.appendPeerInfo(peerInfo, selfPeerInfo, pid, connPeerInfo, connString)
 
 		if handler.preferredPeersHolder.Contains(pid) {
@@ -330,10 +366,6 @@ func (handler *connectionsHandler) appendPeerInfo(peerInfo, selfPeerInfo core.P2
 	}
 }
 
-func (handler *connectionsHandler) peerID() core.PeerID {
-	return core.PeerID(handler.p2pHost.ID())
-}
-
 // IsConnectedToTheNetwork returns true if the current node is connected to the network
 func (handler *connectionsHandler) IsConnectedToTheNetwork() bool {
 	netw := handler.p2pHost.Network()
@@ -341,6 +373,7 @@ func (handler *connectionsHandler) IsConnectedToTheNetwork() bool {
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
+// TODO[Sorin]: consider moving this to the connection monitor
 func (handler *connectionsHandler) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
 	if minConnectedPeers < 0 {
 		return p2p.ErrInvalidValue
@@ -375,12 +408,85 @@ func (handler *connectionsHandler) Close() error {
 	errConnMonitor := handler.connMonitor.Close()
 	if errConnMonitor != nil {
 		err = errConnMonitor
-		log.Warn("networkMessenger.Close",
+		log.Warn("connectionsHandler.Close",
 			"component", "connMonitor",
 			"error", errConnMonitor)
 	}
 
 	return err
+}
+
+func (handler *connectionsHandler) printLogs() {
+	timer := time.NewTimer(timeBetweenPeerPrints)
+	defer timer.Stop()
+
+	for {
+		timer.Reset(timeBetweenPeerPrints)
+		select {
+		case <-handler.ctx.Done():
+			log.Debug("closing connectionsHandler.printLogsStats go routine")
+			return
+		case <-timer.C:
+			handler.printConnectionsStatus()
+		}
+	}
+}
+
+func (handler *connectionsHandler) printConnectionsStatus() {
+	conns := handler.connectionsMetric.ResetNumConnections()
+	disconns := handler.connectionsMetric.ResetNumDisconnections()
+
+	peersInfo := handler.GetConnectedPeersInfo()
+	log.Debug("network connection status",
+		"known peers", len(handler.Peers()),
+		"connected peers", len(handler.ConnectedPeers()),
+		"intra shard validators", peersInfo.NumIntraShardValidators,
+		"intra shard observers", peersInfo.NumIntraShardObservers,
+		"cross shard validators", peersInfo.NumCrossShardValidators,
+		"cross shard observers", peersInfo.NumCrossShardObservers,
+		"full history observers", peersInfo.NumFullHistoryObservers,
+		"unknown", len(peersInfo.UnknownPeers),
+		"seeders", len(peersInfo.Seeders),
+		"current shard", peersInfo.SelfShardID,
+		"validators histogram", handler.mapHistogram(peersInfo.NumValidatorsOnShard),
+		"observers histogram", handler.mapHistogram(peersInfo.NumObserversOnShard),
+		"preferred peers histogram", handler.mapHistogram(peersInfo.NumPreferredPeersOnShard),
+	)
+
+	connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
+	disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
+
+	log.Debug("network connection metrics",
+		"connections/s", connsPerSec,
+		"disconnections/s", disconnsPerSec,
+		"connections", conns,
+		"disconnections", disconns,
+		"time", timeBetweenPeerPrints,
+	)
+}
+
+func (handler *connectionsHandler) mapHistogram(input map[uint32]int) string {
+	keys := make([]uint32, 0, len(input))
+	for shard := range input {
+		keys = append(keys, shard)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	vals := make([]string, 0, len(keys))
+	for _, key := range keys {
+		var shard string
+		if key == core.MetachainShardId {
+			shard = "meta"
+		} else {
+			shard = fmt.Sprintf("shard %d", key)
+		}
+
+		vals = append(vals, fmt.Sprintf("%s: %d", shard, input[key]))
+	}
+
+	return strings.Join(vals, ", ")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

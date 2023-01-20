@@ -29,6 +29,9 @@ func createMockArgConnectionsHandler() libp2p.ArgConnectionsHandler {
 		Sharder:              &mock.SharderStub{},
 		PreferredPeersHolder: &mock.PeersHolderStub{},
 		ConnMonitor:          &mock.ConnectionMonitorStub{},
+		PeerDiscoverer:       &mock.PeerDiscovererStub{},
+		PeerID:               providedPid,
+		ConnectionsMetric:    &mock.ConnectionsMetricStub{},
 	}
 }
 
@@ -89,12 +92,59 @@ func TestNewConnectionsHandler(t *testing.T) {
 		assert.Equal(t, p2p.ErrNilConnectionMonitor, err)
 		assert.True(t, check.IfNil(ch))
 	})
+	t.Run("nil PeerDiscoverer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.PeerDiscoverer = nil
+		ch, err := libp2p.NewConnectionsHandler(args)
+		assert.Equal(t, p2p.ErrNilPeerDiscoverer, err)
+		assert.True(t, check.IfNil(ch))
+	})
+	t.Run("nil ConnectionsMetric should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.ConnectionsMetric = nil
+		ch, err := libp2p.NewConnectionsHandler(args)
+		assert.Equal(t, p2p.ErrNilConnectionsMetric, err)
+		assert.True(t, check.IfNil(ch))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		ch, err := libp2p.NewConnectionsHandler(createMockArgConnectionsHandler())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(ch))
+		err = ch.Close()
+		assert.Nil(t, err)
+	})
+}
+
+func TestConnectionsHandler_Bootstrap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("peer discoverer returns error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.PeerDiscoverer = &mock.PeerDiscovererStub{
+			BootstrapCalled: func() error {
+				return expectedErr
+			},
+		}
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
+		assert.False(t, check.IfNil(ch))
+		err := ch.Bootstrap()
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(createMockArgConnectionsHandler())
+		assert.False(t, check.IfNil(ch))
+		err := ch.Bootstrap()
+		assert.Nil(t, err)
 	})
 }
 
@@ -113,7 +163,7 @@ func TestConnectionsHandler_Peers(t *testing.T) {
 			}
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	peers := ch.Peers()
 	assert.Equal(t, expectedPIDs, peers)
@@ -131,7 +181,7 @@ func TestConnectionsHandler_Addresses(t *testing.T) {
 			return providedAddrs
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	addrs := ch.Addresses()
 	assert.Equal(t, 2, len(addrs))
@@ -150,7 +200,7 @@ func TestConnectionsHandler_ConnectToPeer(t *testing.T) {
 			return nil
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	err := ch.ConnectToPeer("address")
 	assert.Nil(t, err)
@@ -163,7 +213,7 @@ func TestConnectionsHandler_WaitForConnections(t *testing.T) {
 	t.Run("zero min num of peers should early exit", func(t *testing.T) {
 		t.Parallel()
 
-		ch, _ := libp2p.NewConnectionsHandler(createMockArgConnectionsHandler())
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(createMockArgConnectionsHandler())
 		assert.False(t, check.IfNil(ch))
 		maxWaitingTime := time.Millisecond * 100
 		start := time.Now()
@@ -174,7 +224,7 @@ func TestConnectionsHandler_WaitForConnections(t *testing.T) {
 	t.Run("should work but not reach the target", func(t *testing.T) {
 		t.Parallel()
 
-		ch, _ := libp2p.NewConnectionsHandler(createMockArgConnectionsHandler())
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(createMockArgConnectionsHandler())
 		assert.False(t, check.IfNil(ch))
 		maxWaitingTime := time.Millisecond * 100
 		start := time.Now()
@@ -205,7 +255,7 @@ func TestConnectionsHandler_WaitForConnections(t *testing.T) {
 				}
 			},
 		}
-		ch, _ := libp2p.NewConnectionsHandler(args)
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(ch))
 		maxWaitingTime := time.Second * 3
 		start := time.Now()
@@ -233,7 +283,7 @@ func TestConnectionsHandler_IsConnected(t *testing.T) {
 			}
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	assert.True(t, ch.IsConnected(core.PeerID(providedConnectedPID)))
 	assert.False(t, ch.IsConnected(core.PeerID(providedNotConnectedPID)))
@@ -264,6 +314,12 @@ func TestConnectionsHandler_ConnectedPeers(t *testing.T) {
 						},
 						&mock.ConnStub{
 							RemotePeerCalled: func() peer.ID {
+								// duplicate for extra code coverage
+								return providedConnectedPID1
+							},
+						},
+						&mock.ConnStub{
+							RemotePeerCalled: func() peer.ID {
 								return providedConnectedPID2
 							},
 						},
@@ -277,7 +333,7 @@ func TestConnectionsHandler_ConnectedPeers(t *testing.T) {
 			}
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	expectedPeers := []core.PeerID{core.PeerID(providedConnectedPID1), core.PeerID(providedConnectedPID2)}
 	connectedPeers := ch.ConnectedPeers()
@@ -317,7 +373,7 @@ func TestConnectionsHandler_ConnectedAddresses(t *testing.T) {
 			}
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	expectedAddrs := []string{providedAddr + "/p2p/" + providedPID1.String(), providedAddr + "/p2p/" + providedPID2.String()}
 	connectedAddrs := ch.ConnectedAddresses()
@@ -363,7 +419,7 @@ func TestConnectionsHandler_PeerAddresses(t *testing.T) {
 			}
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	expectedAddrs := []string{providedAddr, providedPSAddr}
 	addrs := ch.PeerAddresses(core.PeerID(providedPID))
@@ -381,7 +437,7 @@ func TestConnectionsHandler_ConnectedPeersOnTopic(t *testing.T) {
 			return nil
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	err := ch.ConnectedPeersOnTopic("topic")
 	assert.Nil(t, err)
@@ -405,7 +461,7 @@ func TestConnectionsHandler_ConnectedFullHistoryPeersOnTopic(t *testing.T) {
 			}
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	connectedFH := ch.ConnectedFullHistoryPeersOnTopic("topic")
 	assert.Equal(t, providedConnectedPIDs, connectedFH)
@@ -417,7 +473,7 @@ func TestConnectionsHandler_SetPeerShardResolver(t *testing.T) {
 	t.Run("nil resolver should error", func(t *testing.T) {
 		t.Parallel()
 
-		ch, _ := libp2p.NewConnectionsHandler(createMockArgConnectionsHandler())
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(createMockArgConnectionsHandler())
 		assert.False(t, check.IfNil(ch))
 		err := ch.SetPeerShardResolver(nil)
 		assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
@@ -431,7 +487,7 @@ func TestConnectionsHandler_SetPeerShardResolver(t *testing.T) {
 				return expectedErr
 			},
 		}
-		ch, _ := libp2p.NewConnectionsHandler(args)
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(ch))
 		err := ch.SetPeerShardResolver(&mock.PeerShardResolverStub{})
 		assert.Equal(t, expectedErr, err)
@@ -447,7 +503,7 @@ func TestConnectionsHandler_SetPeerShardResolver(t *testing.T) {
 				return nil
 			},
 		}
-		ch, _ := libp2p.NewConnectionsHandler(args)
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(ch))
 		err := ch.SetPeerShardResolver(providedResolver)
 		assert.Nil(t, err)
@@ -488,10 +544,15 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 				},
 			}
 		},
-		IDCalled: func() peer.ID {
-			return providedSelf
+		PeerstoreCalled: func() peerstore.Peerstore {
+			return &mock.PeerstoreStub{
+				PeersCalled: func() peer.IDSlice {
+					return peer.IDSlice{}
+				},
+			}
 		},
 	}
+	args.PeerID = core.PeerID(providedSelf)
 	args.PeerShardResolver = &mock.PeerShardResolverStub{
 		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 			switch peer.ID(pid) {
@@ -512,7 +573,7 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 				}
 			case providedValidatorCross:
 				return core.P2PPeerInfo{
-					ShardID:  1,
+					ShardID:  core.MetachainShardId,
 					PeerType: core.ValidatorPeer,
 				}
 			case providedObserverIntra:
@@ -522,7 +583,7 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 				}
 			case providedObserverCross:
 				return core.P2PPeerInfo{
-					ShardID:  1,
+					ShardID:  core.MetachainShardId,
 					PeerType: core.ObserverPeer,
 				}
 			case providedFullHistory:
@@ -546,7 +607,7 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 			return peerID == core.PeerID(providedValidatorIntra)
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	expectedResult := &p2p.ConnectedPeersInfo{
 		SelfShardID:              0,
@@ -554,11 +615,11 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 		Seeders:                  []string{getExpectedConn(providedSeeder)},
 		IntraShardValidators:     map[uint32][]string{0: {getExpectedConn(providedValidatorIntra)}},
 		IntraShardObservers:      map[uint32][]string{0: {getExpectedConn(providedObserverIntra)}},
-		CrossShardValidators:     map[uint32][]string{1: {getExpectedConn(providedValidatorCross)}},
-		CrossShardObservers:      map[uint32][]string{1: {getExpectedConn(providedObserverCross)}},
+		CrossShardValidators:     map[uint32][]string{core.MetachainShardId: {getExpectedConn(providedValidatorCross)}},
+		CrossShardObservers:      map[uint32][]string{core.MetachainShardId: {getExpectedConn(providedObserverCross)}},
 		FullHistoryObservers:     map[uint32][]string{0: {getExpectedConn(providedFullHistory)}},
-		NumValidatorsOnShard:     map[uint32]int{0: 1, 1: 1},
-		NumObserversOnShard:      map[uint32]int{0: 2, 1: 1},
+		NumValidatorsOnShard:     map[uint32]int{0: 1, core.MetachainShardId: 1},
+		NumObserversOnShard:      map[uint32]int{0: 2, core.MetachainShardId: 1},
 		NumPreferredPeersOnShard: map[uint32]int{0: 1},
 		NumIntraShardValidators:  1,
 		NumIntraShardObservers:   1,
@@ -568,6 +629,7 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 	}
 	connPeersInfo := ch.GetConnectedPeersInfo()
 	assert.Equal(t, expectedResult, connPeersInfo)
+	ch.PrintConnectionsStatus() // for coverage only
 }
 
 func getExpectedConn(pid peer.ID) string {
@@ -583,7 +645,7 @@ func TestConnectionsHandler_IsConnectedToTheNetwork(t *testing.T) {
 			return true
 		},
 	}
-	ch, _ := libp2p.NewConnectionsHandler(args)
+	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 	assert.False(t, check.IfNil(ch))
 	assert.True(t, ch.IsConnectedToTheNetwork())
 }
@@ -594,7 +656,7 @@ func TestConnectionsHandler_SetThresholdMinConnectedPeers(t *testing.T) {
 	t.Run("negative threshold should error", func(t *testing.T) {
 		t.Parallel()
 
-		ch, _ := libp2p.NewConnectionsHandler(createMockArgConnectionsHandler())
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(createMockArgConnectionsHandler())
 		assert.False(t, check.IfNil(ch))
 		err := ch.SetThresholdMinConnectedPeers(-1)
 		assert.Equal(t, p2p.ErrInvalidValue, err)
@@ -614,7 +676,7 @@ func TestConnectionsHandler_SetThresholdMinConnectedPeers(t *testing.T) {
 				return providedThreshold
 			},
 		}
-		ch, _ := libp2p.NewConnectionsHandler(args)
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(ch))
 		err := ch.SetThresholdMinConnectedPeers(providedThreshold)
 		assert.Nil(t, err)
@@ -636,7 +698,7 @@ func TestConnectionsHandler_Close(t *testing.T) {
 				return expectedErr
 			},
 		}
-		ch, _ := libp2p.NewConnectionsHandler(args)
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(ch))
 		err := ch.Close()
 		assert.Equal(t, expectedErr, err)
@@ -650,7 +712,7 @@ func TestConnectionsHandler_Close(t *testing.T) {
 				return expectedErr
 			},
 		}
-		ch, _ := libp2p.NewConnectionsHandler(args)
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(ch))
 		err := ch.Close()
 		assert.Equal(t, expectedErr, err)

@@ -3,7 +3,6 @@ package libp2p
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -45,7 +44,6 @@ const (
 	acceptMessagesInAdvanceDuration = 20 * time.Second // we are accepting the messages with timestamp in the future only for this delta
 	pollWaitForConnectionsInterval  = time.Second
 	broadcastGoRoutines             = 1000
-	timeBetweenPeerPrints           = time.Second * 20
 	timeBetweenExternalLoggersCheck = time.Second * 20
 	minRangePortValue               = 1025
 	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) // should be used only in tests
@@ -90,8 +88,6 @@ type networkMessenger struct {
 	// TODO refactor this (connMonitor & connMonitorWrapper)
 	connMonitor             ConnectionMonitor
 	connMonitorWrapper      p2p.ConnectionMonitorWrapper
-	peerDiscoverer          p2p.PeerDiscoverer
-	connectionsMetric       *metrics.Connections
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	mutPeerTopicNotifiers   sync.RWMutex
 	peerTopicNotifiers      []p2p.PeerTopicNotifier
@@ -282,17 +278,15 @@ func addComponentsToNode(
 		return err
 	}
 
-	err = p2pNode.createDiscoverer(args.P2pConfig, sharder)
+	peerDiscoverer, err := p2pNode.createDiscoverer(args.P2pConfig, sharder)
 	if err != nil {
 		return err
 	}
 
-	err = p2pNode.createConnectionMonitor(args.P2pConfig, sharder, preferredPeersHolder)
+	err = p2pNode.createConnectionMonitor(args.P2pConfig, sharder, preferredPeersHolder, peerDiscoverer)
 	if err != nil {
 		return err
 	}
-
-	p2pNode.createConnectionsMetric()
 
 	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller)
 	if err != nil {
@@ -314,12 +308,15 @@ func addComponentsToNode(
 		PeersRatingHandler: peersRatingHandler,
 		Debugger:           debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID())),
 		SyncTimer:          args.SyncTimer,
-		PeerID:             core.PeerID(p2pNode.p2pHost.ID()),
+		PeerID:             p2pNode.ID(),
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {
 		return err
 	}
+
+	connectionsMetric := metrics.NewConnectionsMetric()
+	p2pNode.p2pHost.Network().Notify(connectionsMetric)
 
 	argsConnectionsHandler := ArgConnectionsHandler{
 		P2pHost:              p2pNode.p2pHost,
@@ -328,6 +325,9 @@ func addComponentsToNode(
 		Sharder:              sharder,
 		PreferredPeersHolder: preferredPeersHolder,
 		ConnMonitor:          p2pNode.connMonitor,
+		PeerDiscoverer:       peerDiscoverer,
+		PeerID:               p2pNode.ID(),
+		ConnectionsMetric:    connectionsMetric,
 	}
 	p2pNode.ConnectionsHandler, err = NewConnectionsHandler(argsConnectionsHandler)
 	if err != nil {
@@ -376,9 +376,7 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (
 	return factory.NewSharder(args)
 }
 
-func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sharder p2p.Sharder) error {
-	var err error
-
+func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sharder p2p.Sharder) (p2p.PeerDiscoverer, error) {
 	args := discoveryFactory.ArgsPeerDiscoverer{
 		Context:            netMes.ctx,
 		Host:               netMes.p2pHost,
@@ -387,13 +385,16 @@ func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sha
 		ConnectionsWatcher: netMes.printConnectionsWatcher,
 	}
 
-	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(args)
-
-	return err
+	return discoveryFactory.NewPeerDiscoverer(args)
 }
 
-func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConfig, sharderInstance p2p.Sharder, preferredPeersHolder p2p.PreferredPeersHolderHandler) error {
-	reconnecter, ok := netMes.peerDiscoverer.(p2p.Reconnecter)
+func (netMes *networkMessenger) createConnectionMonitor(
+	p2pConfig config.P2PConfig,
+	sharderInstance p2p.Sharder,
+	preferredPeersHolder p2p.PreferredPeersHolderHandler,
+	peerDiscoverer p2p.PeerDiscoverer,
+) error {
+	reconnecter, ok := peerDiscoverer.(p2p.Reconnecter)
 	if !ok {
 		return fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
 	}
@@ -439,11 +440,6 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	return nil
 }
 
-func (netMes *networkMessenger) createConnectionsMetric() {
-	netMes.connectionsMetric = metrics.NewConnections()
-	netMes.p2pHost.Network().Notify(netMes.connectionsMetric)
-}
-
 func (netMes *networkMessenger) printLogs() {
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.p2pHost.Addrs() {
@@ -452,74 +448,7 @@ func (netMes *networkMessenger) printLogs() {
 	}
 	log.Info("listening on addresses", addresses...)
 
-	go netMes.printLogsStats()
 	go netMes.checkExternalLoggers()
-}
-
-func (netMes *networkMessenger) printLogsStats() {
-	for {
-		select {
-		case <-netMes.ctx.Done():
-			log.Debug("closing networkMessenger.printLogsStats go routine")
-			return
-		case <-time.After(timeBetweenPeerPrints):
-		}
-
-		conns := netMes.connectionsMetric.ResetNumConnections()
-		disconns := netMes.connectionsMetric.ResetNumDisconnections()
-
-		peersInfo := netMes.GetConnectedPeersInfo()
-		log.Debug("network connection status",
-			"known peers", len(netMes.Peers()),
-			"connected peers", len(netMes.ConnectedPeers()),
-			"intra shard validators", peersInfo.NumIntraShardValidators,
-			"intra shard observers", peersInfo.NumIntraShardObservers,
-			"cross shard validators", peersInfo.NumCrossShardValidators,
-			"cross shard observers", peersInfo.NumCrossShardObservers,
-			"full history observers", peersInfo.NumFullHistoryObservers,
-			"unknown", len(peersInfo.UnknownPeers),
-			"seeders", len(peersInfo.Seeders),
-			"current shard", peersInfo.SelfShardID,
-			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
-			"observers histogram", netMes.mapHistogram(peersInfo.NumObserversOnShard),
-			"preferred peers histogram", netMes.mapHistogram(peersInfo.NumPreferredPeersOnShard),
-		)
-
-		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
-		disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
-
-		log.Debug("network connection metrics",
-			"connections/s", connsPerSec,
-			"disconnections/s", disconnsPerSec,
-			"connections", conns,
-			"disconnections", disconns,
-			"time", timeBetweenPeerPrints,
-		)
-	}
-}
-
-func (netMes *networkMessenger) mapHistogram(input map[uint32]int) string {
-	keys := make([]uint32, 0, len(input))
-	for shard := range input {
-		keys = append(keys, shard)
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] < keys[j]
-	})
-
-	vals := make([]string, 0, len(keys))
-	for _, key := range keys {
-		var shard string
-		if key == core.MetachainShardId {
-			shard = "meta"
-		} else {
-			shard = fmt.Sprintf("shard %d", key)
-		}
-
-		vals = append(vals, fmt.Sprintf("%s: %d", shard, input[key]))
-	}
-
-	return strings.Join(vals, ", ")
 }
 
 func (netMes *networkMessenger) checkExternalLoggers() {
@@ -599,15 +528,6 @@ func (netMes *networkMessenger) ID() core.PeerID {
 	h := netMes.p2pHost
 
 	return core.PeerID(h.ID())
-}
-
-// Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap() error {
-	err := netMes.peerDiscoverer.Bootstrap()
-	if err == nil {
-		log.Info("started the network discovery process...")
-	}
-	return err
 }
 
 // SetPeerDenialEvaluator sets the peer black list handler
