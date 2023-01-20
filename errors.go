@@ -176,3 +176,15 @@ var ErrNilConnectionMonitorWrapper = errors.New("nil connections monitor wrapper
 
 // ErrNilDebugger signals that a nil debugger has been provided
 var ErrNilDebugger = errors.New("nil debugger")
+
+// ErrNilPeersOnChannel signals that a nil peers on channel has been provided
+var ErrNilPeersOnChannel = errors.New("nil peers on channel")
+
+// ErrNilConnectionMonitor signals that a nil connections monitor has been provided
+var ErrNilConnectionMonitor = errors.New("nil connections monitor")
+
+// ErrNilPeerDiscoverer signals that a nil peer discoverer has been provided
+var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
+
+// ErrNilConnectionsMetric signals that a nil connections metric has been provided
+var ErrNilConnectionsMetric = errors.New("nil connections metric")
