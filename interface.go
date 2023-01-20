@@ -52,6 +52,7 @@ type MessageHandler interface {
 type ConnectionsHandler interface {
 	io.Closer
 
+	Bootstrap() error
 	Peers() []core.PeerID
 	Addresses() []string
 	ConnectToPeer(address string) error
@@ -70,13 +71,12 @@ type ConnectionsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Messenger is the main struct used for communication with other peers
+// Messenger is the main interface used for communication with other peers
 type Messenger interface {
 	MessageHandler
 	ConnectionsHandler
 
 	ID() core.PeerID
-	Bootstrap() error
 
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	Port() int
