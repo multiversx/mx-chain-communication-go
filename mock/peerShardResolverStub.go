@@ -11,7 +11,10 @@ type PeerShardResolverStub struct {
 
 // GetPeerInfo -
 func (psrs *PeerShardResolverStub) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
-	return psrs.GetPeerInfoCalled(pid)
+	if psrs.GetPeerInfoCalled != nil {
+		return psrs.GetPeerInfoCalled(pid)
+	}
+	return core.P2PPeerInfo{}
 }
 
 // IsInterfaceNil -
