@@ -11,6 +11,7 @@ type PubSubStub struct {
 	ListPeersCalled                func(topic string) []peer.ID
 	RegisterTopicValidatorCalled   func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error
 	UnregisterTopicValidatorCalled func(topic string) error
+	GetTopicsCalled                func() []string
 }
 
 // Join -
@@ -41,6 +42,14 @@ func (stub *PubSubStub) RegisterTopicValidator(topic string, val interface{}, op
 func (stub *PubSubStub) UnregisterTopicValidator(topic string) error {
 	if stub.UnregisterTopicValidatorCalled != nil {
 		return stub.UnregisterTopicValidatorCalled(topic)
+	}
+	return nil
+}
+
+// GetTopics -
+func (stub *PubSubStub) GetTopics() []string {
+	if stub.GetTopicsCalled != nil {
+		return stub.GetTopicsCalled()
 	}
 	return nil
 }

@@ -14,6 +14,7 @@ type ConnectionMonitorStub struct {
 	IsConnectedToTheNetworkCalled       func(netw network.Network) bool
 	SetThresholdMinConnectedPeersCalled func(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeersCalled    func() int
+	CloseCalled                         func() error
 }
 
 // Listen -
@@ -71,6 +72,9 @@ func (cms *ConnectionMonitorStub) ThresholdMinConnectedPeers() int {
 
 // Close -
 func (cms *ConnectionMonitorStub) Close() error {
+	if cms.CloseCalled != nil {
+		return cms.CloseCalled()
+	}
 	return nil
 }
 
