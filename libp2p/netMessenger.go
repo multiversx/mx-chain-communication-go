@@ -36,7 +36,6 @@ const (
 	// DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 	DirectSendID = protocol.ID("/erd/directsend/1.0.0")
 
-	durationCheckConnections        = time.Second
 	refreshPeersOnTopic             = time.Second * 3
 	ttlPeersOnTopic                 = time.Second * 10
 	ttlConnectionsWatcher           = time.Hour * 2
@@ -74,20 +73,15 @@ func init() {
 	}
 }
 
-// TODO refactor this struct to have be a wrapper (with logic) over a glue code
-// TODO[Sorin]: further cleanup of this struct
 type networkMessenger struct {
 	p2pSigner
 	p2p.MessageHandler
 	p2p.ConnectionsHandler
 
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	p2pHost    ConnectableHost
-	port       int
-	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor             ConnectionMonitor
-	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	ctx                     context.Context
+	cancelFunc              context.CancelFunc
+	p2pHost                 ConnectableHost
+	port                    int
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	mutPeerTopicNotifiers   sync.RWMutex
 	peerTopicNotifiers      []p2p.PeerTopicNotifier
@@ -283,7 +277,7 @@ func addComponentsToNode(
 		return err
 	}
 
-	err = p2pNode.createConnectionMonitor(args.P2pConfig, sharder, preferredPeersHolder, peerDiscoverer)
+	connMonitor, err := p2pNode.createConnectionMonitor(args.P2pConfig, sharder, preferredPeersHolder, peerDiscoverer)
 	if err != nil {
 		return err
 	}
@@ -304,7 +298,7 @@ func addComponentsToNode(
 		Throttler:          goRoutinesThrottler,
 		OutgoingCLB:        NewOutgoingChannelLoadBalancer(),
 		Marshaller:         marshaller,
-		ConnMonitorWrapper: p2pNode.connMonitorWrapper,
+		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
 		Debugger:           debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID())),
 		SyncTimer:          args.SyncTimer,
@@ -324,7 +318,7 @@ func addComponentsToNode(
 		PeerShardResolver:    &unknownPeerShardResolver{},
 		Sharder:              sharder,
 		PreferredPeersHolder: preferredPeersHolder,
-		ConnMonitor:          p2pNode.connMonitor,
+		ConnMonitor:          connMonitor,
 		PeerDiscoverer:       peerDiscoverer,
 		PeerID:               p2pNode.ID(),
 		ConnectionsMetric:    connectionsMetric,
@@ -393,51 +387,27 @@ func (netMes *networkMessenger) createConnectionMonitor(
 	sharderInstance p2p.Sharder,
 	preferredPeersHolder p2p.PreferredPeersHolderHandler,
 	peerDiscoverer p2p.PeerDiscoverer,
-) error {
+) (ConnectionMonitor, error) {
 	reconnecter, ok := peerDiscoverer.(p2p.Reconnecter)
 	if !ok {
-		return fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
 	}
 
 	sharder, ok := sharderInstance.(connectionMonitor.Sharder)
 	if !ok {
-		return fmt.Errorf("%w in networkMessenger.createConnectionMonitor", p2p.ErrWrongTypeAssertions)
+		return nil, fmt.Errorf("%w in networkMessenger.createConnectionMonitor", p2p.ErrWrongTypeAssertions)
 	}
 
 	args := connectionMonitor.ArgsConnectionMonitorSimple{
 		Reconnecter:                reconnecter,
-		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
+		Sharder:                    sharder,
 		PreferredPeersHolder:       preferredPeersHolder,
 		ConnectionsWatcher:         netMes.printConnectionsWatcher,
+		Network:                    netMes.p2pHost.Network(),
+		PeerDenialEvaluator:        &disabled.PeerDenialEvaluator{},
 	}
-	var err error
-	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
-	if err != nil {
-		return err
-	}
-
-	cmw := newConnectionMonitorWrapper(
-		netMes.p2pHost.Network(),
-		netMes.connMonitor,
-		&disabled.PeerDenialEvaluator{},
-	)
-	netMes.p2pHost.Network().Notify(cmw)
-	netMes.connMonitorWrapper = cmw
-
-	go func() {
-		for {
-			cmw.CheckConnectionsBlocking()
-			select {
-			case <-time.After(durationCheckConnections):
-			case <-netMes.ctx.Done():
-				log.Debug("peer monitoring go routine is stopping...")
-				return
-			}
-		}
-	}()
-
-	return nil
+	return connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 }
 
 func (netMes *networkMessenger) printLogs() {
@@ -528,12 +498,6 @@ func (netMes *networkMessenger) ID() core.PeerID {
 	h := netMes.p2pHost
 
 	return core.PeerID(h.ID())
-}
-
-// SetPeerDenialEvaluator sets the peer black list handler
-// TODO decide if we continue on using setters or switch to options. Refactor if necessary
-func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
-	return netMes.connMonitorWrapper.SetPeerDenialEvaluator(handler)
 }
 
 // Port returns the port that this network messenger is using

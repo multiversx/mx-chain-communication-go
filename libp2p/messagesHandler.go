@@ -31,7 +31,7 @@ type ArgMessagesHandler struct {
 	Throttler          core.Throttler
 	OutgoingCLB        ChannelLoadBalancer
 	Marshaller         p2p.Marshaller
-	ConnMonitorWrapper p2p.ConnectionMonitorWrapper
+	ConnMonitor        ConnectionMonitor
 	PeersRatingHandler p2p.PeersRatingHandler
 	Debugger           p2p.Debugger
 	SyncTimer          p2p.SyncTimer
@@ -46,7 +46,7 @@ type messagesHandler struct {
 	throttler          core.Throttler
 	outgoingCLB        ChannelLoadBalancer
 	marshaller         p2p.Marshaller
-	connMonitorWrapper p2p.ConnectionMonitorWrapper
+	connMonitor        ConnectionMonitor
 	peersRatingHandler p2p.PeersRatingHandler
 	debugger           p2p.Debugger
 	syncTimer          p2p.SyncTimer
@@ -74,7 +74,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		throttler:          args.Throttler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
-		connMonitorWrapper: args.ConnMonitorWrapper,
+		connMonitor:        args.ConnMonitor,
 		peersRatingHandler: args.PeersRatingHandler,
 		debugger:           args.Debugger,
 		syncTimer:          args.SyncTimer,
@@ -110,8 +110,8 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	if check.IfNil(args.Marshaller) {
 		return p2p.ErrNilMarshaller
 	}
-	if check.IfNil(args.ConnMonitorWrapper) {
-		return p2p.ErrNilConnectionMonitorWrapper
+	if check.IfNil(args.ConnMonitor) {
+		return p2p.ErrNilConnectionMonitor
 	}
 	if check.IfNil(args.PeersRatingHandler) {
 		return p2p.ErrNilPeersRatingHandler
@@ -393,7 +393,7 @@ func (handler *messagesHandler) checkMessage(msg p2p.MessageP2P, pid core.PeerID
 }
 
 func (handler *messagesHandler) blacklistPid(pid core.PeerID, banDuration time.Duration) {
-	if handler.connMonitorWrapper.PeerDenialEvaluator().IsDenied(pid) {
+	if handler.connMonitor.PeerDenialEvaluator().IsDenied(pid) {
 		return
 	}
 	if len(pid) == 0 {
@@ -405,7 +405,7 @@ func (handler *messagesHandler) blacklistPid(pid core.PeerID, banDuration time.D
 		"time", banDuration,
 	)
 
-	err := handler.connMonitorWrapper.PeerDenialEvaluator().UpsertPeerID(pid, banDuration)
+	err := handler.connMonitor.PeerDenialEvaluator().UpsertPeerID(pid, banDuration)
 	if err != nil {
 		log.Warn("error blacklisting peer ID in network messenger",
 			"pid", pid.Pretty(),
