@@ -1,6 +1,7 @@
 package mock
 
 import (
+	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -14,6 +15,8 @@ type ConnectionMonitorStub struct {
 	IsConnectedToTheNetworkCalled       func(netw network.Network) bool
 	SetThresholdMinConnectedPeersCalled func(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeersCalled    func() int
+	SetPeerDenialEvaluatorCalled        func(handler p2p.PeerDenialEvaluator) error
+	PeerDenialEvaluatorCalled           func() p2p.PeerDenialEvaluator
 	CloseCalled                         func() error
 }
 
@@ -68,6 +71,22 @@ func (cms *ConnectionMonitorStub) ThresholdMinConnectedPeers() int {
 	}
 
 	return 0
+}
+
+// SetPeerDenialEvaluator -
+func (cms *ConnectionMonitorStub) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
+	if cms.SetPeerDenialEvaluatorCalled != nil {
+		return cms.SetPeerDenialEvaluatorCalled(handler)
+	}
+	return nil
+}
+
+// PeerDenialEvaluator -
+func (cms *ConnectionMonitorStub) PeerDenialEvaluator() p2p.PeerDenialEvaluator {
+	if cms.PeerDenialEvaluatorCalled != nil {
+		return cms.PeerDenialEvaluatorCalled()
+	}
+	return nil
 }
 
 // Close -
