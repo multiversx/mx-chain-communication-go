@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 type topicProcessors struct {

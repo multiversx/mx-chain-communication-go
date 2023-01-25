@@ -3,8 +3,8 @@ package networksharding_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/networksharding"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/networksharding"
 	"github.com/stretchr/testify/assert"
 )
 
