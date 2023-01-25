@@ -3,7 +3,7 @@ package mock
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 )
 
 var _ marshal.Marshalizer = (*ProtoMarshallerMock)(nil)
