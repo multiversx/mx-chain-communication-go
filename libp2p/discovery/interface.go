@@ -3,9 +3,9 @@ package discovery
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // ConnectableHost is an enhanced Host interface that has the ability to connect to a string address

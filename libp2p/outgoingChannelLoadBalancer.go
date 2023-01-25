@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 var _ ChannelLoadBalancer = (*OutgoingChannelLoadBalancer)(nil)

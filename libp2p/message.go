@@ -3,13 +3,13 @@ package libp2p
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/data"
-	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/data"
+	"github.com/multiversx/mx-chain-p2p-go/message"
 )
 
 const currentTopicMessageVersion = uint32(1)
