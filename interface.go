@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
