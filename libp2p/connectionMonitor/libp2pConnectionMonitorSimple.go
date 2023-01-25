@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/disabled"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -42,7 +43,6 @@ type ArgsConnectionMonitorSimple struct {
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
 	ConnectionsWatcher         p2p.ConnectionsWatcher
 	Network                    network.Network
-	PeerDenialEvaluator        p2p.PeerDenialEvaluator
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
@@ -65,7 +65,7 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 		preferredPeersHolder:       args.PreferredPeersHolder,
 		connectionsWatcher:         args.ConnectionsWatcher,
 		network:                    args.Network,
-		peerDenialEvaluator:        args.PeerDenialEvaluator,
+		peerDenialEvaluator:        &disabled.PeerDenialEvaluator{},
 	}
 
 	cm.network.Notify(cm)
@@ -90,9 +90,6 @@ func checkArgs(args ArgsConnectionMonitorSimple) error {
 	}
 	if check.IfNilReflect(args.Network) {
 		return p2p.ErrNilNetwork
-	}
-	if check.IfNil(args.PeerDenialEvaluator) {
-		return p2p.ErrNilPeerDenialEvaluator
 	}
 
 	return nil

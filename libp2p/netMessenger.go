@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-p2p/debug"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/disabled"
 	discoveryFactory "github.com/ElrondNetwork/elrond-go-p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics"
 	metricsFactory "github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
@@ -405,7 +404,6 @@ func (netMes *networkMessenger) createConnectionMonitor(
 		PreferredPeersHolder:       preferredPeersHolder,
 		ConnectionsWatcher:         netMes.printConnectionsWatcher,
 		Network:                    netMes.p2pHost.Network(),
-		PeerDenialEvaluator:        &disabled.PeerDenialEvaluator{},
 	}
 	return connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 }

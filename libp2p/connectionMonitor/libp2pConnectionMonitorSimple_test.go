@@ -16,7 +16,7 @@ import (
 )
 
 const durationTimeoutWaiting = time.Second * 3
-const durationStartGoRoutine = time.Second
+const delayDisconnected = time.Millisecond * 100
 
 func createMockArgsConnectionMonitorSimple() connectionMonitor.ArgsConnectionMonitorSimple {
 	return connectionMonitor.ArgsConnectionMonitorSimple{
@@ -26,7 +26,6 @@ func createMockArgsConnectionMonitorSimple() connectionMonitor.ArgsConnectionMon
 		PreferredPeersHolder:       &mock.PeersHolderStub{},
 		ConnectionsWatcher:         &mock.ConnectionsWatcherStub{},
 		Network:                    &mock.NetworkStub{},
-		PeerDenialEvaluator:        &mock.PeerDenialEvaluatorStub{},
 	}
 }
 
@@ -83,16 +82,6 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		assert.Equal(t, p2p.ErrNilNetwork, err)
 		assert.True(t, check.IfNil(lcms))
 	})
-	t.Run("nil peer denial evaluator should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsConnectionMonitorSimple()
-		args.PeerDenialEvaluator = nil
-		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
-
-		assert.Equal(t, p2p.ErrNilPeerDenialEvaluator, err)
-		assert.True(t, check.IfNil(lcms))
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -130,9 +119,11 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 	args := createMockArgsConnectionMonitorSimple()
 	args.Reconnecter = rs
 	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
-	time.Sleep(durationStartGoRoutine)
-	lcms.Disconnected(&ns, nil)
 
+	go func() {
+		time.Sleep(delayDisconnected)
+		lcms.Disconnected(&ns, nil)
+	}()
 	select {
 	case <-chReconnectCalled:
 	case <-time.After(durationTimeoutWaiting):
@@ -140,7 +131,10 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 	}
 
 	// second disconnection should not call reconnect due to flag
-	lcms.Disconnected(&ns, nil)
+	go func() {
+		time.Sleep(delayDisconnected)
+		lcms.Disconnected(&ns, nil)
+	}()
 	select {
 	case <-chReconnectCalled:
 		assert.Fail(t, "should not have called reconnect")
@@ -148,11 +142,13 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 	}
 
 	// flag should be reset after 5 seconds
-	time.Sleep(time.Second * 5)
-	lcms.Disconnected(&ns, nil)
+	go func() {
+		time.Sleep(time.Second * 5)
+		lcms.Disconnected(&ns, nil)
+	}()
 	select {
 	case <-chReconnectCalled:
-	case <-time.After(durationTimeoutWaiting):
+	case <-time.After(durationTimeoutWaiting * 2):
 		assert.Fail(t, "timeout waiting to call reconnect")
 	}
 }
@@ -161,12 +157,13 @@ func TestLibp2pConnectionMonitorSimple_ConnectedButDeniedShouldCloseConnection(t
 	t.Parallel()
 
 	args := createMockArgsConnectionMonitorSimple()
-	args.PeerDenialEvaluator = &mock.PeerDenialEvaluatorStub{
+	peerDenialEvaluator := &mock.PeerDenialEvaluatorStub{
 		IsDeniedCalled: func(pid core.PeerID) bool {
 			return true
 		},
 	}
 	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
+	_ = lcms.SetPeerDenialEvaluator(peerDenialEvaluator)
 
 	wasCalled := false
 	lcms.Connected(
@@ -363,12 +360,13 @@ func TestNewLibp2pConnectionMonitorSimple_checkConnectionsBlocking(t *testing.T)
 			return nil
 		},
 	}
-	args.PeerDenialEvaluator = &mock.PeerDenialEvaluatorStub{
+	peerDenialEvaluator := &mock.PeerDenialEvaluatorStub{
 		IsDeniedCalled: func(pid core.PeerID) bool {
 			return pid == "pid1"
 		},
 	}
-	_, _ = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
+	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
+	_ = lcms.SetPeerDenialEvaluator(peerDenialEvaluator)
 
 	select {
 	case <-ch:
