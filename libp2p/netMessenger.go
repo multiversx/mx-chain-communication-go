@@ -136,6 +136,11 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 		return nil, err
 	}
 
+	err = p2pNode.validateSeeders(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList)
+	if err != nil {
+		return nil, err
+	}
+
 	err = addComponentsToNode(args, p2pNode, messageSigning)
 	if err != nil {
 		log.LogIfError(p2pNode.p2pHost.Close())
@@ -328,6 +333,17 @@ func addComponentsToNode(
 	}
 
 	p2pNode.printLogs()
+
+	return nil
+}
+
+func (netMes *networkMessenger) validateSeeders(seeders []string) error {
+	selfID := netMes.p2pHost.ID().String()
+	for _, seeder := range seeders {
+		if strings.Contains(seeder, selfID) {
+			return fmt.Errorf("%w, self ID %s is in the initial peer list", p2p.ErrInvalidConfig, selfID)
+		}
+	}
 
 	return nil
 }
