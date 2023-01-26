@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/mock"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
 

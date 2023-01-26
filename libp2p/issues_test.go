@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/config"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/mock"
+	"github.com/multiversx/mx-chain-core-go/core"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
 

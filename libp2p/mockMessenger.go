@@ -3,10 +3,10 @@ package libp2p
 import (
 	"context"
 
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/metrics/factory"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p/metrics/factory"
 )
 
 // NewMockMessenger creates a new sandbox testable instance of libP2P messenger

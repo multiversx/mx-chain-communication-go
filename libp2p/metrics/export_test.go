@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 const MinTimeToLive = minTimeToLive

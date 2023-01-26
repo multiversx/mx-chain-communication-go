@@ -1,8 +1,8 @@
 package libp2p
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 var _ p2p.PeerShardResolver = (*unknownPeerShardResolver)(nil)

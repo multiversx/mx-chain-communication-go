@@ -11,15 +11,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	ggio "github.com/gogo/protobuf/io"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 	"github.com/whyrusleeping/timecache"
 )
 

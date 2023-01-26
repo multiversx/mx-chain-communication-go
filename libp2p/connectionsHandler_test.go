@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
 
