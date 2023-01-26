@@ -373,7 +373,6 @@ func (handler *connectionsHandler) IsConnectedToTheNetwork() bool {
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
-// TODO[Sorin]: consider moving this to the connection monitor
 func (handler *connectionsHandler) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
 	if minConnectedPeers < 0 {
 		return p2p.ErrInvalidValue
@@ -388,6 +387,11 @@ func (handler *connectionsHandler) SetThresholdMinConnectedPeers(minConnectedPee
 // ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
 func (handler *connectionsHandler) ThresholdMinConnectedPeers() int {
 	return handler.connMonitor.ThresholdMinConnectedPeers()
+}
+
+// SetPeerDenialEvaluator sets the peer black list handler
+func (handler *connectionsHandler) SetPeerDenialEvaluator(peerDenialEvaluator p2p.PeerDenialEvaluator) error {
+	return handler.connMonitor.SetPeerDenialEvaluator(peerDenialEvaluator)
 }
 
 // Close closes the messages handler

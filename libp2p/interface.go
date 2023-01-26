@@ -17,6 +17,8 @@ type ConnectionMonitor interface {
 	IsConnectedToTheNetwork(netw network.Network) bool
 	SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeers() int
+	SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error
+	PeerDenialEvaluator() p2p.PeerDenialEvaluator
 	Close() error
 	IsInterfaceNil() bool
 }

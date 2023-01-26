@@ -2,20 +2,25 @@ package connectionMonitor
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/disabled"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
 
-// DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() too often
-// when there are a lot of peers disconnecting and reconnection to initial nodes succeeds
-var DurationBetweenReconnectAttempts = time.Second * 5
 var log = logger.GetOrCreate("p2p/libp2p/connectionmonitor")
+
+const (
+	durationBetweenReconnectAttempts = time.Second * 5
+	durationCheckConnections         = time.Second
+)
 
 type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
@@ -25,6 +30,9 @@ type libp2pConnectionMonitorSimple struct {
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
 	connectionsWatcher         p2p.ConnectionsWatcher
+	network                    network.Network
+	mutPeerDenialEvaluator     sync.RWMutex
+	peerDenialEvaluator        p2p.PeerDenialEvaluator
 }
 
 // ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
@@ -34,22 +42,16 @@ type ArgsConnectionMonitorSimple struct {
 	Sharder                    Sharder
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
 	ConnectionsWatcher         p2p.ConnectionsWatcher
+	Network                    network.Network
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
 // about pausing and resuming the discovery process)
+// it also handles black listed peers
 func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2pConnectionMonitorSimple, error) {
-	if check.IfNil(args.Reconnecter) {
-		return nil, p2p.ErrNilReconnecter
-	}
-	if check.IfNil(args.Sharder) {
-		return nil, p2p.ErrNilSharder
-	}
-	if check.IfNil(args.PreferredPeersHolder) {
-		return nil, p2p.ErrNilPreferredPeersHolder
-	}
-	if check.IfNil(args.ConnectionsWatcher) {
-		return nil, p2p.ErrNilConnectionsWatcher
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -62,11 +64,35 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 		cancelFunc:                 cancelFunc,
 		preferredPeersHolder:       args.PreferredPeersHolder,
 		connectionsWatcher:         args.ConnectionsWatcher,
+		network:                    args.Network,
+		peerDenialEvaluator:        &disabled.PeerDenialEvaluator{},
 	}
 
-	go cm.doReconnection(ctx)
+	cm.network.Notify(cm)
+
+	go cm.processLoop(ctx)
 
 	return cm, nil
+}
+
+func checkArgs(args ArgsConnectionMonitorSimple) error {
+	if check.IfNil(args.Reconnecter) {
+		return p2p.ErrNilReconnecter
+	}
+	if check.IfNil(args.Sharder) {
+		return p2p.ErrNilSharder
+	}
+	if check.IfNil(args.PreferredPeersHolder) {
+		return p2p.ErrNilPreferredPeersHolder
+	}
+	if check.IfNil(args.ConnectionsWatcher) {
+		return p2p.ErrNilConnectionsWatcher
+	}
+	if check.IfNilReflect(args.Network) {
+		return p2p.ErrNilNetwork
+	}
+
+	return nil
 }
 
 // Listen is called when network starts listening on an addr
@@ -85,6 +111,20 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 
 // Connected is called when a connection opened
 func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn network.Conn) {
+	lcms.mutPeerDenialEvaluator.RLock()
+	peerDenialEvaluator := lcms.peerDenialEvaluator
+	lcms.mutPeerDenialEvaluator.RUnlock()
+
+	pid := conn.RemotePeer()
+	if peerDenialEvaluator.IsDenied(core.PeerID(pid)) {
+		log.Trace("dropping connection to blacklisted peer",
+			"pid", pid.String(),
+		)
+		_ = conn.Close()
+
+		return
+	}
+
 	allPeers := netw.Peers()
 
 	peerId := core.PeerID(conn.RemotePeer())
@@ -92,9 +132,9 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn 
 	lcms.connectionsWatcher.NewKnownConnection(peerId, connectionStr)
 	lcms.preferredPeersHolder.PutConnectionAddress(peerId, connectionStr)
 
-	evicted := lcms.sharder.ComputeEvictionList(allPeers)
-	for _, pid := range evicted {
-		_ = netw.ClosePeer(pid)
+	evictedList := lcms.sharder.ComputeEvictionList(allPeers)
+	for _, evictedPID := range evictedList {
+		_ = netw.ClosePeer(evictedPID)
 	}
 }
 
@@ -113,21 +153,31 @@ func (lcms *libp2pConnectionMonitorSimple) doReconnectionIfNeeded(netw network.N
 	}
 }
 
-func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
+func (lcms *libp2pConnectionMonitorSimple) processLoop(ctx context.Context) {
+	timerCheckConnections := time.NewTimer(durationCheckConnections)
+	timerBetweenReconnectAttempts := time.NewTimer(durationBetweenReconnectAttempts)
 	defer func() {
 		log.Debug("closing the connection monitor main loop")
+		timerCheckConnections.Stop()
+		timerBetweenReconnectAttempts.Stop()
 	}()
 
+	canReconnect := atomic.Flag{}
+	canReconnect.SetValue(true)
 	for {
 		select {
+		case <-timerCheckConnections.C:
+			lcms.checkConnectionsBlocking()
+			timerCheckConnections.Reset(durationCheckConnections)
 		case <-lcms.chDoReconnect:
-		case <-ctx.Done():
-			return
-		}
-		lcms.reconnecter.ReconnectToNetwork(ctx)
-
-		select {
-		case <-time.After(DurationBetweenReconnectAttempts):
+			if !canReconnect.IsSet() {
+				continue
+			}
+			lcms.reconnecter.ReconnectToNetwork(ctx)
+			timerBetweenReconnectAttempts.Reset(durationBetweenReconnectAttempts)
+			canReconnect.SetValue(false)
+		case <-timerBetweenReconnectAttempts.C:
+			canReconnect.SetValue(true)
 		case <-ctx.Done():
 			return
 		}
@@ -153,10 +203,48 @@ func (lcms *libp2pConnectionMonitorSimple) ThresholdMinConnectedPeers() int {
 	return lcms.thresholdMinConnectedPeers
 }
 
+// SetPeerDenialEvaluator sets the handler that is able to tell if a peer can connect to self or not (is or not blacklisted)
+func (lcms *libp2pConnectionMonitorSimple) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
+	if check.IfNil(handler) {
+		return p2p.ErrNilPeerDenialEvaluator
+	}
+
+	lcms.mutPeerDenialEvaluator.Lock()
+	lcms.peerDenialEvaluator = handler
+	lcms.mutPeerDenialEvaluator.Unlock()
+
+	return nil
+}
+
+// PeerDenialEvaluator gets the peer denial evaluator
+func (lcms *libp2pConnectionMonitorSimple) PeerDenialEvaluator() p2p.PeerDenialEvaluator {
+	lcms.mutPeerDenialEvaluator.RLock()
+	defer lcms.mutPeerDenialEvaluator.RUnlock()
+
+	return lcms.peerDenialEvaluator
+}
+
 // Close closes all underlying components
 func (lcms *libp2pConnectionMonitorSimple) Close() error {
 	lcms.cancelFunc()
 	return nil
+}
+
+// checkConnectionsBlocking does a peer sweep, calling Close on those peers that are black listed
+func (lcms *libp2pConnectionMonitorSimple) checkConnectionsBlocking() {
+	peers := lcms.network.Peers()
+	lcms.mutPeerDenialEvaluator.RLock()
+	peerDenialEvaluator := lcms.peerDenialEvaluator
+	lcms.mutPeerDenialEvaluator.RUnlock()
+
+	for _, pid := range peers {
+		if peerDenialEvaluator.IsDenied(core.PeerID(pid)) {
+			log.Trace("dropping connection to blacklisted peer",
+				"pid", pid.String(),
+			)
+			_ = lcms.network.ClosePeer(pid)
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

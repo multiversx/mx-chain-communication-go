@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
-	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/whyrusleeping/timecache"
 )
@@ -171,14 +170,6 @@ func DefaultSendChannel() string {
 	return defaultSendChannel
 }
 
-func NewConnectionMonitorWrapper(
-	network network.Network,
-	connMonitor ConnectionMonitor,
-	peerDenialEvaluator p2p.PeerDenialEvaluator,
-) *connectionMonitorWrapper {
-	return newConnectionMonitorWrapper(network, connMonitor, peerDenialEvaluator)
-}
-
 func NewPeersOnChannel(
 	peersRatingHandler p2p.PeersRatingHandler,
 	fetchPeersHandler func(topic string) []peer.ID,
@@ -233,7 +224,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		throttler:          args.Throttler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
-		connMonitorWrapper: args.ConnMonitorWrapper,
+		connMonitor:        args.ConnMonitor,
 		peersRatingHandler: args.PeersRatingHandler,
 		debugger:           args.Debugger,
 		syncTimer:          args.SyncTimer,
