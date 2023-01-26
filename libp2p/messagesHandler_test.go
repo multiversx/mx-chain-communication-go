@@ -46,7 +46,7 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 			},
 		},
 		Marshaller: &mock.ProtoMarshallerMock{},
-		ConnMonitorWrapper: &mock.ConnectionMonitorWrapperStub{
+		ConnMonitor: &mock.ConnectionMonitorStub{
 			PeerDenialEvaluatorCalled: func() p2p.PeerDenialEvaluator {
 				return &mock.PeerDenialEvaluatorStub{}
 			},
@@ -106,13 +106,13 @@ func TestNewMessagesHandler(t *testing.T) {
 		assert.Equal(t, p2p.ErrNilMarshaller, err)
 		assert.True(t, check.IfNil(mh))
 	})
-	t.Run("nil ConnMonitorWrapper should error", func(t *testing.T) {
+	t.Run("nil ConnMonitor should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		args.ConnMonitorWrapper = nil
+		args.ConnMonitor = nil
 		mh, err := libp2p.NewMessagesHandler(args)
-		assert.Equal(t, p2p.ErrNilConnectionMonitorWrapper, err)
+		assert.Equal(t, p2p.ErrNilConnectionMonitor, err)
 		assert.True(t, check.IfNil(mh))
 	})
 	t.Run("nil PeersRatingHandler should error", func(t *testing.T) {
@@ -939,7 +939,7 @@ func TestMessagesHandler_blacklistPid(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		wasCalled := false
-		args.ConnMonitorWrapper = &mock.ConnectionMonitorWrapperStub{
+		args.ConnMonitor = &mock.ConnectionMonitorStub{
 			PeerDenialEvaluatorCalled: func() p2p.PeerDenialEvaluator {
 				return &mock.PeerDenialEvaluatorStub{
 					IsDeniedCalled: func(pid core.PeerID) bool {
@@ -960,7 +960,7 @@ func TestMessagesHandler_blacklistPid(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		args.ConnMonitorWrapper = &mock.ConnectionMonitorWrapperStub{
+		args.ConnMonitor = &mock.ConnectionMonitorStub{
 			PeerDenialEvaluatorCalled: func() p2p.PeerDenialEvaluator {
 				return &mock.PeerDenialEvaluatorStub{
 					UpsertPeerIDCalled: func(pid core.PeerID, duration time.Duration) error {
@@ -980,7 +980,7 @@ func TestMessagesHandler_blacklistPid(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		wasCalled := false
-		args.ConnMonitorWrapper = &mock.ConnectionMonitorWrapperStub{
+		args.ConnMonitor = &mock.ConnectionMonitorStub{
 			PeerDenialEvaluatorCalled: func() p2p.PeerDenialEvaluator {
 				return &mock.PeerDenialEvaluatorStub{
 					UpsertPeerIDCalled: func(pid core.PeerID, duration time.Duration) error {
@@ -1007,7 +1007,7 @@ func TestMessagesHandler_transformAndCheckMessage(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		wasCalled := false
-		args.ConnMonitorWrapper = &mock.ConnectionMonitorWrapperStub{
+		args.ConnMonitor = &mock.ConnectionMonitorStub{
 			PeerDenialEvaluatorCalled: func() p2p.PeerDenialEvaluator {
 				return &mock.PeerDenialEvaluatorStub{
 					UpsertPeerIDCalled: func(pid core.PeerID, duration time.Duration) error {
