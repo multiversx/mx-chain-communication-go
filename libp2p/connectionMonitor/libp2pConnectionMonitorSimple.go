@@ -171,8 +171,11 @@ func (lcms *libp2pConnectionMonitorSimple) processLoop(ctx context.Context) {
 			timerCheckConnections.Reset(durationCheckConnections)
 		case <-lcms.chDoReconnect:
 			if !canReconnect.IsSet() {
+				log.Debug("too early for a new reconnect to network attempt")
 				continue
 			}
+
+			log.Debug("reconnecting to network...")
 			lcms.reconnecter.ReconnectToNetwork(ctx)
 			timerBetweenReconnectAttempts.Reset(durationBetweenReconnectAttempts)
 			canReconnect.SetValue(false)
