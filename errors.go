@@ -171,9 +171,6 @@ var ErrNilThrottler = errors.New("nil throttler")
 // ErrNilChannelLoadBalancer signals that a nil channel load balancer has been provided
 var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer")
 
-// ErrNilConnectionMonitorWrapper signals that a nil connections monitor wrapper has been provided
-var ErrNilConnectionMonitorWrapper = errors.New("nil connections monitor wrapper")
-
 // ErrNilDebugger signals that a nil debugger has been provided
 var ErrNilDebugger = errors.New("nil debugger")
 
@@ -185,6 +182,9 @@ var ErrNilPeersOnChannel = errors.New("nil peers on channel")
 
 // ErrNilConnectionMonitor signals that a nil connections monitor has been provided
 var ErrNilConnectionMonitor = errors.New("nil connections monitor")
+
+// ErrNilNetwork signals that a nil network has been provided
+var ErrNilNetwork = errors.New("nil network")
 
 // ErrNilPeerDiscoverer signals that a nil peer discoverer has been provided
 var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
