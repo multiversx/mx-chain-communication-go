@@ -174,6 +174,9 @@ var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer")
 // ErrNilDebugger signals that a nil debugger has been provided
 var ErrNilDebugger = errors.New("nil debugger")
 
+// ErrInvalidConfig signals that an invalid config has been provided
+var ErrInvalidConfig = errors.New("invalid config")
+
 // ErrNilPeersOnChannel signals that a nil peers on channel has been provided
 var ErrNilPeersOnChannel = errors.New("nil peers on channel")
 
