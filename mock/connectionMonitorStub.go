@@ -1,9 +1,9 @@
 package mock
 
 import (
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // ConnectionMonitorStub -
