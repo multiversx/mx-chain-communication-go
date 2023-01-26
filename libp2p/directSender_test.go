@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	p2p "github.com/multiversx/mx-chain-p2p-go"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p/data"
+	"github.com/multiversx/mx-chain-p2p-go/data"
 	"github.com/multiversx/mx-chain-p2p-go/libp2p"
 	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"

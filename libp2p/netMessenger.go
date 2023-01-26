@@ -9,12 +9,9 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
-	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/network"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
