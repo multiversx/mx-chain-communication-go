@@ -1788,6 +1788,7 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 	}
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	closeMessengers(messenger)
+	selfID := messenger.ID()
 
 	messenger.SetHost(&mock.ConnectableHostStub{
 		NetworkCalled: func() network.Network {
@@ -1799,6 +1800,9 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 					return make([]network.Conn, 0)
 				},
 			}
+		},
+		IDCalled: func() peer.ID {
+			return peer.ID(selfID)
 		},
 	})
 	selfShardID := uint32(0)
