@@ -91,8 +91,8 @@ var ErrNilSharder = errors.New("nil sharder")
 // ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
 
-// ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
-var ErrNilMarshalizer = errors.New("nil marshalizer")
+// ErrNilMarshaller signals that an operation has been attempted to or with a nil marshaller implementation
+var ErrNilMarshaller = errors.New("nil marshaller")
 
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
@@ -158,3 +158,36 @@ var ErrNilP2PSigner = errors.New("nil p2p signer")
 
 // ErrNilPeerTopicNotifier signals that a nil peer topic notifier have been provided
 var ErrNilPeerTopicNotifier = errors.New("nil peer topic notifier")
+
+// ErrNilPubSub signals that a nil pubSub has been provided
+var ErrNilPubSub = errors.New("nil pubSub")
+
+// ErrNilDirectSender signals that a nil direct sender has been provided
+var ErrNilDirectSender = errors.New("nil direct sender")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrNilChannelLoadBalancer signals that a nil channel load balancer has been provided
+var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer")
+
+// ErrNilDebugger signals that a nil debugger has been provided
+var ErrNilDebugger = errors.New("nil debugger")
+
+// ErrInvalidConfig signals that an invalid config has been provided
+var ErrInvalidConfig = errors.New("invalid config")
+
+// ErrNilPeersOnChannel signals that a nil peers on channel has been provided
+var ErrNilPeersOnChannel = errors.New("nil peers on channel")
+
+// ErrNilConnectionMonitor signals that a nil connections monitor has been provided
+var ErrNilConnectionMonitor = errors.New("nil connections monitor")
+
+// ErrNilNetwork signals that a nil network has been provided
+var ErrNilNetwork = errors.New("nil network")
+
+// ErrNilPeerDiscoverer signals that a nil peer discoverer has been provided
+var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
+
+// ErrNilConnectionsMetric signals that a nil connections metric has been provided
+var ErrNilConnectionsMetric = errors.New("nil connections metric")
