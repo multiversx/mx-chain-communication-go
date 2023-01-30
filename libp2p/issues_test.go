@@ -17,7 +17,7 @@ import (
 
 func createMessenger() p2p.Messenger {
 	args := libp2p.ArgsNetworkMessenger{
-		Marshalizer:   &mock.ProtoMarshallerMock{},
+		Marshaller:    &mock.ProtoMarshallerMock{},
 		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{

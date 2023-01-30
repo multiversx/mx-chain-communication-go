@@ -140,3 +140,8 @@ func (poc *peersOnChannel) Close() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (poc *peersOnChannel) IsInterfaceNil() bool {
+	return poc == nil
+}

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnections_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
+func TestConnectionsMetric_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -17,38 +17,38 @@ func TestConnections_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
 		}
 	}()
 
-	cdm := metrics.NewConnections()
+	cm := metrics.NewConnectionsMetric()
 
-	cdm.Listen(nil, nil)
-	cdm.ListenClose(nil, nil)
+	cm.Listen(nil, nil)
+	cm.ListenClose(nil, nil)
 }
 
-func TestConnections_ResetNumConnectionsShouldWork(t *testing.T) {
+func TestConnectionsMetric_ResetNumConnectionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cdm := metrics.NewConnections()
+	cm := metrics.NewConnectionsMetric()
 
-	cdm.Connected(nil, nil)
-	cdm.Connected(nil, nil)
+	cm.Connected(nil, nil)
+	cm.Connected(nil, nil)
 
-	existing := cdm.ResetNumConnections()
+	existing := cm.ResetNumConnections()
 	assert.Equal(t, uint32(2), existing)
 
-	existing = cdm.ResetNumConnections()
+	existing = cm.ResetNumConnections()
 	assert.Equal(t, uint32(0), existing)
 }
 
-func TestConnsDisconnsMetric_ResetNumDisconnectionsShouldWork(t *testing.T) {
+func TestConnectionsMetric_ResetNumDisconnectionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cdm := metrics.NewConnections()
+	cm := metrics.NewConnectionsMetric()
 
-	cdm.Disconnected(nil, nil)
-	cdm.Disconnected(nil, nil)
+	cm.Disconnected(nil, nil)
+	cm.Disconnected(nil, nil)
 
-	existing := cdm.ResetNumDisconnections()
+	existing := cm.ResetNumDisconnections()
 	assert.Equal(t, uint32(2), existing)
 
-	existing = cdm.ResetNumDisconnections()
+	existing = cm.ResetNumDisconnections()
 	assert.Equal(t, uint32(0), existing)
 }
