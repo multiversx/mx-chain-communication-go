@@ -23,7 +23,10 @@ func (pdes *PeerDenialEvaluatorStub) UpsertPeerID(pid core.PeerID, duration time
 
 // IsDenied -
 func (pdes *PeerDenialEvaluatorStub) IsDenied(pid core.PeerID) bool {
-	return pdes.IsDeniedCalled(pid)
+	if pdes.IsDeniedCalled != nil {
+		return pdes.IsDeniedCalled(pid)
+	}
+	return false
 }
 
 // IsInterfaceNil -
