@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/mock"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +52,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("should work using a generated key with the KeyGenerator", func(t *testing.T) {
 		t.Parallel()
 
-		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 		_, pk := keyGen.GeneratePair()
 
 		pid, err := p2pCrypto.ConvertPublicKeyToPeerID(pk)
@@ -66,7 +66,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 		skBytes, pid, err := generator.CreateRandomP2PIdentity()
 		assert.Nil(t, err)
 
-		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 		sk, err := keyGen.PrivateKeyFromByteArray(skBytes)
 		assert.Nil(t, err)
 

@@ -6,20 +6,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1/singlesig"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-core-go/core"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1/singlesig"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func generatePrivateKey() (crypto.PrivateKey, crypto.PublicKey) {
-	keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, pubKey := keyGen.GeneratePair()
 
 	return prvKey, pubKey
@@ -223,7 +224,7 @@ func TestP2PSigner_FullTest(t *testing.T) {
 	t.Run("sign and verify", func(t *testing.T) {
 		t.Parallel()
 
-		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 		privateKey, _ := generatePrivateKey()
 		p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
@@ -243,7 +244,7 @@ func TestP2PSigner_FullTest(t *testing.T) {
 	t.Run("sign using private key", func(t *testing.T) {
 		t.Parallel()
 
-		keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 		prvKey1, _ := keyGen.GeneratePair()
 		p2pPrivKey1, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey1)

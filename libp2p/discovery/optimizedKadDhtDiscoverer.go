@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 type discovererStatus string

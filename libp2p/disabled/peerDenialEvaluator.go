@@ -3,7 +3,7 @@ package disabled
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // PeerDenialEvaluator is a disabled implementation of PeerDenialEvaluator that does not manage black listed keys

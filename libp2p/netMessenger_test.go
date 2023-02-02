@@ -12,20 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	commonCrypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/config"
-	"github.com/ElrondNetwork/elrond-go-p2p/data"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/message"
-	"github.com/ElrondNetwork/elrond-go-p2p/mock"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -33,6 +19,20 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-p2p-go/config"
+	"github.com/multiversx/mx-chain-p2p-go/data"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/message"
+	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2029,7 +2029,7 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 }
 
 func createP2PPrivKeyAndPid() ([]byte, peer.ID) {
-	keyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, _ := keyGen.GeneratePair()
 
 	p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
