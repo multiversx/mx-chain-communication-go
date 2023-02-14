@@ -35,7 +35,7 @@ func TestNewMessageVerifier(t *testing.T) {
 
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, mv)
-		require.Equal(t, p2p.ErrNilMarshalizer, err)
+		require.Equal(t, p2p.ErrNilMarshaller, err)
 	})
 
 	t.Run("nil p2p signer", func(t *testing.T) {

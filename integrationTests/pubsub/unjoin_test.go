@@ -50,7 +50,7 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 	err := peers[3].UnregisterAllMessageProcessors()
 	assert.Nil(t, err)
 
-	err = peers[3].UnjoinAllTopics()
+	err = peers[3].UnJoinAllTopics()
 	assert.Nil(t, err)
 
 	time.Sleep(durationUnjoin)
