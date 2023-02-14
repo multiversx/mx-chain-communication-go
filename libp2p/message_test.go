@@ -27,14 +27,14 @@ func getRandomID() []byte {
 	return []byte(id)
 }
 
-func TestMessage_NilMarshalizerShouldErr(t *testing.T) {
+func TestMessage_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pMes := &pubsub.Message{}
 	m, err := libp2p.NewMessage(pMes, nil)
 
 	assert.True(t, check.IfNil(m))
-	assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
+	assert.True(t, errors.Is(err, p2p.ErrNilMarshaller))
 }
 
 func TestMessage_ShouldErrBecauseOfFromField(t *testing.T) {

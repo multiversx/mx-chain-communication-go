@@ -15,9 +15,9 @@ import (
 const currentTopicMessageVersion = uint32(1)
 
 // NewMessage returns a new instance of a Message object
-func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Message, error) {
-	if check.IfNil(marshalizer) {
-		return nil, p2p.ErrNilMarshalizer
+func NewMessage(msg *pubsub.Message, marshaller p2p.Marshaller) (*message.Message, error) {
+	if check.IfNil(marshaller) {
+		return nil, p2p.ErrNilMarshaller
 	}
 	if msg == nil {
 		return nil, p2p.ErrNilMessage
@@ -36,7 +36,7 @@ func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Mess
 	}
 
 	topicMessage := &data.TopicMessage{}
-	err := marshalizer.Unmarshal(topicMessage, msg.Data)
+	err := marshaller.Unmarshal(topicMessage, msg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
 	}

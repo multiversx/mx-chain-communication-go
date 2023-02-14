@@ -1,9 +1,12 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-p2p-go"
 )
@@ -14,6 +17,8 @@ type ConnectionMonitor interface {
 	IsConnectedToTheNetwork(netw network.Network) bool
 	SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeers() int
+	SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error
+	PeerDenialEvaluator() p2p.PeerDenialEvaluator
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -45,5 +50,52 @@ type ChannelLoadBalancer interface {
 	GetChannelOrDefault(channel string) chan *SendableData
 	CollectOneElementFromChannels() *SendableData
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// PubSub interface defines what a publish/subscribe system should do
+type PubSub interface {
+	Join(topic string, opts ...pubsub.TopicOpt) (*pubsub.Topic, error)
+	ListPeers(topic string) []peer.ID
+	RegisterTopicValidator(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error
+	UnregisterTopicValidator(topic string) error
+	GetTopics() []string
+}
+
+// TopicProcessor interface defines what a topic processor can do
+type TopicProcessor interface {
+	AddTopicProcessor(identifier string, processor p2p.MessageProcessor) error
+	RemoveTopicProcessor(identifier string) error
+	GetList() ([]string, []p2p.MessageProcessor)
+	IsInterfaceNil() bool
+}
+
+// PubSubSubscription interface defines what a pubSub subscription can do
+type PubSubSubscription interface {
+	Topic() string
+	Next(ctx context.Context) (*pubsub.Message, error)
+	Cancel()
+}
+
+// PubSubTopic interface defines what a pubSub topic can do
+type PubSubTopic interface {
+	Subscribe(opts ...pubsub.SubOpt) (*pubsub.Subscription, error)
+	Publish(ctx context.Context, data []byte, opts ...pubsub.PubOpt) error
+	Close() error
+}
+
+// PeersOnChannel interface defines what a component able to handle peers on a channel should do
+type PeersOnChannel interface {
+	ConnectedPeersOnChannel(topic string) []core.PeerID
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// ConnectionsMetric is an extension of the libp2p network notifiee able to track connections metrics
+type ConnectionsMetric interface {
+	network.Notifiee
+
+	ResetNumConnections() uint32
+	ResetNumDisconnections() uint32
 	IsInterfaceNil() bool
 }

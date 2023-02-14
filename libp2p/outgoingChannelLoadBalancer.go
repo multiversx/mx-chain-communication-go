@@ -74,10 +74,9 @@ func (oplb *OutgoingChannelLoadBalancer) AddChannel(channel string) error {
 	oplb.mut.Lock()
 	defer oplb.mut.Unlock()
 
-	for _, name := range oplb.names {
-		if name == channel {
-			return nil
-		}
+	_, alreadyExists := oplb.namesChans[channel]
+	if alreadyExists {
+		return nil
 	}
 
 	oplb.appendChannel(channel)
