@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // ConnectionMonitorStub -
@@ -14,6 +15,9 @@ type ConnectionMonitorStub struct {
 	IsConnectedToTheNetworkCalled       func(netw network.Network) bool
 	SetThresholdMinConnectedPeersCalled func(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeersCalled    func() int
+	SetPeerDenialEvaluatorCalled        func(handler p2p.PeerDenialEvaluator) error
+	PeerDenialEvaluatorCalled           func() p2p.PeerDenialEvaluator
+	CloseCalled                         func() error
 }
 
 // Listen -
@@ -69,8 +73,27 @@ func (cms *ConnectionMonitorStub) ThresholdMinConnectedPeers() int {
 	return 0
 }
 
+// SetPeerDenialEvaluator -
+func (cms *ConnectionMonitorStub) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
+	if cms.SetPeerDenialEvaluatorCalled != nil {
+		return cms.SetPeerDenialEvaluatorCalled(handler)
+	}
+	return nil
+}
+
+// PeerDenialEvaluator -
+func (cms *ConnectionMonitorStub) PeerDenialEvaluator() p2p.PeerDenialEvaluator {
+	if cms.PeerDenialEvaluatorCalled != nil {
+		return cms.PeerDenialEvaluatorCalled()
+	}
+	return nil
+}
+
 // Close -
 func (cms *ConnectionMonitorStub) Close() error {
+	if cms.CloseCalled != nil {
+		return cms.CloseCalled()
+	}
 	return nil
 }
 

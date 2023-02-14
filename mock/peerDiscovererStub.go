@@ -8,7 +8,10 @@ type PeerDiscovererStub struct {
 
 // Bootstrap -
 func (pds *PeerDiscovererStub) Bootstrap() error {
-	return pds.BootstrapCalled()
+	if pds.BootstrapCalled != nil {
+		return pds.BootstrapCalled()
+	}
+	return nil
 }
 
 // Name -
