@@ -13,3 +13,6 @@ var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrNilKeyGenerator signals that a nil key generator was provided
 var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrNilP2PKeyConverter signals that a nil key converter was provided
+var ErrNilP2PKeyConverter = errors.New("nil key converter")

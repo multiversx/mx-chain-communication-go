@@ -10,8 +10,16 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
+type p2pKeyConverter struct {
+}
+
+// NewP2PKeyConverter returns a new instance of p2pKeyConverter
+func NewP2PKeyConverter() *p2pKeyConverter {
+	return &p2pKeyConverter{}
+}
+
 // ConvertPrivateKeyToLibp2pPrivateKey will convert common private key to libp2p private key
-func ConvertPrivateKeyToLibp2pPrivateKey(privateKey crypto.PrivateKey) (libp2pCrypto.PrivKey, error) {
+func (converter *p2pKeyConverter) ConvertPrivateKeyToLibp2pPrivateKey(privateKey crypto.PrivateKey) (libp2pCrypto.PrivKey, error) {
 	if check.IfNil(privateKey) {
 		return nil, ErrNilPrivateKey
 	}
@@ -25,7 +33,7 @@ func ConvertPrivateKeyToLibp2pPrivateKey(privateKey crypto.PrivateKey) (libp2pCr
 }
 
 // ConvertPeerIDToPublicKey will convert core peer id to common public key
-func ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error) {
+func (converter *p2pKeyConverter) ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error) {
 	libp2pPid, err := peer.IDFromBytes(pid.Bytes())
 	if err != nil {
 		return nil, err
@@ -45,7 +53,7 @@ func ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (cryp
 }
 
 // ConvertPublicKeyToPeerID will convert a public key to core.PeerID
-func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
+func (converter *p2pKeyConverter) ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
 	if check.IfNil(pk) {
 		return "", ErrNilPublicKey
 	}
@@ -66,4 +74,9 @@ func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
 	}
 
 	return core.PeerID(pid), nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (converter *p2pKeyConverter) IsInterfaceNil() bool {
+	return converter == nil
 }

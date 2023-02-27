@@ -28,9 +28,10 @@ func generatePrivateKey() (crypto.PrivateKey, crypto.PublicKey) {
 
 func createDefaultP2PSignerArgs() p2pCrypto.ArgsP2pSignerWrapper {
 	return p2pCrypto.ArgsP2pSignerWrapper{
-		PrivateKey: &mock.PrivateKeyStub{},
-		Signer:     &mock.SingleSignerStub{},
-		KeyGen:     &mock.KeyGenStub{},
+		PrivateKey:      &mock.PrivateKeyStub{},
+		Signer:          &mock.SingleSignerStub{},
+		KeyGen:          &mock.KeyGenStub{},
+		P2PKeyConverter: p2pCrypto.NewP2PKeyConverter(),
 	}
 }
 
@@ -67,6 +68,17 @@ func TestP2pSigner_NewP2PSigner(t *testing.T) {
 
 		sig, err := p2pCrypto.NewP2PSignerWrapper(args)
 		assert.Equal(t, p2pCrypto.ErrNilKeyGenerator, err)
+		assert.Nil(t, sig)
+	})
+
+	t.Run("nil p2p key converter should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultP2PSignerArgs()
+		args.P2PKeyConverter = nil
+
+		sig, err := p2pCrypto.NewP2PSignerWrapper(args)
+		assert.Equal(t, p2pCrypto.ErrNilP2PKeyConverter, err)
 		assert.Nil(t, sig)
 	})
 
@@ -227,12 +239,14 @@ func TestP2PSigner_FullTest(t *testing.T) {
 		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 		privateKey, _ := generatePrivateKey()
-		p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
+		conv := p2pCrypto.NewP2PKeyConverter()
+		p2pPrivKey, _ := conv.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
 		pid, _ := peer.IDFromPublicKey(p2pPrivKey.GetPublic())
 		signerArgs := p2pCrypto.ArgsP2pSignerWrapper{
-			PrivateKey: privateKey,
-			Signer:     &singlesig.Secp256k1Signer{},
-			KeyGen:     keyGen,
+			PrivateKey:      privateKey,
+			Signer:          &singlesig.Secp256k1Signer{},
+			KeyGen:          keyGen,
+			P2PKeyConverter: p2pCrypto.NewP2PKeyConverter(),
 		}
 		signer, _ := p2pCrypto.NewP2PSignerWrapper(signerArgs)
 
@@ -247,20 +261,22 @@ func TestP2PSigner_FullTest(t *testing.T) {
 		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 		prvKey1, _ := keyGen.GeneratePair()
-		p2pPrivKey1, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey1)
+		conv := p2pCrypto.NewP2PKeyConverter()
+		p2pPrivKey1, _ := conv.ConvertPrivateKeyToLibp2pPrivateKey(prvKey1)
 		p2pPrivKeyBytes1, _ := p2pPrivKey1.Raw()
 		pid1, _ := peer.IDFromPublicKey(p2pPrivKey1.GetPublic())
 
 		prvKey2, _ := keyGen.GeneratePair()
-		p2pPrivKey2, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey2)
+		p2pPrivKey2, _ := conv.ConvertPrivateKeyToLibp2pPrivateKey(prvKey2)
 		p2pPrivKeyBytes2, _ := p2pPrivKey2.Raw()
 		pid2, _ := peer.IDFromPublicKey(p2pPrivKey2.GetPublic())
 
 		privateKey, _ := generatePrivateKey()
 		signerArgs := p2pCrypto.ArgsP2pSignerWrapper{
-			PrivateKey: privateKey,
-			Signer:     &singlesig.Secp256k1Signer{},
-			KeyGen:     keyGen,
+			PrivateKey:      privateKey,
+			Signer:          &singlesig.Secp256k1Signer{},
+			KeyGen:          keyGen,
+			P2PKeyConverter: p2pCrypto.NewP2PKeyConverter(),
 		}
 		signer, _ := p2pCrypto.NewP2PSignerWrapper(signerArgs)
 

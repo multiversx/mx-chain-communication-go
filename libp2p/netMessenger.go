@@ -165,7 +165,8 @@ func constructNode(
 		return nil, err
 	}
 
-	p2pPrivateKey, err := crypto.ConvertPrivateKeyToLibp2pPrivateKey(args.P2pPrivateKey)
+	conv := crypto.NewP2PKeyConverter()
+	p2pPrivateKey, err := conv.ConvertPrivateKeyToLibp2pPrivateKey(args.P2pPrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -188,9 +189,10 @@ func constructNode(
 	}
 
 	p2pSignerArgs := crypto.ArgsP2pSignerWrapper{
-		PrivateKey: args.P2pPrivateKey,
-		Signer:     args.P2pSingleSigner,
-		KeyGen:     args.P2pKeyGenerator,
+		PrivateKey:      args.P2pPrivateKey,
+		Signer:          args.P2pSingleSigner,
+		KeyGen:          args.P2pKeyGenerator,
+		P2PKeyConverter: conv,
 	}
 
 	p2pSignerInstance, err := crypto.NewP2PSignerWrapper(p2pSignerArgs)

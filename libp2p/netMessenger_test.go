@@ -291,7 +291,8 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockNetworkArgs()
-		p2pPrivateKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(arg.P2pPrivateKey)
+		conv := crypto.NewP2PKeyConverter()
+		p2pPrivateKey, _ := conv.ConvertPrivateKeyToLibp2pPrivateKey(arg.P2pPrivateKey)
 		pid, _ := peer.IDFromPublicKey(p2pPrivateKey.GetPublic())
 		connString := "/ip4/127.0.0.1/tcp/9999/" + pid.String()
 		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{connString}
@@ -2049,7 +2050,8 @@ func createP2PPrivKeyAndPid() ([]byte, peer.ID) {
 	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, _ := keyGen.GeneratePair()
 
-	p2pPrivKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
+	conv := crypto.NewP2PKeyConverter()
+	p2pPrivKey, _ := conv.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
 	p2pPubKey := p2pPrivKey.GetPublic()
 	pid, _ := peer.IDFromPublicKey(p2pPubKey)
 
