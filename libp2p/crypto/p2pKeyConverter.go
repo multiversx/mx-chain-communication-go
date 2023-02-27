@@ -18,20 +18,6 @@ func NewP2PKeyConverter() *p2pKeyConverter {
 	return &p2pKeyConverter{}
 }
 
-// ConvertPrivateKeyToLibp2pPrivateKey will convert common private key to libp2p private key
-func (converter *p2pKeyConverter) ConvertPrivateKeyToLibp2pPrivateKey(privateKey crypto.PrivateKey) (libp2pCrypto.PrivKey, error) {
-	if check.IfNil(privateKey) {
-		return nil, ErrNilPrivateKey
-	}
-
-	p2pPrivateKeyBytes, err := privateKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	return libp2pCrypto.UnmarshalSecp256k1PrivateKey(p2pPrivateKeyBytes)
-}
-
 // ConvertPeerIDToPublicKey will convert core peer id to common public key
 func (converter *p2pKeyConverter) ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error) {
 	libp2pPid, err := peer.IDFromBytes(pid.Bytes())

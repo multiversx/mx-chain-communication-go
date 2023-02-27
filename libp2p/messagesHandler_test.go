@@ -248,8 +248,7 @@ func TestNewMessagesHandler(t *testing.T) {
 
 			keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 			privateKey, _ := keyGen.GeneratePair()
-			conv := p2pCrypto.NewP2PKeyConverter()
-			p2pPrivKey, _ := conv.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
+			p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
 			providedSendableData := &libp2p.SendableData{
 				Buff:  providedData,
 				Topic: providedTopic,

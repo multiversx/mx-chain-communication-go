@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // ArgsP2pSignerWrapper defines the arguments needed to create a p2p signer wrapper
@@ -13,14 +14,14 @@ type ArgsP2pSignerWrapper struct {
 	PrivateKey      crypto.PrivateKey
 	Signer          crypto.SingleSigner
 	KeyGen          crypto.KeyGenerator
-	P2PKeyConverter P2PKeyConverter
+	P2PKeyConverter p2p.P2PKeyConverter
 }
 
 type p2pSignerWrapper struct {
 	privateKey crypto.PrivateKey
 	signer     crypto.SingleSigner
 	keyGen     crypto.KeyGenerator
-	p2pKeyConv P2PKeyConverter
+	p2pKeyConv p2p.P2PKeyConverter
 }
 
 // NewP2PSignerWrapper creates a new p2pSigner instance
