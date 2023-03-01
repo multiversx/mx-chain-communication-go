@@ -18,6 +18,7 @@ type Message struct {
 	KeyField       []byte
 	PeerField      core.PeerID
 	TimestampField int64
+	TypeField      p2p.MessageType
 }
 
 // From returns the message originator's peer ID
@@ -63,6 +64,11 @@ func (m *Message) Peer() core.PeerID {
 // Timestamp returns the message timestamp to prevent endless re-processing of the same message
 func (m *Message) Timestamp() int64 {
 	return m.TimestampField
+}
+
+// Type returns the type of the message
+func (m *Message) Type() p2p.MessageType {
+	return m.TypeField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

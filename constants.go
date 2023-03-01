@@ -35,3 +35,12 @@ const (
 	// MetricP2PPeersRating is the metric that outputs the peers ratings
 	MetricP2PPeersRating = "erd_p2p_peers_rating"
 )
+
+// MessageType defines the type of message based on its source
+type MessageType string
+
+// DirectMessage defines a direct message
+const DirectMessage MessageType = "DirectMessage"
+
+// BroadcastMessage defines a broadcast message
+const BroadcastMessage MessageType = "BroadcastMessage"
