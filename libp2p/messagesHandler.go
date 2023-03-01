@@ -344,10 +344,6 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 		}
 		handler.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
 
-		if messageOk {
-			handler.peersRatingHandler.IncreaseRating(fromConnectedPeer)
-		}
-
 		return messageOk
 	}
 }

@@ -579,19 +579,12 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		wasCalled := false
-		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
-			IncreaseRatingCalled: func(pid core.PeerID) {
-				wasCalled = true
-			},
-		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(mh))
 
 		tp := &mock.MessageProcessorStub{}
 		cb := mh.PubsubCallback(tp, providedTopic)
 		assert.True(t, cb(context.Background(), peerID, createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)))
-		assert.True(t, wasCalled)
 	})
 }
 
