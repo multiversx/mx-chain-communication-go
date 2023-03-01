@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,6 +20,7 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	sig := []byte("sig")
 	key := []byte("key")
 	peer := core.PeerID("peer")
+	msgType := p2p.DirectMessage
 
 	msg := &message.Message{
 		FromField:      from,
@@ -28,6 +30,7 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 		SignatureField: sig,
 		KeyField:       key,
 		PeerField:      peer,
+		TypeField:      msgType,
 	}
 
 	assert.False(t, check.IfNil(msg))
@@ -38,4 +41,5 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	assert.Equal(t, sig, msg.Signature())
 	assert.Equal(t, key, msg.Key())
 	assert.Equal(t, peer, msg.Peer())
+	assert.Equal(t, msgType, msg.Type())
 }
