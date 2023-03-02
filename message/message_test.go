@@ -20,17 +20,17 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	sig := []byte("sig")
 	key := []byte("key")
 	peer := core.PeerID("peer")
-	msgType := p2p.DirectMessage
+	msgType := p2p.Direct
 
 	msg := &message.Message{
-		FromField:      from,
-		DataField:      data,
-		SeqNoField:     seqNo,
-		TopicField:     topic,
-		SignatureField: sig,
-		KeyField:       key,
-		PeerField:      peer,
-		TypeField:      msgType,
+		FromField:            from,
+		DataField:            data,
+		SeqNoField:           seqNo,
+		TopicField:           topic,
+		SignatureField:       sig,
+		KeyField:             key,
+		PeerField:            peer,
+		BroadcastMethodField: msgType,
 	}
 
 	assert.False(t, check.IfNil(msg))
@@ -41,5 +41,5 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	assert.Equal(t, sig, msg.Signature())
 	assert.Equal(t, key, msg.Key())
 	assert.Equal(t, peer, msg.Peer())
-	assert.Equal(t, msgType, msg.Type())
+	assert.Equal(t, msgType, msg.BroadcastMethod())
 }
