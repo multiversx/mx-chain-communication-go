@@ -24,7 +24,6 @@ var messageHeader = 64 * 1024 // 64kB
 var maxSendBuffSize = (1 << 21) - messageHeader
 
 const durationBetweenSends = time.Microsecond * 10
-const requestTopicSuffix = "_REQUEST"
 
 // ArgMessagesHandler is the DTO struct used to create a new instance of messages handler
 type ArgMessagesHandler struct {
@@ -351,7 +350,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 }
 
 func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
-	msg, errUnmarshal := NewMessage(pbMsg, handler.marshaller, p2p.BroadcastMessage)
+	msg, errUnmarshal := NewMessage(pbMsg, handler.marshaller, p2p.Broadcast)
 	if errUnmarshal != nil {
 		// this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
@@ -513,7 +512,7 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 		},
 	}
 
-	msg, err := NewMessage(pubSubMsg, handler.marshaller, p2p.DirectMessage)
+	msg, err := NewMessage(pubSubMsg, handler.marshaller, p2p.Direct)
 	if err != nil {
 		return err
 	}
@@ -572,8 +571,8 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 }
 
 func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
-	isDirectMessage := msg.Type() == p2p.DirectMessage
-	isRequestMessage := strings.Contains(msg.Topic(), requestTopicSuffix)
+	isDirectMessage := msg.BroadcastMethod() == p2p.Direct
+	isRequestMessage := strings.Contains(msg.Topic(), core.TopicRequestSuffix)
 	shouldIncreaseRating := isDirectMessage && !isRequestMessage
 	if shouldIncreaseRating {
 		handler.peersRatingHandler.IncreaseRating(fromConnectedPeer)
