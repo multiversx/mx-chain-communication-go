@@ -99,28 +99,28 @@ func TestSerializeDeserialize(t *testing.T) {
 
 		expectedMessages := []p2p.MessageP2P{
 			&message.Message{
-				FromField:      peerID.Bytes(),
-				PayloadField:   msgDataBytes, // it is used as data field for pubsub
-				SeqNoField:     []byte("seq"),
-				TopicField:     "topic",
-				SignatureField: []byte("sig"),
-				KeyField:       []byte("key"),
-				DataField:      []byte("payload1"),
-				TimestampField: 1,
-				PeerField:      peerID,
-				TypeField:      p2p.BroadcastMessage,
+				FromField:            peerID.Bytes(),
+				PayloadField:         msgDataBytes, // it is used as data field for pubsub
+				SeqNoField:           []byte("seq"),
+				TopicField:           "topic",
+				SignatureField:       []byte("sig"),
+				KeyField:             []byte("key"),
+				DataField:            []byte("payload1"),
+				TimestampField:       1,
+				PeerField:            peerID,
+				BroadcastMethodField: p2p.Broadcast,
 			},
 			&message.Message{
-				FromField:      peerID.Bytes(),
-				PayloadField:   msgDataBytes,
-				SeqNoField:     []byte("seq"),
-				TopicField:     "topic",
-				SignatureField: []byte("sig"),
-				KeyField:       []byte("key"),
-				DataField:      []byte("payload1"),
-				TimestampField: 1,
-				PeerField:      peerID,
-				TypeField:      p2p.BroadcastMessage,
+				FromField:            peerID.Bytes(),
+				PayloadField:         msgDataBytes,
+				SeqNoField:           []byte("seq"),
+				TopicField:           "topic",
+				SignatureField:       []byte("sig"),
+				KeyField:             []byte("key"),
+				DataField:            []byte("payload1"),
+				TimestampField:       1,
+				PeerField:            peerID,
+				BroadcastMethodField: p2p.Broadcast,
 			},
 		}
 
