@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
@@ -255,5 +256,12 @@ type PeersRatingHandler interface {
 // PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier interface {
 	NewPeerFound(pid core.PeerID, topic string)
+	IsInterfaceNil() bool
+}
+
+// P2PKeyConverter defines what a p2p key converter can do
+type P2PKeyConverter interface {
+	ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error)
+	ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error)
 	IsInterfaceNil() bool
 }
