@@ -6,19 +6,22 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // ArgsP2pSignerWrapper defines the arguments needed to create a p2p signer wrapper
 type ArgsP2pSignerWrapper struct {
-	PrivateKey crypto.PrivateKey
-	Signer     crypto.SingleSigner
-	KeyGen     crypto.KeyGenerator
+	PrivateKey      crypto.PrivateKey
+	Signer          crypto.SingleSigner
+	KeyGen          crypto.KeyGenerator
+	P2PKeyConverter p2p.P2PKeyConverter
 }
 
 type p2pSignerWrapper struct {
 	privateKey crypto.PrivateKey
 	signer     crypto.SingleSigner
 	keyGen     crypto.KeyGenerator
+	p2pKeyConv p2p.P2PKeyConverter
 }
 
 // NewP2PSignerWrapper creates a new p2pSigner instance
@@ -32,6 +35,7 @@ func NewP2PSignerWrapper(args ArgsP2pSignerWrapper) (*p2pSignerWrapper, error) {
 		privateKey: args.PrivateKey,
 		signer:     args.Signer,
 		keyGen:     args.KeyGen,
+		p2pKeyConv: args.P2PKeyConverter,
 	}, nil
 }
 
@@ -44,6 +48,9 @@ func checkArgs(args ArgsP2pSignerWrapper) error {
 	}
 	if check.IfNil(args.KeyGen) {
 		return ErrNilKeyGenerator
+	}
+	if check.IfNil(args.P2PKeyConverter) {
+		return ErrNilP2PKeyConverter
 	}
 
 	return nil
@@ -58,7 +65,7 @@ func (psw *p2pSignerWrapper) Sign(payload []byte) ([]byte, error) {
 
 // Verify will check that the (hash of the payload, peer ID, signature) tuple is valid or not
 func (psw *p2pSignerWrapper) Verify(payload []byte, pid core.PeerID, signature []byte) error {
-	pubKey, err := ConvertPeerIDToPublicKey(psw.keyGen, pid)
+	pubKey, err := psw.p2pKeyConv.ConvertPeerIDToPublicKey(psw.keyGen, pid)
 	if err != nil {
 		return err
 	}
