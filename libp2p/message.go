@@ -15,7 +15,7 @@ import (
 const currentTopicMessageVersion = uint32(1)
 
 // NewMessage returns a new instance of a Message object
-func NewMessage(msg *pubsub.Message, marshaller p2p.Marshaller, messageType p2p.BroadcastMethod) (*message.Message, error) {
+func NewMessage(msg *pubsub.Message, marshaller p2p.Marshaller, broadcastMethod p2p.BroadcastMethod) (*message.Message, error) {
 	if check.IfNil(marshaller) {
 		return nil, p2p.ErrNilMarshaller
 	}
@@ -33,7 +33,7 @@ func NewMessage(msg *pubsub.Message, marshaller p2p.Marshaller, messageType p2p.
 		TopicField:           *msg.Topic,
 		SignatureField:       msg.Signature,
 		KeyField:             msg.Key,
-		BroadcastMethodField: messageType,
+		BroadcastMethodField: broadcastMethod,
 	}
 
 	topicMessage := &data.TopicMessage{}
