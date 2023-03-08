@@ -35,3 +35,12 @@ const (
 	// MetricP2PPeersRating is the metric that outputs the peers ratings
 	MetricP2PPeersRating = "erd_p2p_peers_rating"
 )
+
+// BroadcastMethod defines the broadcast method of the message
+type BroadcastMethod string
+
+// Direct defines a direct message
+const Direct BroadcastMethod = "Direct"
+
+// Broadcast defines a broadcast message
+const Broadcast BroadcastMethod = "Broadcast"

@@ -99,6 +99,7 @@ type MessageP2P interface {
 	Key() []byte
 	Peer() core.PeerID
 	Timestamp() int64
+	BroadcastMethod() BroadcastMethod
 	IsInterfaceNil() bool
 }
 
