@@ -248,6 +248,11 @@ func (handler *messagesHandler) TransformAndCheckMessage(pbMsg *pubsub.Message, 
 	return handler.transformAndCheckMessage(pbMsg, pid, topic)
 }
 
+// IncreaseRatingIfNeeded -
+func (handler *messagesHandler) IncreaseRatingIfNeeded(msg p2p.MessageP2P, from core.PeerID) {
+	handler.increaseRatingIfNeeded(msg, from)
+}
+
 // NewMessagesHandlerWithTopics -
 func NewMessagesHandlerWithTopics(args ArgMessagesHandler, topics map[string]PubSubTopic, withRoutine bool) *messagesHandler {
 	handler := NewMessagesHandlerWithNoRoutine(args)
