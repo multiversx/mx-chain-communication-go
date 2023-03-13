@@ -1,11 +1,8 @@
 package rating
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -24,140 +21,62 @@ const (
 	decreaseFactor = -1
 	minNumOfPeers  = 1
 	int32Size      = 4
-	minDuration    = time.Second
 )
 
-var log = logger.GetOrCreate("p2p/peersRatingHandler")
+var log = logger.GetOrCreate("p2p/peersRating")
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
-	TopRatedCache              types.Cacher
-	BadRatedCache              types.Cacher
-	AppStatusHandler           core.AppStatusHandler
-	TimeWaitingForReconnection time.Duration
-	TimeBetweenMetricsUpdate   time.Duration
-	TimeBetweenCachersSweep    time.Duration
-}
-
-type ratingInfo struct {
-	Rating                       int32 `json:"rating"`
-	TimestampLastRequestToPid    int64 `json:"timestampLastRequestToPid"`
-	TimestampLastResponseFromPid int64 `json:"timestampLastResponseFromPid"`
+	TopRatedCache types.Cacher
+	BadRatedCache types.Cacher
 }
 
 type peersRatingHandler struct {
-	topRatedCache              types.Cacher
-	badRatedCache              types.Cacher
-	removalTimestampsMap       map[string]int64
-	mut                        sync.RWMutex
-	ratingsMap                 map[string]*ratingInfo
-	appStatusHandler           core.AppStatusHandler
-	timeWaitingForReconnection time.Duration
-	timeBetweenMetricsUpdate   time.Duration
-	timeBetweenCachersSweep    time.Duration
-	getTimeHandler             func() time.Time
-	cancel                     func()
+	topRatedCache types.Cacher
+	badRatedCache types.Cacher
+	mut           sync.RWMutex
 }
 
 // NewPeersRatingHandler returns a new peers rating handler
 func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, error) {
-	err := checkArgs(args)
+	err := checkHandlerArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	prh := &peersRatingHandler{
-		topRatedCache:              args.TopRatedCache,
-		badRatedCache:              args.BadRatedCache,
-		removalTimestampsMap:       make(map[string]int64),
-		appStatusHandler:           args.AppStatusHandler,
-		timeWaitingForReconnection: args.TimeWaitingForReconnection,
-		timeBetweenMetricsUpdate:   args.TimeBetweenMetricsUpdate,
-		timeBetweenCachersSweep:    args.TimeBetweenCachersSweep,
-		ratingsMap:                 make(map[string]*ratingInfo),
-		getTimeHandler:             time.Now,
-	}
-
-	var ctx context.Context
-	ctx, prh.cancel = context.WithCancel(context.Background())
-	go prh.processLoop(ctx)
-
-	return prh, nil
+	return &peersRatingHandler{
+		topRatedCache: args.TopRatedCache,
+		badRatedCache: args.BadRatedCache,
+	}, nil
 }
 
-func checkArgs(args ArgPeersRatingHandler) error {
+func checkHandlerArgs(args ArgPeersRatingHandler) error {
 	if check.IfNil(args.TopRatedCache) {
 		return fmt.Errorf("%w for TopRatedCache", p2p.ErrNilCacher)
 	}
 	if check.IfNil(args.BadRatedCache) {
 		return fmt.Errorf("%w for BadRatedCache", p2p.ErrNilCacher)
 	}
-	if check.IfNil(args.AppStatusHandler) {
-		return p2p.ErrNilAppStatusHandler
-	}
-	if args.TimeWaitingForReconnection < minDuration {
-		return fmt.Errorf("%w for TimeWaitingForReconnection, received %f, min expected %d",
-			p2p.ErrInvalidValue, args.TimeWaitingForReconnection.Seconds(), minDuration)
-	}
-	if args.TimeBetweenMetricsUpdate < minDuration {
-		return fmt.Errorf("%w for TimeBetweenMetricsUpdate, received %f, min expected %d",
-			p2p.ErrInvalidValue, args.TimeBetweenMetricsUpdate.Seconds(), minDuration)
-	}
-	if args.TimeBetweenCachersSweep < minDuration {
-		return fmt.Errorf("%w for TimeBetweenCachersSweep, received %f, min expected %d",
-			p2p.ErrInvalidValue, args.TimeBetweenCachersSweep.Seconds(), minDuration)
-	}
 
 	return nil
 }
 
-// AddPeers adds a new list of peers to the cache with rating 0
-// this is called when peers list is refreshed
-func (prh *peersRatingHandler) AddPeers(pids []core.PeerID) {
-	if len(pids) == 0 {
-		return
-	}
-
-	prh.mut.Lock()
-	defer prh.mut.Unlock()
-
-	receivedPIDsMap := make(map[string]struct{}, len(pids))
-	for _, pid := range pids {
-		pidBytes := pid.Bytes()
-		pidString := string(pidBytes)
-		receivedPIDsMap[pidString] = struct{}{}
-
-		_, isMarkedForRemoval := prh.removalTimestampsMap[pidString]
-		if isMarkedForRemoval {
-			delete(prh.removalTimestampsMap, pidString)
-		}
-
-		_, found := prh.getOldRating(pidBytes)
-		if found {
-			continue
-		}
-
-		prh.topRatedCache.Put(pidBytes, defaultRating, int32Size)
-		prh.updateRatingsMap(pid, defaultRating, 0)
-	}
-
-	prh.markInactivePIDsForRemoval(receivedPIDsMap)
-}
-
 // IncreaseRating increases the rating of a peer with the increase factor
 func (prh *peersRatingHandler) IncreaseRating(pid core.PeerID) {
+	// keep this section critical, as we do read + write
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	prh.updateRatingIfNeeded(pid, increaseFactor)
+	prh.updateRating(pid, increaseFactor)
 }
 
 // DecreaseRating decreases the rating of a peer with the decrease factor
 func (prh *peersRatingHandler) DecreaseRating(pid core.PeerID) {
+	// keep this section critical, as we do read + write
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	prh.updateRatingIfNeeded(pid, decreaseFactor)
+	prh.updateRating(pid, decreaseFactor)
 }
 
 func (prh *peersRatingHandler) getOldRating(pid []byte) (int32, bool) {
@@ -176,77 +95,11 @@ func (prh *peersRatingHandler) getOldRating(pid []byte) (int32, bool) {
 	return defaultRating, found
 }
 
-func (prh *peersRatingHandler) markInactivePIDsForRemoval(receivedPIDs map[string]struct{}) {
-	prh.markKeysForRemoval(prh.topRatedCache.Keys(), receivedPIDs)
-	prh.markKeysForRemoval(prh.badRatedCache.Keys(), receivedPIDs)
-}
-
-func (prh *peersRatingHandler) markKeysForRemoval(cachedPIDs [][]byte, receivedPIDs map[string]struct{}) {
-	removalTimestamp := prh.getTimeHandler().Add(prh.timeWaitingForReconnection).Unix()
-
-	for _, cachedPID := range cachedPIDs {
-		pidString := string(cachedPID)
-		_, isPIDStillActive := receivedPIDs[pidString]
-		_, alreadyMarked := prh.removalTimestampsMap[pidString]
-		if !isPIDStillActive && !alreadyMarked {
-			prh.removalTimestampsMap[pidString] = removalTimestamp
-		}
-	}
-}
-
-func (prh *peersRatingHandler) processLoop(ctx context.Context) {
-	timerCachersSweep := time.NewTimer(prh.timeBetweenCachersSweep)
-	timerMetricsUpdate := time.NewTimer(prh.timeBetweenMetricsUpdate)
-
-	defer timerCachersSweep.Stop()
-	defer timerMetricsUpdate.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-timerCachersSweep.C:
-			prh.sweepCachers()
-			timerCachersSweep.Reset(prh.timeBetweenCachersSweep)
-		case <-timerMetricsUpdate.C:
-			prh.updateMetrics()
-			timerMetricsUpdate.Reset(prh.timeBetweenMetricsUpdate)
-		}
-	}
-}
-
-func (prh *peersRatingHandler) sweepCachers() {
-	prh.mut.Lock()
-	defer prh.mut.Unlock()
-
-	for pidString, removalTimestamp := range prh.removalTimestampsMap {
-		if removalTimestamp <= prh.getTimeHandler().Unix() {
-			prh.removePIDFromCachers(pidString)
-		}
-	}
-}
-
-func (prh *peersRatingHandler) removePIDFromCachers(pidString string) {
-	delete(prh.removalTimestampsMap, pidString)
-	pidBytes := []byte(pidString)
-	prh.topRatedCache.Remove(pidBytes)
-	prh.badRatedCache.Remove(pidBytes)
-	delete(prh.ratingsMap, core.PeerID(pidBytes).Pretty())
-}
-
-func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFactor int32) {
+func (prh *peersRatingHandler) updateRating(pid core.PeerID, updateFactor int32) {
 	oldRating, found := prh.getOldRating(pid.Bytes())
 	if !found {
 		// new pid, add it with default rating
 		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
-		prh.updateRatingsMap(pid, defaultRating, updateFactor)
-	}
-
-	decreasingUnderMin := oldRating == minRating && updateFactor == decreaseFactor
-	increasingOverMax := oldRating == maxRating && updateFactor == increaseFactor
-	shouldSkipUpdate := decreasingUnderMin || increasingOverMax
-	if shouldSkipUpdate {
-		prh.updateRatingsMap(pid, oldRating, updateFactor)
 		return
 	}
 
@@ -259,11 +112,10 @@ func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFacto
 		newRating = minRating
 	}
 
-	prh.updateRating(pid, oldRating, newRating)
-	prh.updateRatingsMap(pid, newRating, updateFactor)
+	prh.updateRatingCacher(pid, oldRating, newRating)
 }
 
-func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRating int32) {
+func (prh *peersRatingHandler) updateRatingCacher(pid core.PeerID, oldRating, newRating int32) {
 	oldTier := computeRatingTier(oldRating)
 	newTier := computeRatingTier(newRating)
 	if newTier == oldTier {
@@ -276,7 +128,7 @@ func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRatin
 		return
 	}
 
-	prh.movePeerToNewTier(newRating, pid)
+	prh.movePeerToNewTier(newRating, newTier, pid)
 }
 
 func computeRatingTier(peerRating int32) string {
@@ -287,8 +139,7 @@ func computeRatingTier(peerRating int32) string {
 	return badRatedTier
 }
 
-func (prh *peersRatingHandler) movePeerToNewTier(newRating int32, pid core.PeerID) {
-	newTier := computeRatingTier(newRating)
+func (prh *peersRatingHandler) movePeerToNewTier(newRating int32, newTier string, pid core.PeerID) {
 	if newTier == topRatedTier {
 		prh.badRatedCache.Remove(pid.Bytes())
 		prh.topRatedCache.Put(pid.Bytes(), newRating, int32Size)
@@ -357,48 +208,6 @@ func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.Pe
 	}
 
 	return topRated, badRated
-}
-
-func (prh *peersRatingHandler) updateRatingsMap(pid core.PeerID, newRating int32, updateFactor int32) {
-	prettyPID := pid.Pretty()
-	peerRatingInfo, exists := prh.ratingsMap[prettyPID]
-	if !exists {
-		prh.ratingsMap[prettyPID] = &ratingInfo{
-			Rating:                       newRating,
-			TimestampLastRequestToPid:    0,
-			TimestampLastResponseFromPid: 0,
-		}
-		return
-	}
-
-	peerRatingInfo.Rating = newRating
-
-	newTimeStamp := prh.getTimeHandler().Unix()
-	if updateFactor == decreaseFactor {
-		peerRatingInfo.TimestampLastRequestToPid = newTimeStamp
-		return
-	}
-
-	peerRatingInfo.TimestampLastResponseFromPid = newTimeStamp
-}
-
-func (prh *peersRatingHandler) updateMetrics() {
-	prh.mut.RLock()
-	defer prh.mut.RUnlock()
-
-	jsonMap, err := json.Marshal(&prh.ratingsMap)
-	if err != nil {
-		log.Debug("could not update metrics", "metric", p2p.MetricP2PPeersRating, "error", err.Error())
-		return
-	}
-
-	prh.appStatusHandler.SetStringValue(p2p.MetricP2PPeersRating, string(jsonMap))
-}
-
-// Close stops the go routines started by this instance
-func (prh *peersRatingHandler) Close() error {
-	prh.cancel()
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
