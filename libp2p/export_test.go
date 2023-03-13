@@ -171,12 +171,11 @@ func DefaultSendChannel() string {
 }
 
 func NewPeersOnChannel(
-	peersRatingHandler p2p.PeersRatingHandler,
 	fetchPeersHandler func(topic string) []peer.ID,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 ) (*peersOnChannel, error) {
-	return newPeersOnChannel(peersRatingHandler, fetchPeersHandler, refreshInterval, ttlInterval)
+	return newPeersOnChannel(fetchPeersHandler, refreshInterval, ttlInterval)
 }
 
 func (poc *peersOnChannel) SetPeersOnTopic(topic string, lastUpdated time.Time, peers []core.PeerID) {
