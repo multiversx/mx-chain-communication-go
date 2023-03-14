@@ -333,20 +333,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		log.SetLevel(logger.LogTrace) // coverage
 		providedPid1, providedPid2, providedPid3 := core.PeerID("provided pid 1"), core.PeerID("provided pid 2"), core.PeerID("provided pid 3")
 		args := createMockArgs()
-		args.TopRatedCache = &mock.CacherStub{
-			LenCalled: func() int {
-				return 3
-			},
-			KeysCalled: func() [][]byte {
-				return [][]byte{providedPid1.Bytes(), providedPid2.Bytes(), providedPid3.Bytes()}
-			},
-			HasCalled: func(key []byte) bool {
-				has := bytes.Equal(key, providedPid1.Bytes()) ||
-					bytes.Equal(key, providedPid2.Bytes()) ||
-					bytes.Equal(key, providedPid3.Bytes())
-				return has
-			},
-		}
+		args.TopRatedCache = coreMocks.NewCacherMock()
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
