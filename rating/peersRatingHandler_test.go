@@ -257,7 +257,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		res := prh.GetTopRatedPeersFromList(nil, 1)
 		assert.Equal(t, 0, len(res))
 	})
-	t.Run("no peers in maps should return empty list", func(t *testing.T) {
+	t.Run("no peers in maps should add them to cachers and return them", func(t *testing.T) {
 		t.Parallel()
 
 		prh, _ := NewPeersRatingHandler(createMockArgs())
@@ -265,7 +265,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 
 		providedListOfPeers := []core.PeerID{"pid 1", "pid 2"}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 5)
-		assert.Equal(t, 0, len(res))
+		assert.Equal(t, providedListOfPeers, res)
 	})
 	t.Run("one peer in top rated, asking for one should work", func(t *testing.T) {
 		t.Parallel()
@@ -286,7 +286,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
-		providedListOfPeers := []core.PeerID{providedPid, "another pid"}
+		providedListOfPeers := []core.PeerID{providedPid}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 1)
 		assert.Equal(t, 1, len(res))
 		assert.Equal(t, providedPid, res[0])
@@ -322,7 +322,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
-		providedListOfPeers := []core.PeerID{providedTopPid, providedBadPid, "another pid"}
+		providedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
 		expectedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 2)
 		assert.Equal(t, expectedListOfPeers, res)
@@ -350,10 +350,10 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
-		providedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3, "another pid 1", "another pid 2"}
-		expectedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3}
-		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 2)
-		assert.Equal(t, expectedListOfPeers, res)
+		extraPid := core.PeerID("extra pid")
+		providedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3, extraPid}
+		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 4)
+		assert.Equal(t, providedListOfPeers, res)
 	})
 }
 

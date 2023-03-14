@@ -198,12 +198,20 @@ func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.Pe
 	badRated := make([]core.PeerID, 0)
 
 	for _, peer := range peers {
+		isNewPeer := true
 		if prh.topRatedCache.Has(peer.Bytes()) {
 			topRated = append(topRated, peer)
+			isNewPeer = false
 		}
 
 		if prh.badRatedCache.Has(peer.Bytes()) {
 			badRated = append(badRated, peer)
+			isNewPeer = false
+		}
+
+		if isNewPeer {
+			prh.topRatedCache.Put(peer.Bytes(), defaultRating, int32Size)
+			topRated = append(topRated, peer)
 		}
 	}
 
