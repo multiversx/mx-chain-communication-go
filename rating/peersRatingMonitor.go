@@ -16,13 +16,13 @@ const unknownRating = "unknown"
 type ArgPeersRatingMonitor struct {
 	TopRatedCache       types.Cacher
 	BadRatedCache       types.Cacher
-	ConnectionsProvider ConnectionsProvider
+	ConnectionsProvider connectionsProvider
 }
 
 type peersRatingMonitor struct {
 	topRatedCache       types.Cacher
 	badRatedCache       types.Cacher
-	ConnectionsProvider ConnectionsProvider
+	ConnectionsProvider connectionsProvider
 }
 
 // NewPeersRatingMonitor returns a new peers rating monitor
@@ -55,10 +55,7 @@ func checkMonitorArgs(args ArgPeersRatingMonitor) error {
 
 // GetConnectedPeersRatings returns the ratings of the current connected peers
 func (monitor *peersRatingMonitor) GetConnectedPeersRatings() string {
-	ratingsMap := getRatings(monitor.topRatedCache)
-	badRatings := getRatings(monitor.badRatedCache)
-	ratingsMap = appendMaps(ratingsMap, badRatings)
-	connectedPeersRatings := monitor.extractConnectedPeersRatings(ratingsMap)
+	connectedPeersRatings := monitor.extractConnectedPeersRatings()
 
 	jsonMap, err := json.Marshal(&connectedPeersRatings)
 	if err != nil {
@@ -68,44 +65,28 @@ func (monitor *peersRatingMonitor) GetConnectedPeersRatings() string {
 	return string(jsonMap)
 }
 
-func getRatings(cache types.Cacher) map[string]string {
-	keys := cache.Keys()
-	ratingsMap := make(map[string]string, len(keys))
-	for _, pidBytes := range keys {
-		rating, found := cache.Get(pidBytes)
-		if !found {
-			continue
-		}
-
-		pid := core.PeerID(pidBytes)
-		ratingsMap[pid.Pretty()] = fmt.Sprintf("%d", rating)
-	}
-
-	return ratingsMap
-}
-
-func appendMaps(m1, m2 map[string]string) map[string]string {
-	for key, val := range m2 {
-		m1[key] = val
-	}
-	return m1
-}
-
-func (monitor *peersRatingMonitor) extractConnectedPeersRatings(allRatings map[string]string) map[string]string {
+func (monitor *peersRatingMonitor) extractConnectedPeersRatings() map[string]string {
 	connectedPeers := monitor.ConnectionsProvider.ConnectedPeers()
 	connectedPeersRatings := make(map[string]string, len(connectedPeers))
 	for _, connectedPeer := range connectedPeers {
-		prettyPid := connectedPeer.Pretty()
-		rating, found := allRatings[prettyPid]
-		if found {
-			connectedPeersRatings[prettyPid] = rating
-			continue
-		}
-
-		connectedPeersRatings[prettyPid] = unknownRating
+		connectedPeersRatings[connectedPeer.Pretty()] = monitor.fetchRating(connectedPeer)
 	}
 
 	return connectedPeersRatings
+}
+
+func (monitor *peersRatingMonitor) fetchRating(pid core.PeerID) string {
+	rating, found := monitor.topRatedCache.Get(pid.Bytes())
+	if found {
+		return fmt.Sprintf("%d", rating)
+	}
+
+	rating, found = monitor.badRatedCache.Get(pid.Bytes())
+	if found {
+		return fmt.Sprintf("%d", rating)
+	}
+
+	return unknownRating
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
