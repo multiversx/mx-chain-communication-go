@@ -253,7 +253,7 @@ type PeersRatingHandler interface {
 
 // PeersRatingMonitor represent an entity able to provide peers ratings
 type PeersRatingMonitor interface {
-	GetPeersRatings() string
+	GetConnectedPeersRatings() string
 	IsInterfaceNil() bool
 }
 
