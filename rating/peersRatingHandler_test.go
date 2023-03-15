@@ -2,9 +2,7 @@ package rating
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -21,23 +19,8 @@ import (
 
 func createMockArgs() ArgPeersRatingHandler {
 	return ArgPeersRatingHandler{
-		TopRatedCache:              &mock.CacherStub{},
-		BadRatedCache:              &mock.CacherStub{},
-		AppStatusHandler:           &coreMocks.AppStatusHandlerStub{},
-		TimeWaitingForReconnection: time.Second,
-		TimeBetweenMetricsUpdate:   time.Second,
-		TimeBetweenCachersSweep:    time.Second,
-	}
-}
-
-func newPeersRatingHandlerWithoutGoRoutines(args ArgPeersRatingHandler) *peersRatingHandler {
-	return &peersRatingHandler{
-		topRatedCache:        args.TopRatedCache,
-		badRatedCache:        args.BadRatedCache,
-		removalTimestampsMap: make(map[string]int64),
-		ratingsMap:           make(map[string]*ratingInfo),
-		appStatusHandler:     args.AppStatusHandler,
-		getTimeHandler:       time.Now,
+		TopRatedCache: &mock.CacherStub{},
+		BadRatedCache: &mock.CacherStub{},
 	}
 }
 
@@ -66,210 +49,12 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
 		assert.True(t, check.IfNil(prh))
 	})
-	t.Run("nil app status handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.AppStatusHandler = nil
-
-		prh, err := NewPeersRatingHandler(args)
-		assert.Equal(t, p2p.ErrNilAppStatusHandler, err)
-		assert.True(t, check.IfNil(prh))
-	})
-	t.Run("invalid TimeWaitingForReconnection should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.TimeWaitingForReconnection = time.Second - time.Nanosecond
-
-		prh, err := NewPeersRatingHandler(args)
-		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "TimeWaitingForReconnection"))
-		assert.True(t, check.IfNil(prh))
-	})
-	t.Run("invalid TimeBetweenMetricsUpdate should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.TimeBetweenMetricsUpdate = time.Second - time.Nanosecond
-
-		prh, err := NewPeersRatingHandler(args)
-		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "TimeBetweenMetricsUpdate"))
-		assert.True(t, check.IfNil(prh))
-	})
-	t.Run("invalid TimeBetweenCachersSweep should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.TimeBetweenCachersSweep = time.Second - time.Nanosecond
-
-		prh, err := NewPeersRatingHandler(args)
-		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "TimeBetweenCachersSweep"))
-		assert.True(t, check.IfNil(prh))
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		prh, err := NewPeersRatingHandler(createMockArgs())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(prh))
-		assert.Nil(t, prh.Close())
-	})
-}
-
-func TestPeersRatingHandler_AddPeers(t *testing.T) {
-	t.Parallel()
-
-	t.Run("empty peers should work", func(t *testing.T) {
-		t.Parallel()
-
-		defer func() {
-			r := recover()
-			if r != nil {
-				assert.Fail(t, "should not panic")
-			}
-		}()
-
-		prh := newPeersRatingHandlerWithoutGoRoutines(createMockArgs())
-		assert.False(t, check.IfNil(prh))
-		prh.AddPeers(nil)
-	})
-	t.Run("new peer should add", func(t *testing.T) {
-		t.Parallel()
-
-		wasCalled := false
-		providedPid := core.PeerID("provided pid")
-		args := createMockArgs()
-		args.TopRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-
-				wasCalled = true
-				return false
-			},
-		}
-		args.BadRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-		}
-
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
-		assert.False(t, check.IfNil(prh))
-
-		prh.AddPeers([]core.PeerID{providedPid})
-		assert.True(t, wasCalled)
-	})
-	t.Run("peer in top rated should not add", func(t *testing.T) {
-		t.Parallel()
-
-		wasCalled := false
-		providedPid := core.PeerID("provided pid")
-		args := createMockArgs()
-		args.TopRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, true
-			},
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				wasCalled = true
-				return false
-			},
-		}
-		args.BadRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-		}
-
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
-		assert.False(t, check.IfNil(prh))
-
-		prh.AddPeers([]core.PeerID{providedPid})
-		assert.False(t, wasCalled)
-	})
-	t.Run("peer in bad rated should not add", func(t *testing.T) {
-		t.Parallel()
-
-		wasCalled := false
-		providedPid := core.PeerID("provided pid")
-		args := createMockArgs()
-		args.TopRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				wasCalled = true
-				return false
-			},
-		}
-		args.BadRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, true
-			},
-		}
-
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
-		assert.False(t, check.IfNil(prh))
-
-		prh.AddPeers([]core.PeerID{providedPid})
-		assert.False(t, wasCalled)
-	})
-	t.Run("peer marked for removal should be deleted", func(t *testing.T) {
-		t.Parallel()
-
-		providedPid := core.PeerID("provided pid")
-		providedPidMarkedForRemoval := core.PeerID("provided pid marked for removal")
-		args := createMockArgs()
-		putTopRatedCalledCounter := 0
-		args.TopRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				putTopRatedCalledCounter++
-				return false
-			},
-		}
-		args.BadRatedCache = &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-		}
-
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
-		assert.False(t, check.IfNil(prh))
-		prh.removalTimestampsMap[string(providedPidMarkedForRemoval.Bytes())] = time.Now().Unix() - int64(args.TimeWaitingForReconnection.Seconds()) - 1
-
-		prh.AddPeers([]core.PeerID{providedPid, providedPidMarkedForRemoval})
-		assert.Equal(t, 2, putTopRatedCalledCounter)
-		_, exists := prh.removalTimestampsMap[string(providedPidMarkedForRemoval.Bytes())]
-		assert.False(t, exists)
-	})
-	t.Run("inactive peers should be added to cache", func(t *testing.T) {
-		t.Parallel()
-
-		providedPid := core.PeerID("provided pid")
-		providedInactiveTopPid := core.PeerID("inactive top pid")
-		providedInactiveBadPid := core.PeerID("inactive bad pid")
-		args := createMockArgs()
-		args.TopRatedCache = coreMocks.NewCacherMock()
-		args.TopRatedCache.Put(providedInactiveTopPid.Bytes(), "", 0)
-		args.BadRatedCache = coreMocks.NewCacherMock()
-		args.BadRatedCache.Put(providedInactiveBadPid.Bytes(), "", 0)
-
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
-		assert.False(t, check.IfNil(prh))
-
-		prh.AddPeers([]core.PeerID{providedPid})
-		_, exists := prh.removalTimestampsMap[string(providedInactiveTopPid.Bytes())]
-		assert.True(t, exists)
-		_, exists = prh.removalTimestampsMap[string(providedInactiveBadPid.Bytes())]
-		assert.True(t, exists)
 	})
 }
 
@@ -298,7 +83,7 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 				return nil, false
 			},
 		}
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
+		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
 		prh.IncreaseRating(providedPid)
@@ -310,6 +95,7 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 		cacheMap := make(map[string]interface{})
 		providedPid := core.PeerID("provided pid")
 		args := createMockArgs()
+		puCalledCounter := 0
 		args.TopRatedCache = &mock.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				val, found := cacheMap[string(key)]
@@ -317,17 +103,18 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 			},
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				cacheMap[string(key)] = value
+				puCalledCounter++
 				return false
 			},
 		}
 
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
+		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
 		prh.IncreaseRating(providedPid)
 		val, found := cacheMap[string(providedPid.Bytes())]
 		assert.True(t, found)
-		assert.Equal(t, int32(2), val)
+		assert.Equal(t, int32(0), val)
 
 		// exceed the limit
 		numOfCalls := 100
@@ -337,6 +124,7 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 		val, found = cacheMap[string(providedPid.Bytes())]
 		assert.True(t, found)
 		assert.Equal(t, int32(maxRating), val)
+		assert.Equal(t, numOfCalls+1, puCalledCounter)
 	})
 }
 
@@ -365,7 +153,7 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 				return nil, false
 			},
 		}
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
+		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
 		prh.DecreaseRating(providedPid)
@@ -378,6 +166,7 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 		badRatedCacheMap := make(map[string]interface{})
 		providedPid := core.PeerID("provided pid")
 		args := createMockArgs()
+		putTopCalledCounter := 0
 		args.TopRatedCache = &mock.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				val, found := topRatedCacheMap[string(key)]
@@ -385,12 +174,14 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 			},
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				topRatedCacheMap[string(key)] = value
+				putTopCalledCounter++
 				return false
 			},
 			RemoveCalled: func(key []byte) {
 				delete(topRatedCacheMap, string(key))
 			},
 		}
+		putBadCalledCounter := 0
 		args.BadRatedCache = &mock.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				val, found := badRatedCacheMap[string(key)]
@@ -398,6 +189,7 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 			},
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				badRatedCacheMap[string(key)] = value
+				putBadCalledCounter++
 				return false
 			},
 			RemoveCalled: func(key []byte) {
@@ -405,14 +197,16 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 			},
 		}
 
-		prh := newPeersRatingHandlerWithoutGoRoutines(args)
+		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
 		// first call adds it with specific rating
 		prh.DecreaseRating(providedPid)
-		val, found := badRatedCacheMap[string(providedPid.Bytes())]
+		val, found := topRatedCacheMap[string(providedPid.Bytes())]
 		assert.True(t, found)
-		assert.Equal(t, int32(-1), val)
+		assert.Equal(t, int32(0), val)
+		assert.Equal(t, 1, putTopCalledCounter)
+		assert.Equal(t, 0, putBadCalledCounter)
 
 		// exceed the limit
 		numOfCalls := 200
@@ -422,6 +216,8 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 		val, found = badRatedCacheMap[string(providedPid.Bytes())]
 		assert.True(t, found)
 		assert.Equal(t, int32(minRating), val)
+		assert.Equal(t, 1, putTopCalledCounter)
+		assert.Equal(t, numOfCalls, putBadCalledCounter)
 
 		// move back to top tier
 		for i := 0; i < numOfCalls; i++ {
@@ -433,6 +229,10 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 		val, found = topRatedCacheMap[string(providedPid.Bytes())]
 		assert.True(t, found)
 		assert.Equal(t, int32(maxRating), val)
+		expectedBadPutCalled := numOfCalls + 49 // needs 49 calls from -100 to -2
+		expectedTopPutCalled := 1 + numOfCalls - 49
+		assert.Equal(t, expectedTopPutCalled, putTopCalledCounter)
+		assert.Equal(t, expectedBadPutCalled, putBadCalledCounter)
 	})
 }
 
@@ -457,7 +257,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		res := prh.GetTopRatedPeersFromList(nil, 1)
 		assert.Equal(t, 0, len(res))
 	})
-	t.Run("no peers in maps should return empty list", func(t *testing.T) {
+	t.Run("no peers in maps should add them to cachers and return them", func(t *testing.T) {
 		t.Parallel()
 
 		prh, _ := NewPeersRatingHandler(createMockArgs())
@@ -465,7 +265,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 
 		providedListOfPeers := []core.PeerID{"pid 1", "pid 2"}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 5)
-		assert.Equal(t, 0, len(res))
+		assert.Equal(t, providedListOfPeers, res)
 	})
 	t.Run("one peer in top rated, asking for one should work", func(t *testing.T) {
 		t.Parallel()
@@ -486,7 +286,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
-		providedListOfPeers := []core.PeerID{providedPid, "another pid"}
+		providedListOfPeers := []core.PeerID{providedPid}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 1)
 		assert.Equal(t, 1, len(res))
 		assert.Equal(t, providedPid, res[0])
@@ -522,7 +322,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
-		providedListOfPeers := []core.PeerID{providedTopPid, providedBadPid, "another pid"}
+		providedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
 		expectedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 2)
 		assert.Equal(t, expectedListOfPeers, res)
@@ -533,27 +333,14 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		log.SetLevel(logger.LogTrace) // coverage
 		providedPid1, providedPid2, providedPid3 := core.PeerID("provided pid 1"), core.PeerID("provided pid 2"), core.PeerID("provided pid 3")
 		args := createMockArgs()
-		args.TopRatedCache = &mock.CacherStub{
-			LenCalled: func() int {
-				return 3
-			},
-			KeysCalled: func() [][]byte {
-				return [][]byte{providedPid1.Bytes(), providedPid2.Bytes(), providedPid3.Bytes()}
-			},
-			HasCalled: func(key []byte) bool {
-				has := bytes.Equal(key, providedPid1.Bytes()) ||
-					bytes.Equal(key, providedPid2.Bytes()) ||
-					bytes.Equal(key, providedPid3.Bytes())
-				return has
-			},
-		}
+		args.TopRatedCache = coreMocks.NewCacherMock()
 		prh, _ := NewPeersRatingHandler(args)
 		assert.False(t, check.IfNil(prh))
 
-		providedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3, "another pid 1", "another pid 2"}
-		expectedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3}
-		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 2)
-		assert.Equal(t, expectedListOfPeers, res)
+		extraPid := core.PeerID("extra pid")
+		providedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3, extraPid}
+		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 4)
+		assert.Equal(t, providedListOfPeers, res)
 	})
 }
 
@@ -563,17 +350,9 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 	args := createMockArgs()
 	args.TopRatedCache = coreMocks.NewCacherMock()
 	args.BadRatedCache = coreMocks.NewCacherMock()
-	args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
-		SetStringValueHandler: func(key string, value string) {
-			assert.Equal(t, p2p.MetricP2PPeersRating, key)
-			log.Info(value)
-		},
-	}
 
 	prh, _ := NewPeersRatingHandler(args)
 	assert.False(t, check.IfNil(prh))
-
-	prh.AddPeers([]core.PeerID{"pid1", "pid2", "pid3", "pid4"})
 
 	numOps := 200
 	var wg sync.WaitGroup
@@ -605,99 +384,4 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 	wg.Wait()
-}
-
-func TestPeersRatingHandler_LoopsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	testsMut := sync.Mutex{}
-	// add peers from pid0 to pid9
-	numPIDs := 10
-	providedPIDs := &[]core.PeerID{}
-	testsMut.Lock()
-	for i := 0; i < numPIDs; i++ {
-		pid := core.PeerID(fmt.Sprintf("pid%d", i))
-		*providedPIDs = append(*providedPIDs, pid)
-	}
-	expectedRatings := &[]int32{0, 2, 4, 6, 8, -1, -2, -3, -4, -5}
-	testsMut.Unlock()
-
-	args := createMockArgs()
-	args.TimeWaitingForReconnection = time.Second * 4
-	args.TimeBetweenMetricsUpdate = time.Second * 2
-	args.TopRatedCache = coreMocks.NewCacherMock()
-	args.BadRatedCache = coreMocks.NewCacherMock()
-	args.AppStatusHandler = &coreMocks.AppStatusHandlerStub{
-		SetStringValueHandler: func(key string, value string) {
-			assert.Equal(t, p2p.MetricP2PPeersRating, key)
-			testsMut.Lock()
-			testReceivedValue(t, value, *providedPIDs, *expectedRatings)
-			testsMut.Unlock()
-			log.Info(value)
-		},
-	}
-	prh, err := NewPeersRatingHandler(args)
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(prh))
-
-	prh.AddPeers(*providedPIDs)
-
-	// increase ratings from pid0 to pid4 and decrease from pid5 to pid9
-	var wg sync.WaitGroup
-	wg.Add(numPIDs)
-	for i := 0; i < numPIDs; i++ {
-		go func(idx int) {
-			pid := core.PeerID(fmt.Sprintf("pid%d", idx))
-			defer wg.Done()
-			if idx < 5 {
-				for j := 0; j < idx; j++ {
-					prh.IncreaseRating(pid)
-				}
-				return
-			}
-
-			for j := 0; j < idx-5+1; j++ {
-				prh.DecreaseRating(pid)
-			}
-		}(i)
-	}
-	wg.Wait()
-
-	// wait until app status handler is updated
-	time.Sleep(time.Second * 3)
-
-	// add even pids again(mark odd pids for deletion)
-	testsMut.Lock()
-	providedPIDs = &[]core.PeerID{}
-	newExpectedRatings := &[]int32{}
-	for i := 0; i < numPIDs; i++ {
-		if i%2 == 0 {
-			pid := core.PeerID(fmt.Sprintf("pid%d", i))
-			*providedPIDs = append(*providedPIDs, pid)
-			*newExpectedRatings = append(*newExpectedRatings, (*expectedRatings)[i])
-		}
-	}
-	*expectedRatings = *newExpectedRatings
-	testsMut.Unlock()
-
-	prh.AddPeers(*providedPIDs)
-
-	// wait until cachers are cleaned
-	time.Sleep(time.Second * 7)
-	assert.Nil(t, prh.Close())
-}
-
-func testReceivedValue(
-	t *testing.T,
-	value string,
-	expectedPIDs []core.PeerID,
-	expectedRatings []int32,
-) {
-	rInfoMap := map[string]*ratingInfo{}
-	assert.Nil(t, json.Unmarshal([]byte(value), &rInfoMap))
-	for i := 0; i < len(expectedPIDs); i++ {
-		rInfo, exists := rInfoMap[expectedPIDs[i].Pretty()]
-		assert.True(t, exists)
-		assert.Equal(t, expectedRatings[i], rInfo.Rating)
-	}
 }
