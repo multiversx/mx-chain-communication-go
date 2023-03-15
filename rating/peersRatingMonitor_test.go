@@ -79,7 +79,7 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		args.BadRatedCache.Put(badPid2.Bytes(), int32(-50), 32)
 		badPid3 := core.PeerID("bad_pid3")
 		args.BadRatedCache.Put(badPid3.Bytes(), int32(-10), 32)
-		args.TopRatedCache.Put(commonPid.Bytes(), int32(-10), 32) // should override
+		args.BadRatedCache.Put(commonPid.Bytes(), int32(-10), 32) // should use the one from top-rated
 
 		extraConnectedPid := core.PeerID("extra_connected_pid")
 		args.ConnectionsProvider = &mock.ConnectionsProviderStub{
@@ -93,7 +93,7 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		expectedMap := map[string]string{
-			commonPid.Pretty():         "-10",
+			commonPid.Pretty():         "10",
 			badPid2.Pretty():           "-50",
 			badPid3.Pretty():           "-10",
 			extraConnectedPid.Pretty(): unknownRating,
