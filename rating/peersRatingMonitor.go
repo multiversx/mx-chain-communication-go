@@ -22,7 +22,7 @@ type ArgPeersRatingMonitor struct {
 type peersRatingMonitor struct {
 	topRatedCache       types.Cacher
 	badRatedCache       types.Cacher
-	ConnectionsProvider connectionsProvider
+	connectionsProvider connectionsProvider
 }
 
 // NewPeersRatingMonitor returns a new peers rating monitor
@@ -35,7 +35,7 @@ func NewPeersRatingMonitor(args ArgPeersRatingMonitor) (*peersRatingMonitor, err
 	return &peersRatingMonitor{
 		topRatedCache:       args.TopRatedCache,
 		badRatedCache:       args.BadRatedCache,
-		ConnectionsProvider: args.ConnectionsProvider,
+		connectionsProvider: args.ConnectionsProvider,
 	}, nil
 }
 
@@ -66,7 +66,7 @@ func (monitor *peersRatingMonitor) GetConnectedPeersRatings() string {
 }
 
 func (monitor *peersRatingMonitor) extractConnectedPeersRatings() map[string]string {
-	connectedPeers := monitor.ConnectionsProvider.ConnectedPeers()
+	connectedPeers := monitor.connectionsProvider.ConnectedPeers()
 	connectedPeersRatings := make(map[string]string, len(connectedPeers))
 	for _, connectedPeer := range connectedPeers {
 		connectedPeersRatings[connectedPeer.Pretty()] = monitor.fetchRating(connectedPeer)
