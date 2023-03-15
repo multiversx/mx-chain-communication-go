@@ -16,8 +16,9 @@ import (
 
 func createMockArgPeersRatingMonitor() ArgPeersRatingMonitor {
 	return ArgPeersRatingMonitor{
-		TopRatedCache: &mock.CacherStub{},
-		BadRatedCache: &mock.CacherStub{},
+		TopRatedCache:       &mock.CacherStub{},
+		BadRatedCache:       &mock.CacherStub{},
+		ConnectionsProvider: &mock.ConnectionsProviderStub{},
 	}
 }
 
@@ -46,6 +47,16 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
 		assert.True(t, check.IfNil(monitor))
 	})
+	t.Run("nil connections provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeersRatingMonitor()
+		args.ConnectionsProvider = nil
+
+		monitor, err := NewPeersRatingMonitor(args)
+		assert.Equal(t, p2p.ErrNilConnectionsProvider, err)
+		assert.True(t, check.IfNil(monitor))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -53,11 +64,7 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 			TopRatedCache: coreMocks.NewCacherMock(),
 			BadRatedCache: coreMocks.NewCacherMock(),
 		}
-		monitor, err := NewPeersRatingMonitor(args)
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(monitor))
-
-		topPid1 := core.PeerID("top_pid1")
+		topPid1 := core.PeerID("top_pid1") // won't be returned as connection
 		args.TopRatedCache.Put(topPid1.Bytes(), int32(100), 32)
 		topPid2 := core.PeerID("top_pid2")
 		args.TopRatedCache.Put(topPid2.Bytes(), int32(50), 32)
@@ -66,7 +73,7 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		commonPid := core.PeerID("common_pid")
 		args.TopRatedCache.Put(commonPid.Bytes(), int32(10), 32)
 
-		badPid1 := core.PeerID("bad_pid1")
+		badPid1 := core.PeerID("bad_pid1") // won't be returned as connection
 		args.BadRatedCache.Put(badPid1.Bytes(), int32(-100), 32)
 		badPid2 := core.PeerID("bad_pid2")
 		args.BadRatedCache.Put(badPid2.Bytes(), int32(-50), 32)
@@ -74,17 +81,27 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		args.BadRatedCache.Put(badPid3.Bytes(), int32(-10), 32)
 		args.TopRatedCache.Put(commonPid.Bytes(), int32(-10), 32) // should override
 
-		expectedMap := map[string]int32{
-			topPid1.Pretty():   int32(100),
-			topPid2.Pretty():   int32(50),
-			topPid3.Pretty():   int32(0),
-			badPid1.Pretty():   int32(-100),
-			badPid2.Pretty():   int32(-50),
-			badPid3.Pretty():   int32(-10),
-			commonPid.Pretty(): int32(-10),
+		extraConnectedPid := core.PeerID("extra_connected_pid")
+		args.ConnectionsProvider = &mock.ConnectionsProviderStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{topPid2, topPid3, badPid2, badPid3, commonPid, extraConnectedPid}
+			},
+		}
+
+		monitor, err := NewPeersRatingMonitor(args)
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(monitor))
+
+		expectedMap := map[string]string{
+			commonPid.Pretty():         "-10",
+			badPid2.Pretty():           "-50",
+			badPid3.Pretty():           "-10",
+			extraConnectedPid.Pretty(): unknownRating,
+			topPid2.Pretty():           "50",
+			topPid3.Pretty():           "0",
 		}
 		expectedStr, _ := json.Marshal(&expectedMap)
-		ratings := monitor.GetPeersRatings()
+		ratings := monitor.GetConnectedPeersRatings()
 		assert.Equal(t, string(expectedStr), ratings)
 	})
 }
