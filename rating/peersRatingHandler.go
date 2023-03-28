@@ -23,7 +23,7 @@ const (
 	int32Size      = 4
 )
 
-var log = logger.GetOrCreate("p2p/peersRatingHandler")
+var log = logger.GetOrCreate("p2p/peersRating")
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
@@ -34,25 +34,23 @@ type ArgPeersRatingHandler struct {
 type peersRatingHandler struct {
 	topRatedCache types.Cacher
 	badRatedCache types.Cacher
-	mut           sync.Mutex
+	mut           sync.RWMutex
 }
 
 // NewPeersRatingHandler returns a new peers rating handler
 func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, error) {
-	err := checkArgs(args)
+	err := checkHandlerArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	prh := &peersRatingHandler{
+	return &peersRatingHandler{
 		topRatedCache: args.TopRatedCache,
 		badRatedCache: args.BadRatedCache,
-	}
-
-	return prh, nil
+	}, nil
 }
 
-func checkArgs(args ArgPeersRatingHandler) error {
+func checkHandlerArgs(args ArgPeersRatingHandler) error {
 	if check.IfNil(args.TopRatedCache) {
 		return fmt.Errorf("%w for TopRatedCache", p2p.ErrNilCacher)
 	}
@@ -63,44 +61,32 @@ func checkArgs(args ArgPeersRatingHandler) error {
 	return nil
 }
 
-// AddPeer adds a new peer to the cache with rating 0
-// this is called when a new peer is detected
-func (prh *peersRatingHandler) AddPeer(pid core.PeerID) {
-	prh.mut.Lock()
-	defer prh.mut.Unlock()
-
-	_, found := prh.getOldRating(pid)
-	if found {
-		return
-	}
-
-	prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
-}
-
 // IncreaseRating increases the rating of a peer with the increase factor
 func (prh *peersRatingHandler) IncreaseRating(pid core.PeerID) {
+	// keep this section critical, as we do read + write
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	prh.updateRatingIfNeeded(pid, increaseFactor)
+	prh.updateRating(pid, increaseFactor)
 }
 
 // DecreaseRating decreases the rating of a peer with the decrease factor
 func (prh *peersRatingHandler) DecreaseRating(pid core.PeerID) {
+	// keep this section critical, as we do read + write
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	prh.updateRatingIfNeeded(pid, decreaseFactor)
+	prh.updateRating(pid, decreaseFactor)
 }
 
-func (prh *peersRatingHandler) getOldRating(pid core.PeerID) (int32, bool) {
-	oldRating, found := prh.topRatedCache.Get(pid.Bytes())
+func (prh *peersRatingHandler) getOldRating(pid []byte) (int32, bool) {
+	oldRating, found := prh.topRatedCache.Get(pid)
 	if found {
 		oldRatingInt, _ := oldRating.(int32)
 		return oldRatingInt, found
 	}
 
-	oldRating, found = prh.badRatedCache.Get(pid.Bytes())
+	oldRating, found = prh.badRatedCache.Get(pid)
 	if found {
 		oldRatingInt, _ := oldRating.(int32)
 		return oldRatingInt, found
@@ -109,18 +95,11 @@ func (prh *peersRatingHandler) getOldRating(pid core.PeerID) (int32, bool) {
 	return defaultRating, found
 }
 
-func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFactor int32) {
-	oldRating, found := prh.getOldRating(pid)
+func (prh *peersRatingHandler) updateRating(pid core.PeerID, updateFactor int32) {
+	oldRating, found := prh.getOldRating(pid.Bytes())
 	if !found {
 		// new pid, add it with default rating
 		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
-		return
-	}
-
-	decreasingUnderMin := oldRating == minRating && updateFactor == decreaseFactor
-	increasingOverMax := oldRating == maxRating && updateFactor == increaseFactor
-	shouldSkipUpdate := decreasingUnderMin || increasingOverMax
-	if shouldSkipUpdate {
 		return
 	}
 
@@ -133,10 +112,10 @@ func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFacto
 		newRating = minRating
 	}
 
-	prh.updateRating(pid, oldRating, newRating)
+	prh.updateRatingCacher(pid, oldRating, newRating)
 }
 
-func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRating int32) {
+func (prh *peersRatingHandler) updateRatingCacher(pid core.PeerID, oldRating, newRating int32) {
 	oldTier := computeRatingTier(oldRating)
 	newTier := computeRatingTier(newRating)
 	if newTier == oldTier {
@@ -149,7 +128,7 @@ func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRatin
 		return
 	}
 
-	prh.movePeerToNewTier(newRating, pid)
+	prh.movePeerToNewTier(newRating, newTier, pid)
 }
 
 func computeRatingTier(peerRating int32) string {
@@ -160,8 +139,7 @@ func computeRatingTier(peerRating int32) string {
 	return badRatedTier
 }
 
-func (prh *peersRatingHandler) movePeerToNewTier(newRating int32, pid core.PeerID) {
-	newTier := computeRatingTier(newRating)
+func (prh *peersRatingHandler) movePeerToNewTier(newRating int32, newTier string, pid core.PeerID) {
 	if newTier == topRatedTier {
 		prh.badRatedCache.Remove(pid.Bytes())
 		prh.topRatedCache.Put(pid.Bytes(), newRating, int32Size)
@@ -220,12 +198,20 @@ func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.Pe
 	badRated := make([]core.PeerID, 0)
 
 	for _, peer := range peers {
+		isNewPeer := true
 		if prh.topRatedCache.Has(peer.Bytes()) {
 			topRated = append(topRated, peer)
+			isNewPeer = false
 		}
 
 		if prh.badRatedCache.Has(peer.Bytes()) {
 			badRated = append(badRated, peer)
+			isNewPeer = false
+		}
+
+		if isNewPeer {
+			prh.topRatedCache.Put(peer.Bytes(), defaultRating, int32Size)
+			topRated = append(topRated, peer)
 		}
 	}
 
