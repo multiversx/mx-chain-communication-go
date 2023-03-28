@@ -4,17 +4,9 @@ import "github.com/multiversx/mx-chain-core-go/core"
 
 // PeersRatingHandlerStub -
 type PeersRatingHandlerStub struct {
-	AddPeerCalled                  func(pid core.PeerID)
 	IncreaseRatingCalled           func(pid core.PeerID)
 	DecreaseRatingCalled           func(pid core.PeerID)
 	GetTopRatedPeersFromListCalled func(peers []core.PeerID, numOfPeers int) []core.PeerID
-}
-
-// AddPeer -
-func (stub *PeersRatingHandlerStub) AddPeer(pid core.PeerID) {
-	if stub.AddPeerCalled != nil {
-		stub.AddPeerCalled(pid)
-	}
 }
 
 // IncreaseRating -
