@@ -99,6 +99,7 @@ type MessageP2P interface {
 	Key() []byte
 	Peer() core.PeerID
 	Timestamp() int64
+	BroadcastMethod() BroadcastMethod
 	IsInterfaceNil() bool
 }
 
@@ -244,10 +245,15 @@ type ConnectionsWatcher interface {
 
 // PeersRatingHandler represent an entity able to handle peers ratings
 type PeersRatingHandler interface {
-	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
+	IsInterfaceNil() bool
+}
+
+// PeersRatingMonitor represent an entity able to provide peers ratings
+type PeersRatingMonitor interface {
+	GetConnectedPeersRatings() string
 	IsInterfaceNil() bool
 }
 

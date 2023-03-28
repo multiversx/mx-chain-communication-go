@@ -32,3 +32,12 @@ const (
 	// do not follow this protocol
 	WrongP2PMessageBlacklistDuration = time.Second * 7200
 )
+
+// BroadcastMethod defines the broadcast method of the message
+type BroadcastMethod string
+
+// Direct defines a direct message
+const Direct BroadcastMethod = "Direct"
+
+// Broadcast defines a broadcast message
+const Broadcast BroadcastMethod = "Broadcast"
