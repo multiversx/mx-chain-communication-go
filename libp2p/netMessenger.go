@@ -264,7 +264,6 @@ func addComponentsToNode(
 	}
 
 	peersOnChannelInstance, err := newPeersOnChannel(
-		peersRatingHandler,
 		pubSub.ListPeers,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic)

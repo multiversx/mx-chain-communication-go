@@ -31,7 +31,7 @@ func TestMessage_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pMes := &pubsub.Message{}
-	m, err := libp2p.NewMessage(pMes, nil)
+	m, err := libp2p.NewMessage(pMes, nil, p2p.Broadcast)
 
 	assert.True(t, check.IfNil(m))
 	assert.True(t, errors.Is(err, p2p.ErrNilMarshaller))
@@ -56,7 +56,7 @@ func TestMessage_ShouldErrBecauseOfFromField(t *testing.T) {
 		Topic: &topic,
 	}
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	assert.True(t, check.IfNil(m))
 	assert.NotNil(t, err)
@@ -80,7 +80,7 @@ func TestMessage_ShouldWork(t *testing.T) {
 	}
 
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	require.Nil(t, err)
 	assert.False(t, check.IfNil(m))
@@ -104,7 +104,7 @@ func TestMessage_From(t *testing.T) {
 		Topic: &topic,
 	}
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	require.Nil(t, err)
 	assert.Equal(t, m.From(), from)
@@ -129,7 +129,7 @@ func TestMessage_Peer(t *testing.T) {
 		Topic: &topic,
 	}
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	require.Nil(t, err)
 	assert.Equal(t, core.PeerID(id), m.Peer())
@@ -154,7 +154,7 @@ func TestMessage_WrongVersionShouldErr(t *testing.T) {
 	}
 
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	assert.True(t, check.IfNil(m))
 	assert.True(t, errors.Is(err, p2p.ErrUnsupportedMessageVersion))
@@ -180,7 +180,7 @@ func TestMessage_PopulatedPkFieldShouldErr(t *testing.T) {
 	}
 
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	assert.True(t, check.IfNil(m))
 	assert.True(t, errors.Is(err, p2p.ErrUnsupportedFields))
@@ -206,7 +206,7 @@ func TestMessage_PopulatedSigFieldShouldErr(t *testing.T) {
 	}
 
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	assert.True(t, check.IfNil(m))
 	assert.True(t, errors.Is(err, p2p.ErrUnsupportedFields))
@@ -230,7 +230,7 @@ func TestMessage_NilTopic(t *testing.T) {
 		Topic: nil,
 	}
 	pMes := &pubsub.Message{Message: mes}
-	m, err := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer, p2p.Broadcast)
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
 	assert.True(t, check.IfNil(m))
@@ -241,7 +241,7 @@ func TestMessage_NilMessage(t *testing.T) {
 
 	marshalizer := &mock.ProtoMarshallerMock{}
 
-	m, err := libp2p.NewMessage(nil, marshalizer)
+	m, err := libp2p.NewMessage(nil, marshalizer, p2p.Broadcast)
 
 	assert.Equal(t, p2p.ErrNilMessage, err)
 	assert.True(t, check.IfNil(m))

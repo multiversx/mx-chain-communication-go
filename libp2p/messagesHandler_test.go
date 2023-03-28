@@ -579,19 +579,12 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		wasCalled := false
-		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
-			IncreaseRatingCalled: func(pid core.PeerID) {
-				wasCalled = true
-			},
-		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.False(t, check.IfNil(mh))
 
 		tp := &mock.MessageProcessorStub{}
 		cb := mh.PubsubCallback(tp, providedTopic)
 		assert.True(t, cb(context.Background(), peerID, createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)))
-		assert.True(t, wasCalled)
 	})
 }
 
@@ -1218,4 +1211,63 @@ func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 	assert.False(t, check.IfNil(mh))
 
 	assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid"))
+}
+
+func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	realPID, _ := core.NewPeerID("QmY33RXFSbFFpxD2ZfamQvXGULFUsxAYSR2VkTXVewuMNh")
+	t.Run("broadcast message should not increase rating", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
+			IncreaseRatingCalled: func(pid core.PeerID) {
+				assert.Fail(t, "should not have been called")
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.False(t, check.IfNil(mh))
+
+		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast)
+		mh.IncreaseRatingIfNeeded(msg, realPID)
+	})
+	t.Run("request message should not increase rating", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
+			IncreaseRatingCalled: func(pid core.PeerID) {
+				assert.Fail(t, "should not have been called")
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.False(t, check.IfNil(mh))
+
+		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
+		requestTopic := fmt.Sprintf("topic_%s", core.TopicRequestSuffix)
+		providedPubSubMsg.Topic = &requestTopic
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
+		mh.IncreaseRatingIfNeeded(msg, realPID)
+	})
+	t.Run("should increase rating", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		wasCalled := false
+		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
+			IncreaseRatingCalled: func(pid core.PeerID) {
+				assert.Equal(t, realPID, pid)
+				wasCalled = true
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.False(t, check.IfNil(mh))
+
+		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
+		mh.IncreaseRatingIfNeeded(msg, realPID)
+		assert.True(t, wasCalled)
+	})
 }

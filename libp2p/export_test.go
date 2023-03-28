@@ -171,12 +171,11 @@ func DefaultSendChannel() string {
 }
 
 func NewPeersOnChannel(
-	peersRatingHandler p2p.PeersRatingHandler,
 	fetchPeersHandler func(topic string) []peer.ID,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 ) (*peersOnChannel, error) {
-	return newPeersOnChannel(peersRatingHandler, fetchPeersHandler, refreshInterval, ttlInterval)
+	return newPeersOnChannel(fetchPeersHandler, refreshInterval, ttlInterval)
 }
 
 func (poc *peersOnChannel) SetPeersOnTopic(topic string, lastUpdated time.Time, peers []core.PeerID) {
@@ -246,6 +245,11 @@ func (handler *messagesHandler) BlacklistPid(pid core.PeerID, banDuration time.D
 // TransformAndCheckMessage -
 func (handler *messagesHandler) TransformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
 	return handler.transformAndCheckMessage(pbMsg, pid, topic)
+}
+
+// IncreaseRatingIfNeeded -
+func (handler *messagesHandler) IncreaseRatingIfNeeded(msg p2p.MessageP2P, from core.PeerID) {
+	handler.increaseRatingIfNeeded(msg, from)
 }
 
 // NewMessagesHandlerWithTopics -

@@ -7,17 +7,15 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-p2p-go"
 )
 
 // peersOnChannel manages peers on topics
 // it buffers the data and refresh the peers list continuously (in refreshInterval intervals)
 type peersOnChannel struct {
-	mutPeers           sync.RWMutex
-	peersRatingHandler p2p.PeersRatingHandler
-	peers              map[string][]core.PeerID
-	lastUpdated        map[string]time.Time
+	mutPeers    sync.RWMutex
+	peers       map[string][]core.PeerID
+	lastUpdated map[string]time.Time
 
 	refreshInterval   time.Duration
 	ttlInterval       time.Duration
@@ -28,15 +26,11 @@ type peersOnChannel struct {
 
 // newPeersOnChannel returns a new peersOnChannel object
 func newPeersOnChannel(
-	peersRatingHandler p2p.PeersRatingHandler,
 	fetchPeersHandler func(topic string) []peer.ID,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 ) (*peersOnChannel, error) {
 
-	if check.IfNil(peersRatingHandler) {
-		return nil, p2p.ErrNilPeersRatingHandler
-	}
 	if fetchPeersHandler == nil {
 		return nil, p2p.ErrNilFetchPeersOnTopicHandler
 	}
@@ -50,13 +44,12 @@ func newPeersOnChannel(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	poc := &peersOnChannel{
-		peersRatingHandler: peersRatingHandler,
-		peers:              make(map[string][]core.PeerID),
-		lastUpdated:        make(map[string]time.Time),
-		refreshInterval:    refreshInterval,
-		ttlInterval:        ttlInterval,
-		fetchPeersHandler:  fetchPeersHandler,
-		cancelFunc:         cancelFunc,
+		peers:             make(map[string][]core.PeerID),
+		lastUpdated:       make(map[string]time.Time),
+		refreshInterval:   refreshInterval,
+		ttlInterval:       ttlInterval,
+		fetchPeersHandler: fetchPeersHandler,
+		cancelFunc:        cancelFunc,
 	}
 	poc.getTimeHandler = poc.clockTime
 
@@ -127,7 +120,6 @@ func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
 	for i, pid := range list {
 		peerID := core.PeerID(pid)
 		connectedPeers[i] = peerID
-		poc.peersRatingHandler.AddPeer(peerID)
 	}
 
 	poc.updateConnectedPeersOnTopic(topic, connectedPeers)
