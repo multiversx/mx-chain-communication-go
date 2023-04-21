@@ -291,7 +291,7 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockNetworkArgs()
-		p2pPrivateKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(arg.P2pPrivateKey)
+		p2pPrivateKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(arg.P2pPrivateKey)
 		pid, _ := peer.IDFromPublicKey(p2pPrivateKey.GetPublic())
 		connString := "/ip4/127.0.0.1/tcp/9999/" + pid.String()
 		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{connString}
@@ -1625,7 +1625,6 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	defer closeMessengers(messenger)
 
 	numCalled := uint32(0)
-	expectedErr := errors.New("expected error")
 	handler := &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
