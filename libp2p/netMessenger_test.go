@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-p2p-go/config"
 	"github.com/multiversx/mx-chain-p2p-go/data"
 	"github.com/multiversx/mx-chain-p2p-go/libp2p"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
 	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
@@ -2049,7 +2049,7 @@ func createP2PPrivKeyAndPid() ([]byte, peer.ID) {
 	keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 	prvKey, _ := keyGen.GeneratePair()
 
-	p2pPrivKey, _ := crypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
+	p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(prvKey)
 	p2pPubKey := p2pPrivKey.GetPublic()
 	pid, _ := peer.IDFromPublicKey(p2pPubKey)
 
