@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
 	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,10 +17,10 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("from a nil public key should error", func(t *testing.T) {
 		t.Parallel()
 
-		conv := crypto.NewP2PKeyConverter()
+		conv := p2pCrypto.NewP2PKeyConverter()
 		pid, err := conv.ConvertPublicKeyToPeerID(nil)
 		assert.Empty(t, pid)
-		assert.Equal(t, crypto.ErrNilPublicKey, err)
+		assert.Equal(t, p2pCrypto.ErrNilPublicKey, err)
 	})
 	t.Run("ToByteArray errors, should error", func(t *testing.T) {
 		t.Parallel()
@@ -32,7 +32,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 			},
 		}
 
-		conv := crypto.NewP2PKeyConverter()
+		conv := p2pCrypto.NewP2PKeyConverter()
 		pid, err := conv.ConvertPublicKeyToPeerID(mockPk)
 		assert.Empty(t, pid)
 		assert.Equal(t, expectedErr, err)
@@ -46,7 +46,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 			},
 		}
 
-		conv := crypto.NewP2PKeyConverter()
+		conv := p2pCrypto.NewP2PKeyConverter()
 		pid, err := conv.ConvertPublicKeyToPeerID(mockPk)
 		assert.Empty(t, pid)
 		assert.NotNil(t, err)
@@ -58,7 +58,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 		keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 		_, pk := keyGen.GeneratePair()
 
-		conv := crypto.NewP2PKeyConverter()
+		conv := p2pCrypto.NewP2PKeyConverter()
 		pid, err := conv.ConvertPublicKeyToPeerID(pk)
 		assert.NotEmpty(t, pid)
 		assert.Nil(t, err)
@@ -66,7 +66,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("should work using a generated identity", func(t *testing.T) {
 		t.Parallel()
 
-		generator := crypto.NewIdentityGenerator()
+		generator := p2pCrypto.NewIdentityGenerator()
 		skBytes, pid, err := generator.CreateRandomP2PIdentity()
 		assert.Nil(t, err)
 
@@ -74,8 +74,8 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 		sk, err := keyGen.PrivateKeyFromByteArray(skBytes)
 		assert.Nil(t, err)
 
-		conv := crypto.NewP2PKeyConverter()
 		pk := sk.GeneratePublic()
+		conv := p2pCrypto.NewP2PKeyConverter()
 		recoveredPid, err := conv.ConvertPublicKeyToPeerID(pk)
 		assert.Nil(t, err)
 
