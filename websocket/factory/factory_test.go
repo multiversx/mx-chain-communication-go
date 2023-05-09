@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core/mock"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,9 +19,8 @@ func createArgs() ArgsWebSocketDriverFactory {
 			RetryDurationInSec: 1,
 			BlockingAckOnError: false,
 		},
-		Marshaller:               &mock.MarshalizerMock{},
-		Uint64ByteSliceConverter: uint64ByteSlice.NewBigEndianConverter(),
-		Log:                      &mock.LoggerMock{},
+		Marshaller: &mock.MarshalizerMock{},
+		Log:        &mock.LoggerMock{},
 	}
 }
 
