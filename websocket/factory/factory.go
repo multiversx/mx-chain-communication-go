@@ -12,10 +12,9 @@ import (
 
 // ArgsWebSocketDriverFactory holds the arguments needed for creating a webSocketsDriverFactory
 type ArgsWebSocketDriverFactory struct {
-	WebSocketConfig          outportData.WebSocketConfig
-	Marshaller               marshal.Marshalizer
-	Uint64ByteSliceConverter websocket.Uint64ByteSliceConverter
-	Log                      core.Logger
+	WebSocketConfig outportData.WebSocketConfig
+	Marshaller      marshal.Marshalizer
+	Log             core.Logger
 }
 
 // NewWebSocketDriver will handle the creation of all the components needed to create an outport driver that sends data over WebSocket
