@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	coreMock "github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -19,7 +18,7 @@ func getMockArgs() ArgsWebSocketDriver {
 	return ArgsWebSocketDriver{
 		Marshaller:      &marshal.JsonMarshalizer{},
 		WebsocketSender: &testscommon.WebSocketSenderStub{},
-		Log:             &coreMock.LoggerMock{},
+		Log:             &testscommon.LoggerMock{},
 	}
 }
 

@@ -3,8 +3,8 @@ package websocket
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ func TestNewWebSocketPayloadConverter(t *testing.T) {
 	require.Nil(t, payloadConverter)
 	require.Equal(t, data.ErrNilMarshaller, err)
 
-	payloadConverter, _ = NewWebSocketPayloadConverter(&mock.MarshalizerMock{})
+	payloadConverter, _ = NewWebSocketPayloadConverter(&testscommon.MarshalizerMock{})
 	require.NotNil(t, payloadConverter)
 	require.False(t, payloadConverter.IsInterfaceNil())
 }
@@ -27,14 +27,14 @@ func TestWebSocketPayloadConverter_IsInterfaceNil(t *testing.T) {
 	addrGroup, _ := NewWebSocketPayloadConverter(nil)
 	require.True(t, addrGroup.IsInterfaceNil())
 
-	addrGroup, _ = NewWebSocketPayloadConverter(&mock.MarshalizerMock{})
+	addrGroup, _ = NewWebSocketPayloadConverter(&testscommon.MarshalizerMock{})
 	require.False(t, addrGroup.IsInterfaceNil())
 }
 
 func TestWebSocketsPayloadConverter_ConstructPayload(t *testing.T) {
 	t.Parallel()
 
-	payloadConverter, _ := NewWebSocketPayloadConverter(&mock.MarshalizerMock{})
+	payloadConverter, _ := NewWebSocketPayloadConverter(&testscommon.MarshalizerMock{})
 
 	wsMessage := &data.WsMessage{
 		WithAcknowledge: true,

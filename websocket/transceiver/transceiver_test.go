@@ -12,17 +12,16 @@ import (
 	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgs() ArgsTransceiver {
-	payloadConverter, _ := webSocket.NewWebSocketPayloadConverter(&mock.MarshalizerMock{})
+	payloadConverter, _ := webSocket.NewWebSocketPayloadConverter(&testscommon.MarshalizerMock{})
 	return ArgsTransceiver{
 		BlockingAckOnError: false,
 		PayloadConverter:   payloadConverter,
-		Log:                &mock.LoggerMock{},
+		Log:                &testscommon.LoggerMock{},
 		RetryDurationInSec: 1,
 		WithAcknowledge:    false,
 	}

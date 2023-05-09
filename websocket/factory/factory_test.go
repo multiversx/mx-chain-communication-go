@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,8 +19,8 @@ func createArgs() ArgsWebSocketDriverFactory {
 			RetryDurationInSec: 1,
 			BlockingAckOnError: false,
 		},
-		Marshaller: &mock.MarshalizerMock{},
-		Log:        &mock.LoggerMock{},
+		Marshaller: &testscommon.MarshalizerMock{},
+		Log:        &testscommon.LoggerMock{},
 	}
 }
 
