@@ -61,18 +61,21 @@ func TestNewWebSocketsServer(t *testing.T) {
 }
 
 func TestServer_ListenAndClose(t *testing.T) {
-	args := createArgs()
-	args.URL = "localhost:9211"
-	wsServer, _ := NewWebSocketServer(args)
-
 	count := uint64(0)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func() {
-		wsServer.Start()
-		wg.Done()
-		atomic.AddUint64(&count, 1)
-	}()
+
+	args := createArgs()
+	args.URL = "localhost:9211"
+	args.Log = &testscommon.LoggerStub{
+		InfoCalled: func(message string, args ...interface{}) {
+			if message == "server was closed" {
+				wg.Done()
+				atomic.AddUint64(&count, 1)
+			}
+		},
+	}
+	wsServer, _ := NewWebSocketServer(args)
 
 	_ = wsServer.Close()
 	wg.Wait()
@@ -80,16 +83,20 @@ func TestServer_ListenAndClose(t *testing.T) {
 }
 
 func TestServer_ListenAndRegisterPayloadHandlerAndClose(t *testing.T) {
-	args := createArgs()
-	args.URL = "localhost:9211"
-	wsServer, _ := NewWebSocketServer(args)
-
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func() {
-		wsServer.Start()
-		wg.Done()
-	}()
+
+	args := createArgs()
+	args.Log = &testscommon.LoggerStub{
+		InfoCalled: func(message string, args ...interface{}) {
+			if message == "server was closed" {
+				wg.Done()
+			}
+		},
+	}
+
+	args.URL = "localhost:9211"
+	wsServer, _ := NewWebSocketServer(args)
 
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{})
 	wsServer.connectionHandler(&testscommon.WebsocketConnectionStub{

@@ -30,8 +30,6 @@ func CreateWebSocketHost(args ArgsWebSocketHost) (FullDuplexHost, error) {
 		return nil, err
 	}
 
-	host.Start()
-
 	return host, nil
 }
 

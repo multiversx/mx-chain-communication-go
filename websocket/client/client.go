@@ -54,14 +54,19 @@ func NewWebSocketClient(args ArgsWebSocketClient) (*client, error) {
 	}
 
 	wsUrl := url.URL{Scheme: "ws", Host: args.URL, Path: data.WSRoute}
-	return &client{
+
+	wsClient := &client{
 		url:           wsUrl.String(),
 		wsConn:        connection.NewWSConnClient(),
 		retryDuration: time.Duration(args.RetryDurationInSeconds) * time.Second,
 		safeCloser:    closing.NewSafeChanCloser(),
 		transceiver:   wsTransceiver,
 		log:           args.Log,
-	}, nil
+	}
+
+	wsClient.start()
+
+	return wsClient, nil
 }
 
 func checkArgs(args ArgsWebSocketClient) error {
@@ -80,8 +85,7 @@ func checkArgs(args ArgsWebSocketClient) error {
 	return nil
 }
 
-// Start will start the WebSocket client (will initialize a connection with the ws server) and listen for messages
-func (c *client) Start() {
+func (c *client) start() {
 	go func() {
 		timer := time.NewTimer(c.retryDuration)
 		defer timer.Stop()
