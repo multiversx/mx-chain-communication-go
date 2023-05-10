@@ -9,13 +9,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 )
 
+// ArgsWebSocketHost holds all the arguments needed in order to create a FullDuplexHost
 type ArgsWebSocketHost struct {
 	WebSocketConfig outportData.WebSocketConfig
 	Marshaller      marshal.Marshalizer
 	Log             core.Logger
 }
 
-// CreateWebSocketHost will create and start a new instance of websocket.FullDuplexHost
+// CreateWebSocketHost will create and start a new instance of factory.FullDuplexHost
 func CreateWebSocketHost(args ArgsWebSocketHost) (FullDuplexHost, error) {
 	var host FullDuplexHost
 	var err error
