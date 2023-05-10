@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -10,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createArgs() ArgsWebSocketDriverFactory {
-	return ArgsWebSocketDriverFactory{
+func createArgs() ArgsWebSocketHost {
+	return ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
 			URL:                "localhost:1234",
 			WithAcknowledge:    false,
@@ -24,24 +23,11 @@ func createArgs() ArgsWebSocketDriverFactory {
 	}
 }
 
-func TestNewWebSocketDriver(t *testing.T) {
-	t.Parallel()
-
-	args := createArgs()
-	driver, err := NewWebSocketDriver(args)
-	require.Nil(t, err)
-	require.NotNil(t, driver)
-	require.Equal(t, "*driver.webSocketDriver", fmt.Sprintf("%T", driver))
-
-	err = driver.Close()
-	require.Equal(t, errors.New("connection not open"), err)
-}
-
 func TestCreateClient(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
-	webSocketsClient, err := createWebSocketClient(args)
+	webSocketsClient, err := CreateWebSocketHost(args)
 	require.Nil(t, err)
 	require.Equal(t, "*client.client", fmt.Sprintf("%T", webSocketsClient))
 }
@@ -50,7 +36,8 @@ func TestCreateServer(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
-	webSocketsClient, err := createWebSocketServer(args)
+	args.WebSocketConfig.IsServer = true
+	webSocketsClient, err := CreateWebSocketHost(args)
 	require.Nil(t, err)
 	require.Equal(t, "*server.server", fmt.Sprintf("%T", webSocketsClient))
 }

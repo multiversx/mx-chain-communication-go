@@ -5,40 +5,7 @@ import (
 	"io"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 )
-
-// Driver is an interface for saving node specific data to other storage.
-// This could be an Elasticsearch, MySql database or any other external services.
-type Driver interface {
-	SaveBlock(outportBlock *outport.OutportBlock) error
-	RevertIndexedBlock(blockData *outport.BlockData) error
-	SaveRoundsInfo(roundsInfos *outport.RoundsInfo) error
-	SaveValidatorsPubKeys(validatorsPubKeys *outport.ValidatorsPubKeys) error
-	SaveValidatorsRating(validatorsRating *outport.ValidatorsRating) error
-	SaveAccounts(accounts *outport.Accounts) error
-	FinalizedBlock(finalizedBlock *outport.FinalizedBlock) error
-	GetMarshaller() marshal.Marshalizer
-	Close() error
-	IsInterfaceNil() bool
-}
-
-// WebSocketSenderHandler defines what the actions that a web socket sender should do
-type WebSocketSenderHandler interface {
-	Send(payload []byte, topic string) error
-	Close() error
-	IsInterfaceNil() bool
-}
-
-// HostWebSocket defines what a WebSocket host should be able to do
-type HostWebSocket interface {
-	Send(payload []byte, topic string) error
-	SetPayloadHandler(handler PayloadHandler) error
-	Start()
-	Close() error
-	IsInterfaceNil() bool
-}
 
 // PayloadHandler defines what a payload handler should be able to do
 type PayloadHandler interface {
@@ -68,11 +35,4 @@ type WSConClient interface {
 type HttpServerHandler interface {
 	ListenAndServe() error
 	Shutdown(ctx context.Context) error
-}
-
-// Uint64ByteSliceConverter converts byte slice to/from uint64
-type Uint64ByteSliceConverter interface {
-	ToByteSlice(uint64) []byte
-	ToUint64([]byte) (uint64, error)
-	IsInterfaceNil() bool
 }
