@@ -1,4 +1,4 @@
-package testscommon
+package transceiver
 
 import (
 	"github.com/multiversx/mx-chain-communication-go/websocket"

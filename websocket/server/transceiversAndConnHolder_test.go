@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
+	"github.com/multiversx/mx-chain-communication-go/testscommon/transceiver"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,12 +13,12 @@ func TestTransceiversHolderAddAndRemove(t *testing.T) {
 
 	recsHolder := newTransceiversAndConnHolder()
 
-	recsHolder.addTransceiverAndConn(&testscommon.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
+	recsHolder.addTransceiverAndConn(&transceiver.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
 		GetIDCalled: func() string {
 			return "id1"
 		},
 	})
-	recsHolder.addTransceiverAndConn(&testscommon.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
+	recsHolder.addTransceiverAndConn(&transceiver.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
 		GetIDCalled: func() string {
 			return "id2"
 		},
@@ -37,17 +38,17 @@ func TestTransceiversHolderAddAndGetAll(t *testing.T) {
 
 	recsHolder := newTransceiversAndConnHolder()
 
-	recsHolder.addTransceiverAndConn(&testscommon.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
+	recsHolder.addTransceiverAndConn(&transceiver.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
 		GetIDCalled: func() string {
 			return "1"
 		},
 	})
-	recsHolder.addTransceiverAndConn(&testscommon.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
+	recsHolder.addTransceiverAndConn(&transceiver.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
 		GetIDCalled: func() string {
 			return "2"
 		},
 	})
-	recsHolder.addTransceiverAndConn(&testscommon.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
+	recsHolder.addTransceiverAndConn(&transceiver.WebSocketTransceiverStub{}, &testscommon.WebsocketConnectionStub{
 		GetIDCalled: func() string {
 			return "3"
 		},

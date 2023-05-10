@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	outportSenderData "github.com/multiversx/mx-chain-communication-go/websocket/data"
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 )
@@ -49,8 +49,8 @@ type PayloadHandler interface {
 
 // PayloadConverter defines what a websocket payload converter should do
 type PayloadConverter interface {
-	ExtractWsMessage(payload []byte) (*outportSenderData.WsMessage, error)
-	ConstructPayload(wsMessage *outportSenderData.WsMessage) ([]byte, error)
+	ExtractWsMessage(payload []byte) (*data.WsMessage, error)
+	ConstructPayload(wsMessage *data.WsMessage) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
