@@ -19,7 +19,7 @@ func createArgs() ArgsWebSocketDriverFactory {
 			RetryDurationInSec: 1,
 			BlockingAckOnError: false,
 		},
-		Marshaller: &testscommon.MarshalizerMock{},
+		Marshaller: &testscommon.MarshallerMock{},
 		Log:        &testscommon.LoggerMock{},
 	}
 }

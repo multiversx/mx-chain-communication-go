@@ -15,7 +15,7 @@ import (
 )
 
 func createArgs() ArgsWebSocketClient {
-	payloadConverter, _ := websocket.NewWebSocketPayloadConverter(&testscommon.MarshalizerMock{})
+	payloadConverter, _ := websocket.NewWebSocketPayloadConverter(&testscommon.MarshallerMock{})
 	return ArgsWebSocketClient{
 		RetryDurationInSeconds: 1,
 		BlockingAckOnError:     false,

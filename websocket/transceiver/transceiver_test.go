@@ -17,7 +17,7 @@ import (
 )
 
 func createArgs() ArgsTransceiver {
-	payloadConverter, _ := webSocket.NewWebSocketPayloadConverter(&testscommon.MarshalizerMock{})
+	payloadConverter, _ := webSocket.NewWebSocketPayloadConverter(&testscommon.MarshallerMock{})
 	return ArgsTransceiver{
 		BlockingAckOnError: false,
 		PayloadConverter:   payloadConverter,
