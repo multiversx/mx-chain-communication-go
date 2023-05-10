@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -93,7 +92,6 @@ func createServer() (Driver, error) {
 			IsServer:           true,
 			WithAcknowledge:    true,
 		},
-		Uint64ByteSliceConverter: uint64ByteSlice.NewBigEndianConverter(),
-		Log:                      log,
+		Log: log,
 	})
 }
