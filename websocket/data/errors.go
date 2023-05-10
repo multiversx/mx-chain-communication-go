@@ -2,20 +2,11 @@ package data
 
 import "errors"
 
-// ErrNilLogger signals that a nil instance of logger has been provided
-var ErrNilLogger = errors.New("nil logger")
-
 // ErrServerIsClosed represents the error thrown by the server's ListenAndServe() function when the server is closed
 var ErrServerIsClosed = errors.New("http: Server closed")
 
 // ErrNilMarshaller signals that a nil marshaller has been provided
 var ErrNilMarshaller = errors.New("nil marshaller")
-
-// ErrNilWebSocketSender signals that a nil web socket sender has been provided
-var ErrNilWebSocketSender = errors.New("nil sender sender")
-
-// ErrWebSocketServerIsClosed signals that the web socket server was closed while trying to perform actions
-var ErrWebSocketServerIsClosed = errors.New("server is closed")
 
 // ErrNilPayloadProcessor signals that a nil payload processor has been provided
 var ErrNilPayloadProcessor = errors.New("nil payload processor provided")

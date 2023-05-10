@@ -29,12 +29,8 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 		},
 	})
 
-	wsServer.Start()
-
 	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
-
-	wsClient.Start()
 
 	for {
 		err = wsClient.Send([]byte("test"), outport.TopicSaveAccounts)
@@ -77,11 +73,8 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 		},
 	})
 
-	wsServer.Start()
-
 	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
-	wsClient.Start()
 	time.Sleep(time.Second)
 
 	for {
@@ -123,11 +116,8 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 	}
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 
-	wsServer.Start()
-
 	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
-	wsClient.Start()
 
 	for idx := 0; idx < 100; idx++ {
 		message := fmt.Sprintf("%d", idx)
@@ -150,7 +140,6 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 	wsServer, err = createServer(url, &testscommon.LoggerMock{})
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 	require.Nil(t, err)
-	wsServer.Start()
 
 	for idx := 100; idx < 200; idx++ {
 		message := fmt.Sprintf("%d", idx)

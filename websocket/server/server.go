@@ -137,6 +137,8 @@ func (s *server) initializeServer(wsURL string, wsPath string) {
 	}
 
 	s.httpServer = httpServer
+
+	s.start()
 }
 
 // Send will send the provided payload from args
@@ -151,8 +153,7 @@ func (s *server) Send(payload []byte, topic string) error {
 	return nil
 }
 
-// Start will start the websockets server
-func (s *server) Start() {
+func (s *server) start() {
 	go func() {
 		err := s.httpServer.ListenAndServe()
 		shouldLogError := err != nil && !strings.Contains(err.Error(), data.ErrServerIsClosed.Error())

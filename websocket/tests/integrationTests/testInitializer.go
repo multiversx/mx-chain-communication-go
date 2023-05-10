@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/client"
+	hostFactory "github.com/multiversx/mx-chain-communication-go/websocket/factory"
 	"github.com/multiversx/mx-chain-communication-go/websocket/server"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal/factory"
@@ -15,7 +16,7 @@ var (
 	payloadConverter, _ = websocket.NewWebSocketPayloadConverter(marshaller)
 )
 
-func createClient(url string, log core.Logger) (websocket.HostWebSocket, error) {
+func createClient(url string, log core.Logger) (hostFactory.FullDuplexHost, error) {
 	return client.NewWebSocketClient(client.ArgsWebSocketClient{
 		RetryDurationInSeconds: retryDurationInSeconds,
 		WithAcknowledge:        true,
@@ -25,7 +26,7 @@ func createClient(url string, log core.Logger) (websocket.HostWebSocket, error) 
 	})
 }
 
-func createServer(url string, log core.Logger) (websocket.HostWebSocket, error) {
+func createServer(url string, log core.Logger) (hostFactory.FullDuplexHost, error) {
 	return server.NewWebSocketServer(server.ArgsWebSocketServer{
 		RetryDurationInSeconds: retryDurationInSeconds,
 		WithAcknowledge:        true,
