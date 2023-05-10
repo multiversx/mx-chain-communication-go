@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStartServerAddClientAndSendData(t *testing.T) {
 	url := "localhost:8833"
-	wsServer, err := createServer(url, &mock.LoggerMock{})
+	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	wg := &sync.WaitGroup{}
@@ -32,7 +31,7 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 
 	wsServer.Start()
 
-	wsClient, err := createClient(url, &mock.LoggerMock{})
+	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	wsClient.Start()
@@ -58,7 +57,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	wg1.Add(1)
 	wg2.Add(1)
 	serverReceivedCloseMessage := false
-	log := &mock.LoggerStub{
+	log := &testscommon.LoggerStub{
 		InfoCalled: func(message string, args ...interface{}) {
 			if strings.Contains(message, "connection closed") {
 				serverReceivedCloseMessage = true
@@ -80,7 +79,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 
 	wsServer.Start()
 
-	wsClient, err := createClient(url, &mock.LoggerMock{})
+	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 	wsClient.Start()
 	time.Sleep(time.Second)
@@ -102,7 +101,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 
 func TestStartServerStartClientCloseServer(t *testing.T) {
 	url := "localhost:8833"
-	wsServer, err := createServer(url, &mock.LoggerMock{})
+	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	var sentMessages []string
@@ -126,7 +125,7 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	wsServer.Start()
 
-	wsClient, err := createClient(url, &mock.LoggerMock{})
+	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 	wsClient.Start()
 
@@ -148,7 +147,7 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 	// start the server again
-	wsServer, err = createServer(url, &mock.LoggerMock{})
+	wsServer, err = createServer(url, &testscommon.LoggerMock{})
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 	require.Nil(t, err)
 	wsServer.Start()

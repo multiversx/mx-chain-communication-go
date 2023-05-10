@@ -10,20 +10,19 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgs() ArgsWebSocketClient {
-	payloadConverter, _ := websocket.NewWebSocketPayloadConverter(&mock.MarshalizerMock{})
+	payloadConverter, _ := websocket.NewWebSocketPayloadConverter(&testscommon.MarshallerMock{})
 	return ArgsWebSocketClient{
 		RetryDurationInSeconds: 1,
 		BlockingAckOnError:     false,
 		WithAcknowledge:        false,
 		URL:                    "url",
 		PayloadConverter:       payloadConverter,
-		Log:                    &mock.LoggerMock{},
+		Log:                    &testscommon.LoggerMock{},
 	}
 }
 
