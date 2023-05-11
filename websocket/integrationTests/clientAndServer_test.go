@@ -174,7 +174,8 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
-	myBigMessage := generateLargeByteArray(3e+7) // 30mb
+	const thirtyMB = 30 * 1024 * 1024
+	myBigMessage := generateLargeByteArray(thirtyMB)
 	payloadHandler := &testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string) error {
 			defer wg.Done()
