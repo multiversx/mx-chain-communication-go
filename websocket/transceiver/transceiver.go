@@ -136,7 +136,7 @@ func (wt *wsTransceiver) verifyPayloadAndSendAckIfNeeded(connection webSocket.WS
 
 	err = wt.payloadHandler.ProcessPayload(wsMessage.Payload, wsMessage.Topic)
 	if err != nil && wt.blockingAckOnError {
-		wt.log.Debug("wt.payloadHandler.ProcessPayload: cannot handle payload", "error", err)
+		wt.log.Warn("wt.payloadHandler.ProcessPayload: cannot handle payload", "error", err)
 		return
 	}
 
@@ -146,7 +146,7 @@ func (wt *wsTransceiver) verifyPayloadAndSendAckIfNeeded(connection webSocket.WS
 func (wt *wsTransceiver) handleAckMessage(counter uint64) {
 	expectedCounter := atomic.LoadUint64(&wt.counter)
 	if expectedCounter != counter {
-		wt.log.Debug("wsTransceiver.handleAckMessage invalid counter received", "expected", expectedCounter, "received", counter)
+		wt.log.Warn("wsTransceiver.handleAckMessage invalid counter received", "expected", expectedCounter, "received", counter)
 		return
 	}
 
@@ -198,6 +198,10 @@ func (wt *wsTransceiver) sendAckIfNeeded(connection webSocket.WSConClient, wsMes
 
 // Send will prepare and send the provided WsSendArgs
 func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket.WSConClient) error {
+	// TODO think about concurrent save transceiver
+	wt.mutex.Lock()
+	defer wt.mutex.Unlock()
+
 	assignedCounter := atomic.AddUint64(&wt.counter, 1)
 	wsMessage := &data.WsMessage{
 		WithAcknowledge: wt.withAcknowledge,

@@ -1,7 +1,9 @@
 package integrationTests
 
 import (
+	"crypto/rand"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"testing"
@@ -162,4 +164,46 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	require.Equal(t, 200, numMessagesReceived)
 	require.Equal(t, sentMessages, receivedMessages)
+}
+
+func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
+	url := "localhost:8833"
+	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	require.Nil(t, err)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	myBigMessage := generateLargeByteArray()
+	payloadHandler := &testscommon.PayloadHandlerStub{
+		ProcessPayloadCalled: func(payload []byte, topic string) error {
+			defer wg.Done()
+			require.Equal(t, myBigMessage, payload)
+			require.Equal(t, outport.TopicSaveBlock, topic)
+			return nil
+		},
+	}
+	_ = wsServer.SetPayloadHandler(payloadHandler)
+
+	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	require.Nil(t, err)
+
+	for {
+		err = wsClient.Send(myBigMessage, outport.TopicSaveBlock)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(300 * time.Millisecond)
+		}
+	}
+	wg.Wait()
+}
+
+func generateLargeByteArray() []byte {
+	bytes := make([]byte, 3e+7) // 30 mb
+	_, err := rand.Read(bytes)
+	if err != nil {
+		log.Println("failed to generate random bytes:", err)
+	}
+	return bytes
 }
