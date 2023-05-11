@@ -174,7 +174,7 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
-	myBigMessage := generateLargeByteArray(3e+7)
+	myBigMessage := generateLargeByteArray(3e+7) // 30mb
 	payloadHandler := &testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string) error {
 			defer wg.Done()
@@ -228,21 +228,21 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 
 	//send message to server multiple go routines
 	// generate 1000 go routines, every go routine will send 10 message
-	for idx := 0; idx < 1000; idx++ {
-		myIdx := idx
-		go func() {
-			for j := 0; j < 10; j++ {
-				for {
-					errSend := wsClient.Send([]byte(fmt.Sprintf("%d", myIdx*10+j)), outport.TopicSaveAccounts)
-					if errSend == nil {
-						break
-					} else {
-						time.Sleep(300 * time.Millisecond)
-					}
+	sendMultipleMessages := func(idx int) {
+		for j := 0; j < 10; j++ {
+			for {
+				errSend := wsClient.Send([]byte(fmt.Sprintf("%d", idx*10+j)), outport.TopicSaveAccounts)
+				if errSend == nil {
+					break
+				} else {
+					time.Sleep(300 * time.Millisecond)
 				}
-
 			}
-		}()
+
+		}
+	}
+	for idx := 0; idx < 1000; idx++ {
+		go sendMultipleMessages(idx)
 	}
 
 	wg.Wait()
@@ -250,7 +250,7 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 }
 
 func generateLargeByteArray(size int) []byte {
-	bytes := make([]byte, size) // 30 mb
+	bytes := make([]byte, size)
 	_, err := rand.Read(bytes)
 	if err != nil {
 		log.Println("failed to generate random bytes:", err)
