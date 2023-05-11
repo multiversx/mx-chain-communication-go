@@ -240,10 +240,11 @@ func TestWsTransceiverWaitForAck(t *testing.T) {
 	args.WithAcknowledge = true
 	webSocketTransceiver, _ := NewTransceiver(args)
 
+	ch := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		err := webSocketTransceiver.waitForAck()
+		err := webSocketTransceiver.waitForAck(ch)
 		require.Equal(t, data.ErrExpectedAckWasNotReceivedOnClose, err)
 		wg.Done()
 	}()

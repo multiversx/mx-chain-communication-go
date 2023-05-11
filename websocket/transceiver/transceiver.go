@@ -3,7 +3,6 @@ package transceiver
 import (
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,11 +25,12 @@ type ArgsTransceiver struct {
 type wsTransceiver struct {
 	payloadParser      webSocket.PayloadConverter
 	payloadHandler     webSocket.PayloadHandler
+	mutPayloadHandler  sync.RWMutex
 	log                core.Logger
 	safeCloser         core.SafeCloser
 	retryDuration      time.Duration
-	mutex              sync.RWMutex
-	ackChan            chan struct{}
+	mapAck             map[uint64]chan struct{}
+	mutMapAck          sync.Mutex
 	counter            uint64
 	blockingAckOnError bool
 	withAcknowledge    bool
@@ -51,7 +51,7 @@ func NewTransceiver(args ArgsTransceiver) (*wsTransceiver, error) {
 		payloadHandler:     webSocket.NewNilPayloadHandler(),
 		payloadParser:      args.PayloadConverter,
 		withAcknowledge:    args.WithAcknowledge,
-		ackChan:            make(chan struct{}),
+		mapAck:             make(map[uint64]chan struct{}),
 	}, nil
 }
 
@@ -74,8 +74,8 @@ func (wt *wsTransceiver) SetPayloadHandler(handler webSocket.PayloadHandler) err
 		return data.ErrNilPayloadProcessor
 	}
 
-	wt.mutex.Lock()
-	defer wt.mutex.Unlock()
+	wt.mutPayloadHandler.Lock()
+	defer wt.mutPayloadHandler.Unlock()
 
 	wt.payloadHandler = handler
 	return nil
@@ -144,16 +144,17 @@ func (wt *wsTransceiver) verifyPayloadAndSendAckIfNeeded(connection webSocket.WS
 }
 
 func (wt *wsTransceiver) handleAckMessage(counter uint64) {
-	expectedCounter := atomic.LoadUint64(&wt.counter)
-	if expectedCounter != counter {
-		wt.log.Warn("wsTransceiver.handleAckMessage invalid counter received", "expected", expectedCounter, "received", counter)
+	wt.mutMapAck.Lock()
+	defer wt.mutMapAck.Unlock()
+
+	ch, found := wt.mapAck[counter]
+	if !found {
+		wt.log.Warn("wsTransceiver.handleAckMessage invalid counter received", "received", counter)
 		return
 	}
 
-	select {
-	case wt.ackChan <- struct{}{}:
-	case <-wt.safeCloser.ChanClose():
-	}
+	close(ch)
+	delete(wt.mapAck, counter)
 }
 
 func (wt *wsTransceiver) sendAckIfNeeded(connection webSocket.WSConClient, wsMessage *data.WsMessage) {
@@ -198,14 +199,10 @@ func (wt *wsTransceiver) sendAckIfNeeded(connection webSocket.WSConClient, wsMes
 
 // Send will prepare and send the provided WsSendArgs
 func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket.WSConClient) error {
-	// TODO think about concurrent save transceiver
-	wt.mutex.Lock()
-	defer wt.mutex.Unlock()
-
-	assignedCounter := atomic.AddUint64(&wt.counter, 1)
+	ch, localCounter := wt.prepareChanAndCounter()
 	wsMessage := &data.WsMessage{
 		WithAcknowledge: wt.withAcknowledge,
-		Counter:         assignedCounter,
+		Counter:         localCounter,
 		Type:            data.PayloadMessage,
 		Payload:         payload,
 		Topic:           topic,
@@ -215,10 +212,24 @@ func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket
 		return err
 	}
 
-	return wt.sendPayload(newPayload, connection)
+	return wt.sendPayload(newPayload, connection, ch)
 }
 
-func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConClient) error {
+func (wt *wsTransceiver) prepareChanAndCounter() (chan struct{}, uint64) {
+	wt.mutMapAck.Lock()
+	wt.counter++
+	localCounter := wt.counter
+
+	ch := make(chan struct{})
+	if wt.withAcknowledge {
+		wt.mapAck[localCounter] = ch
+	}
+	wt.mutMapAck.Unlock()
+
+	return ch, localCounter
+}
+
+func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConClient, ch chan struct{}) error {
 	errSend := connection.WriteMessage(websocket.BinaryMessage, payload)
 	if errSend != nil {
 		return errSend
@@ -228,12 +239,12 @@ func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConC
 		return nil
 	}
 
-	return wt.waitForAck()
+	return wt.waitForAck(ch)
 }
 
-func (wt *wsTransceiver) waitForAck() error {
+func (wt *wsTransceiver) waitForAck(ch chan struct{}) error {
 	select {
-	case <-wt.ackChan:
+	case <-ch:
 		return nil
 	case <-wt.safeCloser.ChanClose():
 		return data.ErrExpectedAckWasNotReceivedOnClose

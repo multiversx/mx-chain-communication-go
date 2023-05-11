@@ -62,12 +62,14 @@ func (wsc *wsConnClient) ReadMessage() (messageType int, p []byte, err error) {
 
 // WriteMessage calls the underlying write message ws connection func
 func (wsc *wsConnClient) WriteMessage(messageType int, payload []byte) error {
-	conn, err := wsc.getConn()
-	if err != nil {
-		return err
+	wsc.mut.Lock()
+	defer wsc.mut.Unlock()
+
+	if wsc.conn == nil {
+		return data.ErrConnectionNotOpen
 	}
 
-	return conn.WriteMessage(messageType, payload)
+	return wsc.conn.WriteMessage(messageType, payload)
 }
 
 func (wsc *wsConnClient) getConn() (*websocket.Conn, error) {
