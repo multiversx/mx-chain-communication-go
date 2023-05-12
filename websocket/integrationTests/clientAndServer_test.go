@@ -15,7 +15,7 @@ import (
 )
 
 func TestStartServerAddClientAndSendData(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
@@ -49,7 +49,7 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 }
 
 func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 
 	wg1, wg2 := &sync.WaitGroup{}, &sync.WaitGroup{}
 	wg1.Add(1)
@@ -95,7 +95,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 }
 
 func TestStartServerStartClientCloseServer(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
@@ -167,7 +167,7 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 }
 
 func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
@@ -203,7 +203,7 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 }
 
 func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 

@@ -1,6 +1,9 @@
 package integrationTests
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/client"
 	hostFactory "github.com/multiversx/mx-chain-communication-go/websocket/factory"
@@ -34,4 +37,19 @@ func createServer(url string, log core.Logger) (hostFactory.FullDuplexHost, erro
 		PayloadConverter:       payloadConverter,
 		Log:                    log,
 	})
+}
+
+func getFreePort() string {
+	// Listen on port 0 to get a free port
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = l.Close()
+	}()
+
+	// Get the port number that was assigned
+	addr := l.Addr().(*net.TCPAddr)
+	return fmt.Sprintf("%d", addr.Port)
 }
