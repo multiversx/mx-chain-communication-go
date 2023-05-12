@@ -28,3 +28,6 @@ var ErrConnectionNotOpen = errors.New("connection not open")
 
 // ErrExpectedAckWasNotReceivedOnClose signals that the acknowledgment message was not received at close
 var ErrExpectedAckWasNotReceivedOnClose = errors.New("expected ack message was not received on close")
+
+// ErrInvalidWebSocketHostMode signals that the provided mode is invalid
+var ErrInvalidWebSocketHostMode = errors.New("invalid web socket host mode")

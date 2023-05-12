@@ -14,7 +14,7 @@ func createArgs() ArgsWebSocketHost {
 		WebSocketConfig: data.WebSocketConfig{
 			URL:                "localhost:1234",
 			WithAcknowledge:    false,
-			IsServer:           false,
+			Mode:               data.ModeClient,
 			RetryDurationInSec: 1,
 			BlockingAckOnError: false,
 		},
@@ -36,7 +36,7 @@ func TestCreateServer(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
-	args.WebSocketConfig.IsServer = true
+	args.WebSocketConfig.Mode = data.ModeServer
 	webSocketsClient, err := CreateWebSocketHost(args)
 	require.Nil(t, err)
 	require.Equal(t, "*server.server", fmt.Sprintf("%T", webSocketsClient))
