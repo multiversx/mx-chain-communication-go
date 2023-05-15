@@ -3,7 +3,7 @@ package mock
 import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 // ConnectionMonitorStub -
