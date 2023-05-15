@@ -3,9 +3,9 @@ package message_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/stretchr/testify/assert"
 )
 
