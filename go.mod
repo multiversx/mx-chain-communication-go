@@ -6,7 +6,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230509110712-7a0e0a14ffa7
+	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230510143029-ab37792342df
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/stretchr/testify v1.8.2
 )

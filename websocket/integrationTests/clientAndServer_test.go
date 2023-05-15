@@ -1,7 +1,9 @@
 package integrationTests
 
 import (
+	"crypto/rand"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"testing"
@@ -13,7 +15,7 @@ import (
 )
 
 func TestStartServerAddClientAndSendData(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
@@ -47,7 +49,7 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 }
 
 func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 
 	wg1, wg2 := &sync.WaitGroup{}, &sync.WaitGroup{}
 	wg1.Add(1)
@@ -93,7 +95,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 }
 
 func TestStartServerStartClientCloseServer(t *testing.T) {
-	url := "localhost:8833"
+	url := "localhost:" + getFreePort()
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
@@ -162,4 +164,97 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	require.Equal(t, 200, numMessagesReceived)
 	require.Equal(t, sentMessages, receivedMessages)
+}
+
+func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
+	url := "localhost:" + getFreePort()
+	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	require.Nil(t, err)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	const thirtyMB = 30 * 1024 * 1024
+	myBigMessage := generateLargeByteArray(thirtyMB)
+	payloadHandler := &testscommon.PayloadHandlerStub{
+		ProcessPayloadCalled: func(payload []byte, topic string) error {
+			defer wg.Done()
+			require.Equal(t, myBigMessage, payload)
+			require.Equal(t, outport.TopicSaveBlock, topic)
+			return nil
+		},
+	}
+	_ = wsServer.SetPayloadHandler(payloadHandler)
+
+	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	require.Nil(t, err)
+
+	for {
+		err = wsClient.Send(myBigMessage, outport.TopicSaveBlock)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(300 * time.Millisecond)
+		}
+	}
+	wg.Wait()
+	_ = wsServer.Close()
+	_ = wsClient.Close()
+}
+
+func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
+	url := "localhost:" + getFreePort()
+	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	require.Nil(t, err)
+
+	myMap := make(map[string]struct{})
+	wg := sync.WaitGroup{}
+	wg.Add(10000)
+	for i := 0; i < 10000; i++ {
+		myMap[fmt.Sprintf("%d", i)] = struct{}{}
+	}
+
+	payloadHandler := &testscommon.PayloadHandlerStub{
+		ProcessPayloadCalled: func(payload []byte, topic string) error {
+			delete(myMap, string(payload))
+			fmt.Println("received message", "payload", string(payload))
+			wg.Done()
+			return nil
+		},
+	}
+	_ = wsServer.SetPayloadHandler(payloadHandler)
+
+	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	require.Nil(t, err)
+
+	//send message to server multiple go routines
+	// generate 1000 go routines, every go routine will send 10 message
+	sendMultipleMessages := func(idx int) {
+		for j := 0; j < 10; j++ {
+			for {
+				errSend := wsClient.Send([]byte(fmt.Sprintf("%d", idx*10+j)), outport.TopicSaveAccounts)
+				if errSend == nil {
+					break
+				} else {
+					time.Sleep(300 * time.Millisecond)
+				}
+			}
+
+		}
+	}
+	for idx := 0; idx < 1000; idx++ {
+		go sendMultipleMessages(idx)
+	}
+
+	wg.Wait()
+	require.Len(t, myMap, 0)
+}
+
+func generateLargeByteArray(size int) []byte {
+	bytes := make([]byte, size)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		log.Println("failed to generate random bytes:", err)
+	}
+	return bytes
 }

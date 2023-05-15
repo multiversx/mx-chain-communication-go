@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -67,13 +66,6 @@ func TestClient_SendAndClose(t *testing.T) {
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 
-	mockConn := &testscommon.WebsocketConnectionStub{
-		WriteMessageCalled: func(messageType int, _ []byte) error {
-			return errors.New(data.ClosedConnectionMessage)
-		},
-	}
-	ws.wsConn = mockConn
-
 	count := uint64(0)
 
 	wg := &sync.WaitGroup{}
@@ -81,7 +73,7 @@ func TestClient_SendAndClose(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		err = ws.Send([]byte("send"), outport.TopicSaveAccounts)
-		require.Equal(t, "use of closed network connection", err.Error())
+		require.Equal(t, "connection not open", err.Error())
 		atomic.AddUint64(&count, 1)
 	}()
 
@@ -95,14 +87,6 @@ func TestClient_Send(t *testing.T) {
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 
-	mockConn := &testscommon.WebsocketConnectionStub{
-		WriteMessageCalled: func(messageType int, _ []byte) error {
-			return errors.New("local error")
-		},
-	}
-
-	ws.wsConn = mockConn
-
 	count := uint64(0)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -110,7 +94,7 @@ func TestClient_Send(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		err = ws.Send([]byte("test"), outport.TopicFinalizedBlock)
-		require.Equal(t, "local error", err.Error())
+		require.Equal(t, "connection not open", err.Error())
 		atomic.AddUint64(&count, 1)
 	}()
 
