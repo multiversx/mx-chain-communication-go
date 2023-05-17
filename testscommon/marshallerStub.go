@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 // MarshallerStub -
 type MarshallerStub struct {
