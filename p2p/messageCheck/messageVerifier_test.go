@@ -7,19 +7,20 @@ import (
 
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/data"
+	"github.com/multiversx/mx-chain-communication-go/p2p/message"
+	messagecheck "github.com/multiversx/mx-chain-communication-go/p2p/messageCheck"
+	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
-	"github.com/multiversx/mx-chain-p2p-go/data"
-	"github.com/multiversx/mx-chain-p2p-go/message"
-	messagecheck "github.com/multiversx/mx-chain-p2p-go/messageCheck"
-	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func createMessageVerifierArgs() messagecheck.ArgsMessageVerifier {
 	return messagecheck.ArgsMessageVerifier{
-		Marshaller: &mock.MarshallerStub{},
+		Marshaller: &testscommon.MarshallerStub{},
 		P2PSigner:  &mock.P2PSignerStub{},
 	}
 }
@@ -66,7 +67,7 @@ func TestSerializeDeserialize(t *testing.T) {
 		t.Parallel()
 
 		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.ProtoMarshallerMock{}
+		args.Marshaller = &testscommon.ProtoMarshallerMock{}
 
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, err)
@@ -83,7 +84,7 @@ func TestSerializeDeserialize(t *testing.T) {
 		t.Parallel()
 
 		args := createMessageVerifierArgs()
-		args.Marshaller = &mock.ProtoMarshallerMock{}
+		args.Marshaller = &testscommon.ProtoMarshallerMock{}
 
 		msgData := &data.TopicMessage{
 			Version:        1,

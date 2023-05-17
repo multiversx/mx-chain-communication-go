@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
+	"github.com/multiversx/mx-chain-communication-go/p2p/integrationTests"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
-	"github.com/multiversx/mx-chain-p2p-go/config"
-	"github.com/multiversx/mx-chain-p2p-go/integrationTests"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p"
-	"github.com/multiversx/mx-chain-p2p-go/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +54,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			P2pConfig:             p2pCfg,
 			PreferredPeersHolder:  &mock.PeersHolderStub{},
 			NodeOperationMode:     p2p.NormalOperation,
-			Marshaller:            &mock.MarshallerMock{},
+			Marshaller:            &testscommon.MarshallerMock{},
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
@@ -130,7 +131,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		P2pConfig:             p2pConfigSeeder,
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
-		Marshaller:            &mock.MarshallerMock{},
+		Marshaller:            &testscommon.MarshallerMock{},
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
@@ -150,7 +151,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			P2pConfig:             p2pConfigSeeder,
 			PreferredPeersHolder:  &mock.PeersHolderStub{},
 			NodeOperationMode:     p2p.NormalOperation,
-			Marshaller:            &mock.MarshallerMock{},
+			Marshaller:            &testscommon.MarshallerMock{},
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,

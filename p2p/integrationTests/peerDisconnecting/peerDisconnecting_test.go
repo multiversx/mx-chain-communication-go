@@ -6,11 +6,12 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
-	"github.com/multiversx/mx-chain-p2p-go/config"
-	"github.com/multiversx/mx-chain-p2p-go/integrationTests"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p"
-	"github.com/multiversx/mx-chain-p2p-go/mock"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
+	"github.com/multiversx/mx-chain-communication-go/p2p/integrationTests"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,7 +64,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		P2pConfig:             p2pConfigSeeder,
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
-		Marshaller:            &mock.MarshallerMock{},
+		Marshaller:            &testscommon.MarshallerMock{},
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
@@ -84,7 +85,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			P2pConfig:             p2pConfig,
 			PreferredPeersHolder:  &mock.PeersHolderStub{},
 			NodeOperationMode:     p2p.NormalOperation,
-			Marshaller:            &mock.MarshallerMock{},
+			Marshaller:            &testscommon.MarshallerMock{},
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,

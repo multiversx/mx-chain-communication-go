@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	p2p "github.com/multiversx/mx-chain-p2p-go"
-	"github.com/multiversx/mx-chain-p2p-go/integrationTests"
-	"github.com/multiversx/mx-chain-p2p-go/integrationTests/peerDiscovery"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/integrationTests"
+	"github.com/multiversx/mx-chain-communication-go/p2p/integrationTests/peerDiscovery"
 	"github.com/stretchr/testify/assert"
 )
 

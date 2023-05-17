@@ -3,8 +3,8 @@ package peerDiscovery
 import (
 	"sync"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // SimpleMessageProcessor records the last received message
