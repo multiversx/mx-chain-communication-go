@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -148,13 +147,9 @@ func (s *server) initializeServer(wsURL string, wsPath string) {
 // Send will send the provided payload from args
 func (s *server) Send(payload []byte, topic string) error {
 	transceiversAndCon := s.transceiversAndConn.getAll()
-	noConnection := len(transceiversAndCon) == 0
-	dropMessage := noConnection && s.dropMessagesIfNoConnection
-	if dropMessage {
-		return nil
-	}
-	if noConnection {
-		return errors.New("cannot send message: no clients connected")
+	noClients := len(transceiversAndCon) == 0
+	if noClients && !s.dropMessagesIfNoConnection {
+		return data.ErrNoClientsConnected
 	}
 
 	for _, tuple := range transceiversAndCon {

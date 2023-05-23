@@ -31,3 +31,6 @@ var ErrExpectedAckWasNotReceivedOnClose = errors.New("expected ack message was n
 
 // ErrInvalidWebSocketHostMode signals that the provided mode is invalid
 var ErrInvalidWebSocketHostMode = errors.New("invalid web socket host mode")
+
+// ErrNoClientsConnected is an error signal indicating the absence of any connected clients
+var ErrNoClientsConnected = errors.New("no client connected")

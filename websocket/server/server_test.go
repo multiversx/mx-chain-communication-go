@@ -134,5 +134,5 @@ func TestServer_SendReturnsErrorIfNoConnection(t *testing.T) {
 	}()
 
 	err := wsServer.Send([]byte("test"), "test")
-	require.Equal(t, "cannot send message: no clients connected", err.Error())
+	require.Equal(t, data.ErrNoClientsConnected, err)
 }
