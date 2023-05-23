@@ -20,12 +20,12 @@ go mod init your-module-name
 
 3. Import the MX Chain Communication module in your Go code:
 ```
-import "github.com/your-username/mx-chain-communication-go"
+import "github.com/multiversx/mx-chain-communication-go"
 ```
 
 4. Run go get to download the module:
 ```
-go get github.com/your-username/mx-chain-communication-go
+go get github.com/multiversx/mx-chain-communication-go
 
 ```
 5. Start using the mx-chain-communication-go module in your code.
