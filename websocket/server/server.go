@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -18,23 +19,25 @@ import (
 
 // ArgsWebSocketServer holds all the components needed to create a server
 type ArgsWebSocketServer struct {
-	RetryDurationInSeconds int
-	BlockingAckOnError     bool
-	WithAcknowledge        bool
-	URL                    string
-	PayloadConverter       webSocket.PayloadConverter
-	Log                    core.Logger
+	RetryDurationInSeconds     int
+	BlockingAckOnError         bool
+	WithAcknowledge            bool
+	BlockingSendIfNoConnection bool
+	URL                        string
+	PayloadConverter           webSocket.PayloadConverter
+	Log                        core.Logger
 }
 
 type server struct {
-	blockingAckOnError  bool
-	withAcknowledge     bool
-	payloadConverter    webSocket.PayloadConverter
-	retryDuration       time.Duration
-	log                 core.Logger
-	httpServer          webSocket.HttpServerHandler
-	transceiversAndConn transceiversAndConnHandler
-	payloadHandler      webSocket.PayloadHandler
+	blockingAckOnError         bool
+	withAcknowledge            bool
+	blockingSendIfNoConnection bool
+	payloadConverter           webSocket.PayloadConverter
+	retryDuration              time.Duration
+	log                        core.Logger
+	httpServer                 webSocket.HttpServerHandler
+	transceiversAndConn        transceiversAndConnHandler
+	payloadHandler             webSocket.PayloadHandler
 }
 
 //NewWebSocketServer will create a new instance of server
@@ -44,13 +47,14 @@ func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 	}
 
 	wsServer := &server{
-		transceiversAndConn: newTransceiversAndConnHolder(),
-		blockingAckOnError:  args.BlockingAckOnError,
-		log:                 args.Log,
-		retryDuration:       time.Duration(args.RetryDurationInSeconds) * time.Second,
-		payloadConverter:    args.PayloadConverter,
-		payloadHandler:      webSocket.NewNilPayloadHandler(),
-		withAcknowledge:     args.WithAcknowledge,
+		transceiversAndConn:        newTransceiversAndConnHolder(),
+		blockingAckOnError:         args.BlockingAckOnError,
+		log:                        args.Log,
+		retryDuration:              time.Duration(args.RetryDurationInSeconds) * time.Second,
+		payloadConverter:           args.PayloadConverter,
+		payloadHandler:             webSocket.NewNilPayloadHandler(),
+		withAcknowledge:            args.WithAcknowledge,
+		blockingSendIfNoConnection: args.BlockingSendIfNoConnection,
 	}
 
 	wsServer.initializeServer(args.URL, data.WSRoute)
@@ -143,7 +147,17 @@ func (s *server) initializeServer(wsURL string, wsPath string) {
 
 // Send will send the provided payload from args
 func (s *server) Send(payload []byte, topic string) error {
-	for _, tuple := range s.transceiversAndConn.getAll() {
+	transceiversAndCon := s.transceiversAndConn.getAll()
+	noConnection := len(transceiversAndCon) == 0
+	skipSendNoConnection := noConnection && !s.blockingSendIfNoConnection
+	if skipSendNoConnection {
+		return nil
+	}
+	if noConnection {
+		return errors.New("cannot send message: no clients connected")
+	}
+
+	for _, tuple := range transceiversAndCon {
 		err := tuple.transceiver.Send(payload, topic, tuple.conn)
 		if err != nil {
 			s.log.Debug("s.Send() cannot send message", "id", tuple.conn.GetID(), "error", err.Error())

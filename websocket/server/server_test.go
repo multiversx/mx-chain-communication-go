@@ -108,3 +108,31 @@ func TestServer_ListenAndRegisterPayloadHandlerAndClose(t *testing.T) {
 	_ = wsServer.Close()
 	wg.Wait()
 }
+
+func TestServer_SkipSendInCaseOfNoConnection(t *testing.T) {
+	args := createArgs()
+	args.BlockingSendIfNoConnection = false
+	args.URL = "localhost:9211"
+	wsServer, _ := NewWebSocketServer(args)
+
+	defer func() {
+		_ = wsServer.Close()
+	}()
+
+	err := wsServer.Send([]byte("test"), "test")
+	require.Nil(t, err)
+}
+
+func TestServer_SendErrorIfNoConnection(t *testing.T) {
+	args := createArgs()
+	args.BlockingSendIfNoConnection = true
+	args.URL = "localhost:9211"
+	wsServer, _ := NewWebSocketServer(args)
+
+	defer func() {
+		_ = wsServer.Close()
+	}()
+
+	err := wsServer.Send([]byte("test"), "test")
+	require.Equal(t, "cannot send message: no clients connected", err.Error())
+}
