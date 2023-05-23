@@ -16,5 +16,5 @@ type WebSocketConfig struct {
 	RetryDurationInSec         int
 	WithAcknowledge            bool
 	BlockingAckOnError         bool
-	BlockingSendIfNoConnection bool
+	DropMessagesIfNoConnection bool
 }

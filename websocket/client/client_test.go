@@ -63,7 +63,7 @@ func TestNewWebSocketServer(t *testing.T) {
 
 func TestClient_SendAndClose(t *testing.T) {
 	args := createArgs()
-	args.BlockingSendIfNoConnection = true
+	args.DropMessagesIfNoConnection = false
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 
@@ -85,7 +85,7 @@ func TestClient_SendAndClose(t *testing.T) {
 
 func TestClient_Send(t *testing.T) {
 	args := createArgs()
-	args.BlockingSendIfNoConnection = true
+	args.DropMessagesIfNoConnection = false
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 
@@ -107,9 +107,9 @@ func TestClient_Send(t *testing.T) {
 	require.Equal(t, uint64(1), atomic.LoadUint64(&count))
 }
 
-func TestClient_ShouldSkipSend(t *testing.T) {
+func TestClient_DropMessageIfNoConnection(t *testing.T) {
 	args := createArgs()
-	args.BlockingSendIfNoConnection = false
+	args.DropMessagesIfNoConnection = true
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 

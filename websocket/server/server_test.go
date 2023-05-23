@@ -109,9 +109,9 @@ func TestServer_ListenAndRegisterPayloadHandlerAndClose(t *testing.T) {
 	wg.Wait()
 }
 
-func TestServer_SkipSendInCaseOfNoConnection(t *testing.T) {
+func TestServer_DropMessageInCaseOfNoConnection(t *testing.T) {
 	args := createArgs()
-	args.BlockingSendIfNoConnection = false
+	args.DropMessagesIfNoConnection = true
 	args.URL = "localhost:9211"
 	wsServer, _ := NewWebSocketServer(args)
 
@@ -123,9 +123,9 @@ func TestServer_SkipSendInCaseOfNoConnection(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestServer_SendErrorIfNoConnection(t *testing.T) {
+func TestServer_SendReturnsErrorIfNoConnection(t *testing.T) {
 	args := createArgs()
-	args.BlockingSendIfNoConnection = true
+	args.DropMessagesIfNoConnection = false
 	args.URL = "localhost:9211"
 	wsServer, _ := NewWebSocketServer(args)
 

@@ -22,7 +22,7 @@ type ArgsWebSocketServer struct {
 	RetryDurationInSeconds     int
 	BlockingAckOnError         bool
 	WithAcknowledge            bool
-	BlockingSendIfNoConnection bool
+	DropMessagesIfNoConnection bool
 	URL                        string
 	PayloadConverter           webSocket.PayloadConverter
 	Log                        core.Logger
@@ -31,7 +31,7 @@ type ArgsWebSocketServer struct {
 type server struct {
 	blockingAckOnError         bool
 	withAcknowledge            bool
-	blockingSendIfNoConnection bool
+	dropMessagesIfNoConnection bool
 	payloadConverter           webSocket.PayloadConverter
 	retryDuration              time.Duration
 	log                        core.Logger
@@ -54,7 +54,7 @@ func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 		payloadConverter:           args.PayloadConverter,
 		payloadHandler:             webSocket.NewNilPayloadHandler(),
 		withAcknowledge:            args.WithAcknowledge,
-		blockingSendIfNoConnection: args.BlockingSendIfNoConnection,
+		dropMessagesIfNoConnection: args.DropMessagesIfNoConnection,
 	}
 
 	wsServer.initializeServer(args.URL, data.WSRoute)
@@ -149,8 +149,8 @@ func (s *server) initializeServer(wsURL string, wsPath string) {
 func (s *server) Send(payload []byte, topic string) error {
 	transceiversAndCon := s.transceiversAndConn.getAll()
 	noConnection := len(transceiversAndCon) == 0
-	skipSendNoConnection := noConnection && !s.blockingSendIfNoConnection
-	if skipSendNoConnection {
+	dropMessage := noConnection && s.dropMessagesIfNoConnection
+	if dropMessage {
 		return nil
 	}
 	if noConnection {

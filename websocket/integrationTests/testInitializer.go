@@ -26,7 +26,7 @@ func createClient(url string, log core.Logger) (hostFactory.FullDuplexHost, erro
 		URL:                        url,
 		PayloadConverter:           payloadConverter,
 		Log:                        log,
-		BlockingSendIfNoConnection: true,
+		DropMessagesIfNoConnection: false,
 	})
 }
 
@@ -37,7 +37,7 @@ func createServer(url string, log core.Logger) (hostFactory.FullDuplexHost, erro
 		URL:                        url,
 		PayloadConverter:           payloadConverter,
 		Log:                        log,
-		BlockingSendIfNoConnection: true,
+		DropMessagesIfNoConnection: false,
 	})
 }
 

@@ -20,7 +20,7 @@ type ArgsWebSocketClient struct {
 	RetryDurationInSeconds     int
 	WithAcknowledge            bool
 	BlockingAckOnError         bool
-	BlockingSendIfNoConnection bool
+	DropMessagesIfNoConnection bool
 	URL                        string
 	PayloadConverter           websocket.PayloadConverter
 	Log                        core.Logger
@@ -33,7 +33,7 @@ type client struct {
 	log                        core.Logger
 	wsConn                     websocket.WSConClient
 	transceiver                Transceiver
-	blockingSendIfNoConnection bool
+	dropMessagesIfNoConnection bool
 }
 
 // NewWebSocketClient will create a new instance of WebSocket client
@@ -64,7 +64,7 @@ func NewWebSocketClient(args ArgsWebSocketClient) (*client, error) {
 		safeCloser:                 closing.NewSafeChanCloser(),
 		transceiver:                wsTransceiver,
 		log:                        args.Log,
-		blockingSendIfNoConnection: args.BlockingSendIfNoConnection,
+		dropMessagesIfNoConnection: args.DropMessagesIfNoConnection,
 	}
 
 	wsClient.start()
@@ -131,8 +131,8 @@ func (c *client) start() {
 
 // Send will send the provided payload from args
 func (c *client) Send(payload []byte, topic string) error {
-	skipSend := !c.blockingSendIfNoConnection && !c.wsConn.IsOpen()
-	if skipSend {
+	dropMessage := c.dropMessagesIfNoConnection && !c.wsConn.IsOpen()
+	if dropMessage {
 		return nil
 	}
 
