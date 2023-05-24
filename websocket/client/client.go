@@ -17,21 +17,23 @@ import (
 
 // ArgsWebSocketClient holds the arguments needed for creating a client
 type ArgsWebSocketClient struct {
-	RetryDurationInSeconds int
-	WithAcknowledge        bool
-	BlockingAckOnError     bool
-	URL                    string
-	PayloadConverter       websocket.PayloadConverter
-	Log                    core.Logger
+	RetryDurationInSeconds     int
+	WithAcknowledge            bool
+	BlockingAckOnError         bool
+	DropMessagesIfNoConnection bool
+	URL                        string
+	PayloadConverter           websocket.PayloadConverter
+	Log                        core.Logger
 }
 
 type client struct {
-	url           string
-	retryDuration time.Duration
-	safeCloser    core.SafeCloser
-	log           core.Logger
-	wsConn        websocket.WSConClient
-	transceiver   Transceiver
+	url                        string
+	retryDuration              time.Duration
+	safeCloser                 core.SafeCloser
+	log                        core.Logger
+	wsConn                     websocket.WSConClient
+	transceiver                Transceiver
+	dropMessagesIfNoConnection bool
 }
 
 // NewWebSocketClient will create a new instance of WebSocket client
@@ -56,12 +58,13 @@ func NewWebSocketClient(args ArgsWebSocketClient) (*client, error) {
 	wsUrl := url.URL{Scheme: "ws", Host: args.URL, Path: data.WSRoute}
 
 	wsClient := &client{
-		url:           wsUrl.String(),
-		wsConn:        connection.NewWSConnClient(),
-		retryDuration: time.Duration(args.RetryDurationInSeconds) * time.Second,
-		safeCloser:    closing.NewSafeChanCloser(),
-		transceiver:   wsTransceiver,
-		log:           args.Log,
+		url:                        wsUrl.String(),
+		wsConn:                     connection.NewWSConnClient(),
+		retryDuration:              time.Duration(args.RetryDurationInSeconds) * time.Second,
+		safeCloser:                 closing.NewSafeChanCloser(),
+		transceiver:                wsTransceiver,
+		log:                        args.Log,
+		dropMessagesIfNoConnection: args.DropMessagesIfNoConnection,
 	}
 
 	wsClient.start()
@@ -128,6 +131,11 @@ func (c *client) start() {
 
 // Send will send the provided payload from args
 func (c *client) Send(payload []byte, topic string) error {
+	dropMessage := c.dropMessagesIfNoConnection && !c.wsConn.IsOpen()
+	if dropMessage {
+		return nil
+	}
+
 	return c.transceiver.Send(payload, topic, c.wsConn)
 }
 

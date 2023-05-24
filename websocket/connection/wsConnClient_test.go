@@ -161,3 +161,18 @@ func TestWsConnClient_ReOpenAlreadyOpenedConnectionShouldError(t *testing.T) {
 
 	_ = conClient.Close()
 }
+
+func TestWsConnClient_IsOpen(t *testing.T) {
+	testServer := testscommon.NewHttpTestEchoHandler()
+	defer testServer.Close()
+
+	conClient := NewWSConnClient()
+	connectionURL := createConnectionURLForTestServer(testServer)
+	err := conClient.OpenConnection(connectionURL)
+	require.Nil(t, err)
+
+	open := conClient.IsOpen()
+	require.True(t, open)
+
+	_ = conClient.Close()
+}
