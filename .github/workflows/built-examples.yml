@@ -30,9 +30,9 @@ jobs:
           fi
       - name: Build client
         run: |
-          cd websocket/_examples/sendreceive/client 
+          cd websocket/examples/sendreceive/client 
           go build
       - name: Build server
         run: |
-          cd websocket/_examples/sendreceive/server 
+          cd websocket/examples/sendreceive/server 
           go build
