@@ -11,9 +11,10 @@ const (
 
 // WebSocketConfig holds the configuration needed for instantiating a new web socket server
 type WebSocketConfig struct {
-	URL                string
-	Mode               string
-	RetryDurationInSec int
-	WithAcknowledge    bool
-	BlockingAckOnError bool
+	URL                        string
+	Mode                       string
+	RetryDurationInSec         int
+	WithAcknowledge            bool
+	BlockingAckOnError         bool
+	DropMessagesIfNoConnection bool
 }

@@ -72,6 +72,14 @@ func (wsc *wsConnClient) WriteMessage(messageType int, payload []byte) error {
 	return wsc.conn.WriteMessage(messageType, payload)
 }
 
+// IsOpen will return true if the connection is open, false otherwise
+func (wsc *wsConnClient) IsOpen() bool {
+	wsc.mut.RLock()
+	defer wsc.mut.RUnlock()
+
+	return wsc.conn != nil
+}
+
 func (wsc *wsConnClient) getConn() (*websocket.Conn, error) {
 	wsc.mut.RLock()
 	defer wsc.mut.RUnlock()
