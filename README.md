@@ -17,7 +17,7 @@ The web socket functionality allows real-time bidirectional communication betwee
 It provides a persistent connection that enables instant data transmission and updates.
 
 #### Examples
-The [_examples](./websocket/_examples) folder contains a demonstration of how to send and receive messages using the WebSocket host implemented in this repository. 
+The [examples](./websocket/examples) folder contains a demonstration of how to send and receive messages using the WebSocket host implemented in this repository. 
 This example provides a basic usage scenario to help you understand and get started with the WebSocket functionality.
 
 
