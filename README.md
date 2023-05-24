@@ -7,32 +7,23 @@ This repository contains a Go module for implementing a WebSocket client-server 
 - WebSocket client-server implementation for communication
 - Real-time data exchange between participants
 - Scalable architecture for handling multiple client connections
-- Customizable server configurations
+- Customizable client/server configurations
 
-## Installation
+## Sections
 
-1. Make sure you have Go installed on your machine. If not, download and install it from the official Go website (https://golang.org).
- 
-2. In your project directory, initialize Go modules:
-```
-go mod init your-module-name
-```
+### WebSocket communication
 
-3. Import the MX Chain Communication module in your Go code:
-```
-import "github.com/multiversx/mx-chain-communication-go"
-```
+The web socket functionality allows real-time bidirectional communication between a client and a server. 
+It provides a persistent connection that enables instant data transmission and updates.
 
-4. Run go get to download the module:
-```
-go get github.com/multiversx/mx-chain-communication-go
-
-```
-5. Start using the mx-chain-communication-go module in your code.
+#### Examples
+The [_examples](./websocket/_examples) folder contains a demonstration of how to send and receive messages using the WebSocket host implemented in this repository. 
+This example provides a basic usage scenario to help you understand and get started with the WebSocket functionality.
 
 
 # Contributing
-Contributions to the mx-chain-communication-go module are welcome. If you find any issues or have suggestions for improvements, please create a new issue or submit a pull.
+Contributions to the mx-chain-communication-go module are welcome. If you find any issues or have suggestions for improvements,
+please create a new issue or submit a pull request.
 
 # License
 
