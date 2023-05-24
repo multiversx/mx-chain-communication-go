@@ -22,7 +22,7 @@ This example provides a basic usage scenario to help you understand and get star
 
 
 # Contributing
-Contributions to the mx-chain-communication-go module are welcome. If you find any issues or have suggestions for improvements,
+Contributions to the mx-chain-communication-go module are welcomed. If you find any issues or have suggestions for improvements,
 please create a new issue or submit a pull request.
 
 # License
