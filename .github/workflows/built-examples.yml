@@ -28,7 +28,11 @@ jobs:
               curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
               dep ensure
           fi
-      - name: Build
+      - name: Build client
         run: |
-          cd websocket/_examples/sendreceive 
+          cd websocket/_examples/sendreceive/client 
+          go build
+      - name: Build server
+        run: |
+          cd websocket/_examples/sendreceive/server 
           go build
