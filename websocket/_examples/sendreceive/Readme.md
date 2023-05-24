@@ -9,12 +9,13 @@ starts a WebSocket client and waits to receive a message.
 
 1. Open a terminal or command prompt.
 2. Navigate to the client folder.
-3. Built the client
+3. Built and run the client
 ``` bash
     go build && ./client
 ```
 4. Open another terminal or command prompt.
 5. Navigate to the server folder.
+6. Build and run the server
 ``` bash
     go build && ./server
 ```
