@@ -20,11 +20,12 @@ var (
 func main() {
 	args := factoryHost.ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
-			URL:                url,
-			Mode:               data.ModeClient,
-			RetryDurationInSec: 1,
-			WithAcknowledge:    true,
-			BlockingAckOnError: false,
+			URL:                        url,
+			Mode:                       data.ModeClient,
+			RetryDurationInSec:         1,
+			WithAcknowledge:            true,
+			BlockingAckOnError:         false,
+			DropMessagesIfNoConnection: false,
 		},
 		Marshaller: marshaller,
 		Log:        log,
