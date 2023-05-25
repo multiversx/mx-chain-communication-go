@@ -21,21 +21,23 @@ var (
 
 func createClient(url string, log core.Logger) (hostFactory.FullDuplexHost, error) {
 	return client.NewWebSocketClient(client.ArgsWebSocketClient{
-		RetryDurationInSeconds: retryDurationInSeconds,
-		WithAcknowledge:        true,
-		URL:                    url,
-		PayloadConverter:       payloadConverter,
-		Log:                    log,
+		RetryDurationInSeconds:     retryDurationInSeconds,
+		WithAcknowledge:            true,
+		URL:                        url,
+		PayloadConverter:           payloadConverter,
+		Log:                        log,
+		DropMessagesIfNoConnection: false,
 	})
 }
 
 func createServer(url string, log core.Logger) (hostFactory.FullDuplexHost, error) {
 	return server.NewWebSocketServer(server.ArgsWebSocketServer{
-		RetryDurationInSeconds: retryDurationInSeconds,
-		WithAcknowledge:        true,
-		URL:                    url,
-		PayloadConverter:       payloadConverter,
-		Log:                    log,
+		RetryDurationInSeconds:     retryDurationInSeconds,
+		WithAcknowledge:            true,
+		URL:                        url,
+		PayloadConverter:           payloadConverter,
+		Log:                        log,
+		DropMessagesIfNoConnection: false,
 	})
 }
 

@@ -11,9 +11,10 @@ const (
 
 // WebSocketConfig holds the configuration needed for instantiating a new web socket server
 type WebSocketConfig struct {
-	URL                string
-	Mode               string
-	RetryDurationInSec int
-	WithAcknowledge    bool
-	BlockingAckOnError bool
+	URL                        string // The WebSocket URL to connect to.
+	Mode                       string // The host operation mode: 'client' or 'server'.
+	RetryDurationInSec         int    // The duration in seconds to wait before retrying the connection in case of failure.
+	WithAcknowledge            bool   // Set to `true` to enable message acknowledgment mechanism.
+	BlockingAckOnError         bool   // Set to `true` to send the acknowledgment message only if the processing part of a message succeeds. If an error occurs during processing, the acknowledgment will not be sent.
+	DropMessagesIfNoConnection bool   // Set to `true` to drop messages if there is no active WebSocket connection to send to.
 }

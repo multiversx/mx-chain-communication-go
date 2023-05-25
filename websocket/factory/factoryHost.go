@@ -35,12 +35,13 @@ func createWebSocketClient(args ArgsWebSocketHost) (FullDuplexHost, error) {
 	}
 
 	return client.NewWebSocketClient(client.ArgsWebSocketClient{
-		RetryDurationInSeconds: args.WebSocketConfig.RetryDurationInSec,
-		WithAcknowledge:        args.WebSocketConfig.WithAcknowledge,
-		URL:                    args.WebSocketConfig.URL,
-		PayloadConverter:       payloadConverter,
-		Log:                    args.Log,
-		BlockingAckOnError:     args.WebSocketConfig.BlockingAckOnError,
+		RetryDurationInSeconds:     args.WebSocketConfig.RetryDurationInSec,
+		WithAcknowledge:            args.WebSocketConfig.WithAcknowledge,
+		URL:                        args.WebSocketConfig.URL,
+		PayloadConverter:           payloadConverter,
+		Log:                        args.Log,
+		BlockingAckOnError:         args.WebSocketConfig.BlockingAckOnError,
+		DropMessagesIfNoConnection: args.WebSocketConfig.DropMessagesIfNoConnection,
 	})
 }
 
@@ -51,12 +52,13 @@ func createWebSocketServer(args ArgsWebSocketHost) (FullDuplexHost, error) {
 	}
 
 	host, err := server.NewWebSocketServer(server.ArgsWebSocketServer{
-		RetryDurationInSeconds: args.WebSocketConfig.RetryDurationInSec,
-		WithAcknowledge:        args.WebSocketConfig.WithAcknowledge,
-		URL:                    args.WebSocketConfig.URL,
-		PayloadConverter:       payloadConverter,
-		Log:                    args.Log,
-		BlockingAckOnError:     args.WebSocketConfig.BlockingAckOnError,
+		RetryDurationInSeconds:     args.WebSocketConfig.RetryDurationInSec,
+		WithAcknowledge:            args.WebSocketConfig.WithAcknowledge,
+		URL:                        args.WebSocketConfig.URL,
+		PayloadConverter:           payloadConverter,
+		Log:                        args.Log,
+		BlockingAckOnError:         args.WebSocketConfig.BlockingAckOnError,
+		DropMessagesIfNoConnection: args.WebSocketConfig.DropMessagesIfNoConnection,
 	})
 	if err != nil {
 		return nil, err

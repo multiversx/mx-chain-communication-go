@@ -63,6 +63,7 @@ func TestNewWebSocketServer(t *testing.T) {
 
 func TestClient_SendAndClose(t *testing.T) {
 	args := createArgs()
+	args.DropMessagesIfNoConnection = false
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 
@@ -84,6 +85,7 @@ func TestClient_SendAndClose(t *testing.T) {
 
 func TestClient_Send(t *testing.T) {
 	args := createArgs()
+	args.DropMessagesIfNoConnection = false
 	ws, err := NewWebSocketClient(args)
 	require.Nil(t, err)
 
@@ -103,4 +105,18 @@ func TestClient_Send(t *testing.T) {
 	wg.Wait()
 
 	require.Equal(t, uint64(1), atomic.LoadUint64(&count))
+}
+
+func TestClient_DropMessageIfNoConnection(t *testing.T) {
+	args := createArgs()
+	args.DropMessagesIfNoConnection = true
+	ws, err := NewWebSocketClient(args)
+	require.Nil(t, err)
+
+	defer func() {
+		_ = ws.Close()
+	}()
+
+	err = ws.Send([]byte("test"), "test")
+	require.Nil(t, err)
 }
