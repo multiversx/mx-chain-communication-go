@@ -25,6 +25,7 @@ type PayloadConverter interface {
 type WSConClient interface {
 	io.Closer
 	OpenConnection(url string) error
+	IsOpen() bool
 	WriteMessage(messageType int, data []byte) error
 	ReadMessage() (int, []byte, error)
 	GetID() string
