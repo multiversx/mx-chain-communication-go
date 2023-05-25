@@ -2,6 +2,6 @@ test:
 	@echo "  >  Running unit tests"
 	go test ./...
 
-test-with-race:
-	@echo " > Running unit tests with race"
-	go test -race ./...
+test-short-race:
+	@echo " > Running short unit tests in race mode"
+	go test -short -race ./...
