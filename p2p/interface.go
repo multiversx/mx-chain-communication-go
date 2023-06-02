@@ -85,6 +85,7 @@ type Messenger interface {
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 	AddPeerTopicNotifier(notifier PeerTopicNotifier) error
+	Type() NetworkMessengerType
 	IsInterfaceNil() bool
 }
 
@@ -267,5 +268,51 @@ type PeerTopicNotifier interface {
 type P2PKeyConverter interface {
 	ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error)
 	ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error)
+	IsInterfaceNil() bool
+}
+
+// Facade defines a facade over multiple Messenger interfaces
+type Facade interface {
+	io.Closer
+
+	CreateTopic(messengerType NetworkMessengerType, name string, createChannelForTopic bool) error
+	CreateCommonTopic(name string, createChannelForTopic bool) error
+	HasTopic(messengerType NetworkMessengerType, name string) bool
+	RegisterMessageProcessor(messengerType NetworkMessengerType, topic string, identifier string, handler MessageProcessor) error
+	RegisterCommonMessageProcessor(topic string, identifier string, handler MessageProcessor) error
+	UnregisterAllMessageProcessors(messengerType NetworkMessengerType) error
+	UnregisterMessageProcessor(messengerType NetworkMessengerType, topic string, identifier string) error
+	Broadcast(messengerType NetworkMessengerType, topic string, buff []byte)
+	BroadcastOnChannel(messengerType NetworkMessengerType, channel string, topic string, buff []byte)
+	BroadcastUsingPrivateKey(messengerType NetworkMessengerType, topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	BroadcastOnChannelUsingPrivateKey(messengerType NetworkMessengerType, channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SendToConnectedPeer(messengerType NetworkMessengerType, topic string, buff []byte, peerID core.PeerID) error
+	UnJoinAllTopics(messengerType NetworkMessengerType) error
+
+	Bootstrap(messengerType NetworkMessengerType) error
+	BootstrapAll() error
+	Peers(messengerType NetworkMessengerType) []core.PeerID
+	Addresses(messengerType NetworkMessengerType) []string
+	ConnectToPeer(messengerType NetworkMessengerType, address string) error
+	IsConnected(messengerType NetworkMessengerType, peerID core.PeerID) bool
+	ConnectedPeers(messengerType NetworkMessengerType) []core.PeerID
+	ConnectedAddresses(messengerType NetworkMessengerType) []string
+	PeerAddresses(messengerType NetworkMessengerType, pid core.PeerID) []string
+	ConnectedPeersOnTopic(messengerType NetworkMessengerType, topic string) []core.PeerID
+	SetPeerShardResolver(messengerType NetworkMessengerType, peerShardResolver PeerShardResolver) error
+	GetConnectedPeersInfo(messengerType NetworkMessengerType) *ConnectedPeersInfo
+	WaitForConnections(messengerType NetworkMessengerType, maxWaitingTime time.Duration, minNumOfPeers uint32)
+	IsConnectedToTheNetwork(messengerType NetworkMessengerType) bool
+	ThresholdMinConnectedPeers(messengerType NetworkMessengerType) int
+	SetThresholdMinConnectedPeers(messengerType NetworkMessengerType, minConnectedPeers int) error
+	SetPeerDenialEvaluator(messengerType NetworkMessengerType, handler PeerDenialEvaluator) error
+
+	ID() core.PeerID
+	Port(messengerType NetworkMessengerType) int
+	Sign(payload []byte) ([]byte, error)
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
+	AddPeerTopicNotifier(messengerType NetworkMessengerType, notifier PeerTopicNotifier) error
+
 	IsInterfaceNil() bool
 }

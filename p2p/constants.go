@@ -41,3 +41,12 @@ const Direct BroadcastMethod = "Direct"
 
 // Broadcast defines a broadcast message
 const Broadcast BroadcastMethod = "Broadcast"
+
+// NetworkMessengerType defines the type of the network messenger
+type NetworkMessengerType string
+
+// RegularMessenger is the regular p2p messenger
+const RegularMessenger NetworkMessengerType = "Regular"
+
+// FullArchiveMessenger is the p2p messenger that serves a full archive node
+const FullArchiveMessenger NetworkMessengerType = "FullArchive"

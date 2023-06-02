@@ -84,6 +84,7 @@ type networkMessenger struct {
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	mutPeerTopicNotifiers   sync.RWMutex
 	peerTopicNotifiers      []p2p.PeerTopicNotifier
+	messengerType           p2p.NetworkMessengerType
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -99,6 +100,7 @@ type ArgsNetworkMessenger struct {
 	P2pPrivateKey         commonCrypto.PrivateKey
 	P2pSingleSigner       commonCrypto.SingleSigner
 	P2pKeyGenerator       commonCrypto.KeyGenerator
+	MessengerType         p2p.NetworkMessengerType
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -208,6 +210,7 @@ func constructNode(
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
 		peerTopicNotifiers:      make([]p2p.PeerTopicNotifier, 0),
+		messengerType:           args.MessengerType,
 	}
 
 	return p2pNode, nil
@@ -532,6 +535,11 @@ func (netMes *networkMessenger) AddPeerTopicNotifier(notifier p2p.PeerTopicNotif
 	log.Debug("networkMessenger.AddPeerTopicNotifier", "type", fmt.Sprintf("%T", notifier))
 
 	return nil
+}
+
+// Type returns the type of the messenger
+func (netMes *networkMessenger) Type() p2p.NetworkMessengerType {
+	return netMes.messengerType
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

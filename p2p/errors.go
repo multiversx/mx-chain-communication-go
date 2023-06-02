@@ -194,3 +194,9 @@ var ErrNilConnectionsMetric = errors.New("nil connections metric")
 
 // ErrNilConnectionsProvider signals that a nil connections provider has been provided
 var ErrNilConnectionsProvider = errors.New("nil connections provider")
+
+// ErrNilMessenger signals that a nil messenger has been provided
+var ErrNilMessenger = errors.New("nil messenger")
+
+// ErrUnknownMessenger signals that the provided messenger is unknown
+var ErrUnknownMessenger = errors.New("unknown messenger")
