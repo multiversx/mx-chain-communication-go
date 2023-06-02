@@ -1050,40 +1050,6 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 	assert.True(t, containsPeerID(peersOnTopic24, messenger4.ID()))
 }
 
-// ------- ConnectedFullHistoryPeersOnTopic
-
-func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T) {
-	messenger1, messenger2, messenger3 := createMockNetworkOf3()
-	defer closeMessengers(messenger1, messenger2, messenger3)
-
-	adr2 := messenger2.Addresses()[0]
-	adr3 := messenger3.Addresses()[0]
-	fmt.Println("Connecting ...")
-
-	_ = messenger1.ConnectToPeer(adr2)
-	_ = messenger3.ConnectToPeer(adr2)
-	_ = messenger1.ConnectToPeer(adr3)
-	// connected peers:  1 ----- 2
-	//                   |       |
-	//                   3 ------+
-
-	_ = messenger1.CreateTopic("topic123", false)
-	_ = messenger2.CreateTopic("topic123", false)
-	_ = messenger3.CreateTopic("topic123", false)
-
-	// wait a bit for topic announcements
-	time.Sleep(time.Second)
-
-	assert.Equal(t, 2, len(messenger1.ConnectedPeersOnTopic("topic123")))
-	assert.Equal(t, 1, len(messenger1.ConnectedFullHistoryPeersOnTopic("topic123")))
-
-	assert.Equal(t, 2, len(messenger2.ConnectedPeersOnTopic("topic123")))
-	assert.Equal(t, 1, len(messenger2.ConnectedFullHistoryPeersOnTopic("topic123")))
-
-	assert.Equal(t, 2, len(messenger3.ConnectedPeersOnTopic("topic123")))
-	assert.Equal(t, 2, len(messenger3.ConnectedFullHistoryPeersOnTopic("topic123")))
-}
-
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	pid1 := core.PeerID("pid1")
 	pid2 := core.PeerID("pid2")

@@ -444,29 +444,6 @@ func TestConnectionsHandler_ConnectedPeersOnTopic(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestConnectionsHandler_ConnectedFullHistoryPeersOnTopic(t *testing.T) {
-	t.Parallel()
-
-	providedConnectedPIDs := []core.PeerID{core.PeerID("connected pid1"), core.PeerID("connected pid2")}
-	args := createMockArgConnectionsHandler()
-	args.PeersOnChannel = &mock.PeersOnChannelStub{
-		ConnectedPeersOnChannelCalled: func(topic string) []core.PeerID {
-			return providedConnectedPIDs
-		},
-	}
-	args.PeerShardResolver = &mock.PeerShardResolverStub{
-		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-			return core.P2PPeerInfo{
-				PeerSubType: core.FullHistoryObserver,
-			}
-		},
-	}
-	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
-	assert.False(t, check.IfNil(ch))
-	connectedFH := ch.ConnectedFullHistoryPeersOnTopic("topic")
-	assert.Equal(t, providedConnectedPIDs, connectedFH)
-}
-
 func TestConnectionsHandler_SetPeerShardResolver(t *testing.T) {
 	t.Parallel()
 

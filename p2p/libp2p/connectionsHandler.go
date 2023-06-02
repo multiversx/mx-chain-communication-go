@@ -251,25 +251,6 @@ func (handler *connectionsHandler) ConnectedPeersOnTopic(topic string) []core.Pe
 	return handler.peersOnChannel.ConnectedPeersOnChannel(topic)
 }
 
-// ConnectedFullHistoryPeersOnTopic returns the connected peers on a provided topic
-func (handler *connectionsHandler) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
-	peerList := handler.ConnectedPeersOnTopic(topic)
-	fullHistoryList := make([]core.PeerID, 0)
-
-	handler.mutPeerResolver.RLock()
-	peerShardResolver := handler.peerShardResolver
-	handler.mutPeerResolver.RUnlock()
-
-	for _, topicPeer := range peerList {
-		peerInfo := peerShardResolver.GetPeerInfo(topicPeer)
-		if peerInfo.PeerSubType == core.FullHistoryObserver {
-			fullHistoryList = append(fullHistoryList, topicPeer)
-		}
-	}
-
-	return fullHistoryList
-}
-
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
 // between peerID and shardId
 func (handler *connectionsHandler) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
