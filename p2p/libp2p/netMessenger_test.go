@@ -125,6 +125,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 }
 
@@ -300,6 +301,17 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrInvalidConfig))
+	})
+
+	t.Run("empty type", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.MessengerType = ""
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrEmptyType))
 	})
 }
 

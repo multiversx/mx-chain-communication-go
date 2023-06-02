@@ -130,6 +130,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	if check.IfNil(args.P2pKeyGenerator) {
 		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pKeyGenerator, baseErrorSuffix)
 	}
+	if len(args.MessengerType) == 0 {
+		return nil, fmt.Errorf("%w %s", p2p.ErrEmptyType, baseErrorSuffix)
+	}
 
 	setupExternalP2PLoggers()
 

@@ -200,3 +200,6 @@ var ErrNilMessenger = errors.New("nil messenger")
 
 // ErrUnknownMessenger signals that the provided messenger is unknown
 var ErrUnknownMessenger = errors.New("unknown messenger")
+
+// ErrEmptyType signals that an empty type has been provided
+var ErrEmptyType = errors.New("empty type")
