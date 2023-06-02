@@ -71,6 +71,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 	// Step 1. Create advertiser
 	advertiser, err := libp2p.NewMockMessenger(argSeeder, netw)
@@ -92,6 +93,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
+			MessengerType:         p2p.RegularMessenger,
 		}
 		node, errCreate := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, errCreate)

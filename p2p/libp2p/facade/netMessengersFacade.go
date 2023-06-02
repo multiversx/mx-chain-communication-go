@@ -18,6 +18,10 @@ type networkMessengersFacade struct {
 
 // NewNetworkMessengersFacade creates a new networkMessengersFacade instance
 func NewNetworkMessengersFacade(messengers ...p2p.Messenger) (*networkMessengersFacade, error) {
+	if len(messengers) == 0 {
+		return nil, p2p.ErrEmptyMessengersList
+	}
+
 	facade := &networkMessengersFacade{
 		messengers: make(map[p2p.NetworkMessengerType]p2p.Messenger, len(messengers)),
 	}

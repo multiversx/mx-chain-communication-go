@@ -203,3 +203,6 @@ var ErrUnknownMessenger = errors.New("unknown messenger")
 
 // ErrEmptyType signals that an empty type has been provided
 var ErrEmptyType = errors.New("empty type")
+
+// ErrEmptyMessengersList signals that an empty messengers list has been provided
+var ErrEmptyMessengersList = errors.New("empty messengers list")

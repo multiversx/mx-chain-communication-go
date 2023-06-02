@@ -1179,6 +1179,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 			},
 		},
 		P2pKeyGenerator: &mock.KeyGenStub{},
+		MessengerType:   p2p.RegularMessenger,
 	}
 	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
@@ -1249,6 +1250,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, err := libp2p.NewNetworkMessenger(args)
@@ -1488,6 +1490,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1556,6 +1559,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1632,6 +1636,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1697,6 +1702,7 @@ func TestNetworkMessenger_UnJoinAllTopicsShouldWork(t *testing.T) {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1919,6 +1925,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		P2pPrivateKey:   mock.NewPrivateKeyMock(),
 		P2pSingleSigner: &mock.SingleSignerStub{},
 		P2pKeyGenerator: &mock.KeyGenStub{},
+		MessengerType:   p2p.RegularMessenger,
 	}
 
 	messenger, err := libp2p.NewNetworkMessenger(args)

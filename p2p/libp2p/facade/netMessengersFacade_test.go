@@ -41,6 +41,24 @@ func createMockMessengerArgs() libp2p.ArgsNetworkMessenger {
 func TestNewNetworkMessengersFacade(t *testing.T) {
 	t.Parallel()
 
+	t.Run("no messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade, err := NewNetworkMessengersFacade()
+		require.Equal(t, p2p.ErrEmptyMessengersList, err)
+		require.Nil(t, facade)
+	})
+	t.Run("nil messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		netw := mocknet.New()
+		m1, err := libp2p.NewMockMessenger(createMockMessengerArgs(), netw)
+		require.NoError(t, err)
+
+		facade, err := NewNetworkMessengersFacade(m1, nil)
+		require.Equal(t, p2p.ErrNilMessenger, err)
+		require.Nil(t, facade)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

@@ -138,6 +138,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {

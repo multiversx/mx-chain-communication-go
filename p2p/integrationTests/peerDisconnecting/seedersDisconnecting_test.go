@@ -61,6 +61,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
+			MessengerType:         p2p.RegularMessenger,
 		}
 		node, err := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
@@ -138,6 +139,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		MessengerType:         p2p.RegularMessenger,
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -158,6 +160,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
+			MessengerType:         p2p.RegularMessenger,
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()
