@@ -21,14 +21,16 @@ const (
 	decreaseFactor = -1
 	minNumOfPeers  = 1
 	int32Size      = 4
+	loggerName     = "p2p/peersRating"
 )
 
-var log = logger.GetOrCreate("p2p/peersRating")
+var log = logger.GetOrCreate(loggerName)
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
 	TopRatedCache types.Cacher
 	BadRatedCache types.Cacher
+	LoggerPrefix  string
 }
 
 type peersRatingHandler struct {
@@ -42,6 +44,10 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, err
 	err := checkHandlerArgs(args)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(args.LoggerPrefix) > 0 {
+		log = logger.GetOrCreate(args.LoggerPrefix + loggerName)
 	}
 
 	return &peersRatingHandler{

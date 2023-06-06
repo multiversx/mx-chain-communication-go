@@ -3,7 +3,6 @@ package factory_test
 import (
 	"errors"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
@@ -29,26 +28,9 @@ func createMockArg() factory.ArgsSharderFactory {
 				MaxCrossShardValidators: 1,
 				MaxIntraShardObservers:  1,
 				MaxCrossShardObservers:  1,
-				AdditionalConnections: config.AdditionalConnectionsConfig{
-					MaxFullHistoryObservers: 1,
-				},
 			},
 		},
-		NodeOperationMode: p2p.NormalOperation,
 	}
-}
-
-func TestNewSharder_CreateListsSharderUnknownNodeOperationShouldError(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArg()
-	arg.P2pConfig.Sharding.Type = p2p.ListsSharder
-	arg.NodeOperationMode = ""
-	sharder, err := factory.NewSharder(arg)
-
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-	assert.True(t, strings.Contains(err.Error(), "unknown node operation mode"))
-	assert.True(t, check.IfNil(sharder))
 }
 
 func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {

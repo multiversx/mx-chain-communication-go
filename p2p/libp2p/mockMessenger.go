@@ -44,7 +44,7 @@ func NewMockMessenger(
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 	}
-	p2pNode.printConnectionsWatcher, err = factory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
+	p2pNode.printConnectionsWatcher, err = factory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher, "")
 	if err != nil {
 		return nil, err
 	}

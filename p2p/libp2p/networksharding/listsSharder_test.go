@@ -185,7 +185,6 @@ func TestNewListsSharder_NormalShouldWork(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxIntraShardObservers = 4
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
 	arg.P2pConfig.Sharding.MaxSeeders = 2
-	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
 	ls, err := networksharding.NewListsSharder(arg)
 
 	assert.False(t, check.IfNil(ls))
@@ -196,33 +195,6 @@ func TestNewListsSharder_NormalShouldWork(t *testing.T) {
 	assert.Equal(t, 4, ls.GetMaxIntraShardObservers())
 	assert.Equal(t, 3, ls.GetMaxCrossShardObservers())
 	assert.Equal(t, 2, ls.GetMaxSeeders())
-	assert.Equal(t, 0, ls.GetMaxFullHistoryObservers())
-	assert.Equal(t, 5, ls.GetMaxUnknown())
-}
-
-func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockListSharderArguments()
-	arg.NodeOperationMode = p2p.FullArchiveMode
-	arg.P2pConfig.Sharding.TargetPeerCount = 25
-	arg.P2pConfig.Sharding.MaxIntraShardValidators = 6
-	arg.P2pConfig.Sharding.MaxCrossShardValidators = 5
-	arg.P2pConfig.Sharding.MaxIntraShardObservers = 4
-	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
-	arg.P2pConfig.Sharding.MaxSeeders = 2
-	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
-	ls, err := networksharding.NewListsSharder(arg)
-
-	assert.False(t, check.IfNil(ls))
-	assert.Nil(t, err)
-	assert.Equal(t, 26, ls.GetMaxPeerCount())
-	assert.Equal(t, 6, ls.GetMaxIntraShardValidators())
-	assert.Equal(t, 5, ls.GetMaxCrossShardValidators())
-	assert.Equal(t, 4, ls.GetMaxIntraShardObservers())
-	assert.Equal(t, 3, ls.GetMaxCrossShardObservers())
-	assert.Equal(t, 2, ls.GetMaxSeeders())
-	assert.Equal(t, 1, ls.GetMaxFullHistoryObservers())
 	assert.Equal(t, 5, ls.GetMaxUnknown())
 }
 

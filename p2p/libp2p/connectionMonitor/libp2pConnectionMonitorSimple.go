@@ -15,12 +15,13 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("p2p/libp2p/connectionmonitor")
-
 const (
 	durationBetweenReconnectAttempts = time.Second * 5
 	durationCheckConnections         = time.Second
+	loggerName                       = "p2p/libp2p/connectionmonitor"
 )
+
+var log = logger.GetOrCreate(loggerName)
 
 type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
@@ -43,6 +44,7 @@ type ArgsConnectionMonitorSimple struct {
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
 	ConnectionsWatcher         p2p.ConnectionsWatcher
 	Network                    network.Network
+	LoggerPrefix               string
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
@@ -52,6 +54,10 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(args.LoggerPrefix) > 0 {
+		log = logger.GetOrCreate(args.LoggerPrefix + loggerName)
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())

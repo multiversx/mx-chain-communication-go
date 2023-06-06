@@ -23,7 +23,7 @@ func shouldNotCompute() bool {
 func TestNewP2PDebugger(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
+	pd := NewP2PDebugger("", "")
 
 	assert.False(t, check.IfNil(pd))
 }

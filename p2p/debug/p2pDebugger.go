@@ -12,9 +12,12 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("debug/p2p")
+const (
+	printInterval = time.Second
+	loggerName    = "debug/p2p"
+)
 
-const printInterval = time.Second
+var log = logger.GetOrCreate(loggerName)
 
 type metric struct {
 	topic string
@@ -62,7 +65,11 @@ type p2pDebugger struct {
 }
 
 // NewP2PDebugger creates a new p2p debug instance
-func NewP2PDebugger(selfPeerId core.PeerID) *p2pDebugger {
+func NewP2PDebugger(selfPeerId core.PeerID, loggerPrefix string) *p2pDebugger {
+	if len(loggerPrefix) > 0 {
+		log = logger.GetOrCreate(loggerPrefix + loggerName)
+	}
+
 	pd := &p2pDebugger{
 		selfPeerId: selfPeerId,
 		data:       make(map[string]*metric),

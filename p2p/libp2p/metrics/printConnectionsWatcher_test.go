@@ -18,14 +18,14 @@ func TestNewPrintConnectionsWatcher(t *testing.T) {
 	t.Run("invalid value for time to live parameter should error", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, err := metrics.NewPrintConnectionsWatcher(metrics.MinTimeToLive - time.Nanosecond)
+		pcw, err := metrics.NewPrintConnectionsWatcher(metrics.MinTimeToLive-time.Nanosecond, "")
 		assert.True(t, check.IfNil(pcw))
 		assert.True(t, errors.Is(err, metrics.ErrInvalidValueForTimeToLiveParam))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, err := metrics.NewPrintConnectionsWatcher(metrics.MinTimeToLive)
+		pcw, err := metrics.NewPrintConnectionsWatcher(metrics.MinTimeToLive, "")
 		assert.False(t, check.IfNil(pcw))
 		assert.Nil(t, err)
 
@@ -39,7 +39,7 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 	t.Run("no iteration has been done", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, _ := metrics.NewPrintConnectionsWatcher(time.Hour)
+		pcw, _ := metrics.NewPrintConnectionsWatcher(time.Hour, "")
 		err := pcw.Close()
 
 		assert.Nil(t, err)
@@ -49,7 +49,7 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 	t.Run("iterations were done", func(t *testing.T) {
 		t.Parallel()
 
-		pcw, _ := metrics.NewPrintConnectionsWatcher(time.Second)
+		pcw, _ := metrics.NewPrintConnectionsWatcher(time.Second, "")
 		time.Sleep(time.Second * 4)
 		err := pcw.Close()
 

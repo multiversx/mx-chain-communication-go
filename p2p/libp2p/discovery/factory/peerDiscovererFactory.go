@@ -14,8 +14,9 @@ import (
 const typeLegacy = "legacy"
 const typeOptimized = "optimized"
 const defaultSeedersReconnectionInterval = time.Minute * 5
+const loggerName = "p2p/discovery/factory"
 
-var log = logger.GetOrCreate("p2p/discovery/factory")
+var log = logger.GetOrCreate(loggerName)
 
 // ArgsPeerDiscoverer is the DTO struct used in the NewPeerDiscoverer function
 type ArgsPeerDiscoverer struct {
@@ -29,6 +30,10 @@ type ArgsPeerDiscoverer struct {
 // NewPeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
 func NewPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
+	if len(args.P2pConfig.Logger.Prefix) > 0 {
+		log = logger.GetOrCreate(args.P2pConfig.Logger.Prefix + loggerName)
+	}
+
 	if args.P2pConfig.KadDhtPeerDiscovery.Enabled {
 		return createKadDhtPeerDiscoverer(args)
 	}

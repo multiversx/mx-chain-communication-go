@@ -10,13 +10,20 @@ import (
 )
 
 var emptyPrivateKeyBytes = []byte("")
-var log = logger.GetOrCreate("p2p/libp2p/crypto")
+
+const loggerName = "p2p/libp2p/crypto"
+
+var log = logger.GetOrCreate(loggerName)
 
 type identityGenerator struct {
 }
 
 // NewIdentityGenerator creates a new identity generator
-func NewIdentityGenerator() *identityGenerator {
+func NewIdentityGenerator(loggerPrefix string) *identityGenerator {
+	if len(loggerPrefix) > 0 {
+		log = logger.GetOrCreate(loggerPrefix + loggerName)
+	}
+
 	return &identityGenerator{}
 }
 

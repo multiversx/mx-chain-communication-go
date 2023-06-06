@@ -11,7 +11,9 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("p2p/messagecheck")
+const loggerName = "p2p/messagecheck"
+
+var log = logger.GetOrCreate(loggerName)
 
 type messageVerifier struct {
 	marshaller marshal.Marshalizer
@@ -20,8 +22,9 @@ type messageVerifier struct {
 
 // ArgsMessageVerifier defines the arguments needed to create a messageVerifier
 type ArgsMessageVerifier struct {
-	Marshaller marshal.Marshalizer
-	P2PSigner  p2pSigner
+	Marshaller   marshal.Marshalizer
+	P2PSigner    p2pSigner
+	LoggerPrefix string
 }
 
 // NewMessageVerifier will create a new instance of messageVerifier
@@ -29,6 +32,10 @@ func NewMessageVerifier(args ArgsMessageVerifier) (*messageVerifier, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(args.LoggerPrefix) > 0 {
+		log = logger.GetOrCreate(args.LoggerPrefix + loggerName)
 	}
 
 	return &messageVerifier{

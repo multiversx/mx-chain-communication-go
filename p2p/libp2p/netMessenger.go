@@ -59,7 +59,9 @@ const (
 	withoutMessageSigning messageSigningConfig = false
 )
 
-var log = logger.GetOrCreate("p2p/libp2p")
+const loggerName = "p2p/libp2p"
+
+var log = logger.GetOrCreate(loggerName)
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
 var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
@@ -94,7 +96,6 @@ type ArgsNetworkMessenger struct {
 	P2pConfig             config.P2PConfig
 	SyncTimer             p2p.SyncTimer
 	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
-	NodeOperationMode     p2p.NodeOperation
 	PeersRatingHandler    p2p.PeersRatingHandler
 	ConnectionWatcherType string
 	P2pPrivateKey         commonCrypto.PrivateKey
@@ -134,6 +135,10 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 		return nil, fmt.Errorf("%w %s", p2p.ErrEmptyType, baseErrorSuffix)
 	}
 
+	if len(args.P2pConfig.Logger.Prefix) > 0 {
+		log = logger.GetOrCreate(args.P2pConfig.Logger.Prefix + loggerName)
+	}
+
 	setupExternalP2PLoggers()
 
 	p2pNode, err := constructNodeWithPortRetry(args)
@@ -165,7 +170,7 @@ func constructNode(
 	}
 
 	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
-	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher, args.P2pConfig.Logger.Prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +315,7 @@ func addComponentsToNode(
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
-		Debugger:           debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID())),
+		Debugger:           debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()), args.P2pConfig.Logger.Prefix),
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 	}
@@ -385,7 +390,6 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (
 		Pid:                  netMes.p2pHost.ID(),
 		P2pConfig:            argsNetMes.P2pConfig,
 		PreferredPeersHolder: argsNetMes.PreferredPeersHolder,
-		NodeOperationMode:    argsNetMes.NodeOperationMode,
 	}
 
 	return factory.NewSharder(args)

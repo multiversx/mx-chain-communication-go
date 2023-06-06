@@ -33,7 +33,6 @@ func createMessenger() p2p.Messenger {
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),

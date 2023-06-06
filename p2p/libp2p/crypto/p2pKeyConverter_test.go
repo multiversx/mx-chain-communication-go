@@ -66,7 +66,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("should work using a generated identity", func(t *testing.T) {
 		t.Parallel()
 
-		generator := p2pCrypto.NewIdentityGenerator()
+		generator := p2pCrypto.NewIdentityGenerator("")
 		skBytes, pid, err := generator.CreateRandomP2PIdentity()
 		assert.Nil(t, err)
 

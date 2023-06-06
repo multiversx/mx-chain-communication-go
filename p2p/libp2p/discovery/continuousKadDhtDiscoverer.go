@@ -18,7 +18,9 @@ import (
 var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)
 var _ p2p.Reconnecter = (*ContinuousKadDhtDiscoverer)(nil)
 
-var log = logger.GetOrCreate("p2p/libp2p/kaddht")
+const loggerName = "p2p/libp2p/kaddht"
+
+var log = logger.GetOrCreate(loggerName)
 
 const kadDhtName = "kad-dht discovery"
 
@@ -34,6 +36,7 @@ type ArgKadDht struct {
 	RoutingTableRefresh         time.Duration
 	KddSharder                  p2p.Sharder
 	ConnectionWatcher           p2p.ConnectionsWatcher
+	LoggerPrefix                string
 }
 
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
@@ -58,6 +61,10 @@ type ContinuousKadDhtDiscoverer struct {
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, error) {
+	if len(arg.LoggerPrefix) > 0 {
+		log = logger.GetOrCreate(arg.LoggerPrefix + loggerName)
+	}
+
 	sharder, err := prepareArguments(arg)
 	if err != nil {
 		return nil, err

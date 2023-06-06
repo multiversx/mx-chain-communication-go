@@ -132,18 +132,12 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		MessengerType:         p2p.RegularMessenger,
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)

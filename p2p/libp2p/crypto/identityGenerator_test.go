@@ -14,14 +14,14 @@ import (
 func TestNewIdentityGenerator(t *testing.T) {
 	t.Parallel()
 
-	generator := crypto.NewIdentityGenerator()
+	generator := crypto.NewIdentityGenerator("")
 	assert.False(t, check.IfNil(generator))
 }
 
 func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 	t.Parallel()
 
-	generator := crypto.NewIdentityGenerator()
+	generator := crypto.NewIdentityGenerator("")
 
 	skKey1, _, errGenerate := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
 	require.Nil(t, errGenerate)
@@ -75,7 +75,7 @@ func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 func TestIdentityGenerator_CreateRandomP2PIdentity(t *testing.T) {
 	t.Parallel()
 
-	generator := crypto.NewIdentityGenerator()
+	generator := crypto.NewIdentityGenerator("")
 	sk1, pid1, err := generator.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 

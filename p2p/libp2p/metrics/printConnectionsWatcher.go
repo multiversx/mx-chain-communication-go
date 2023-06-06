@@ -13,9 +13,12 @@ import (
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
-const minTimeToLive = time.Second
+const (
+	minTimeToLive = time.Second
+	loggerName    = "p2p/libp2p/metrics"
+)
 
-var log = logger.GetOrCreate("p2p/libp2p/metrics")
+var log = logger.GetOrCreate(loggerName)
 
 type printConnectionsWatcher struct {
 	timeCacher      types.TimeCacher
@@ -26,9 +29,13 @@ type printConnectionsWatcher struct {
 }
 
 // NewPrintConnectionsWatcher creates a new
-func NewPrintConnectionsWatcher(timeToLive time.Duration) (*printConnectionsWatcher, error) {
+func NewPrintConnectionsWatcher(timeToLive time.Duration, loggerPrefix string) (*printConnectionsWatcher, error) {
 	if timeToLive < minTimeToLive {
 		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", ErrInvalidValueForTimeToLiveParam, timeToLive, minTimeToLive)
+	}
+
+	if len(loggerPrefix) > 0 {
+		log = logger.GetOrCreate(loggerPrefix + loggerName)
 	}
 
 	pcw := &printConnectionsWatcher{

@@ -9,10 +9,10 @@ import (
 )
 
 // NewConnectionsWatcher creates a new ConnectionWatcher instance based on the input parameters
-func NewConnectionsWatcher(connectionsWatcherType string, timeToLive time.Duration) (p2p.ConnectionsWatcher, error) {
+func NewConnectionsWatcher(connectionsWatcherType string, timeToLive time.Duration, loggerPrefix string) (p2p.ConnectionsWatcher, error) {
 	switch connectionsWatcherType {
 	case p2p.ConnectionWatcherTypePrint:
-		return metrics.NewPrintConnectionsWatcher(timeToLive)
+		return metrics.NewPrintConnectionsWatcher(timeToLive, loggerPrefix)
 	case p2p.ConnectionWatcherTypeDisabled, p2p.ConnectionWatcherTypeEmpty:
 		return metrics.NewDisabledConnectionsWatcher(), nil
 	default:

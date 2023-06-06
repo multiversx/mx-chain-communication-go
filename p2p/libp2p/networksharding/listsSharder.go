@@ -31,9 +31,10 @@ const crossShardValidators = 20
 const crossShardObservers = 30
 const seeders = 40
 const unknown = 50
-const fullHistoryObservers = 60
 
-var log = logger.GetOrCreate("p2p/libp2p/networksharding")
+const loggerName = "p2p/libp2p/networksharding"
+
+var log = logger.GetOrCreate(loggerName)
 
 var leadingZerosCount = []int{
 	8, 7, 6, 6, 5, 5, 5, 5,
@@ -79,7 +80,6 @@ type ArgListsSharder struct {
 	SelfPeerId           peer.ID
 	P2pConfig            config.P2PConfig
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
-	NodeOperationMode    p2p.NodeOperation
 }
 
 // listsSharder is the struct able to compute an eviction list of connected peers id according to the
@@ -96,7 +96,6 @@ type listsSharder struct {
 	maxIntraShardObservers  int
 	maxCrossShardObservers  int
 	maxSeeders              int
-	maxFullHistoryObservers int
 	maxUnknown              int
 	mutSeeders              sync.RWMutex
 	seeders                 []string
@@ -111,7 +110,6 @@ type peersConnections struct {
 	intraShardObservers  int
 	crossShardObservers  int
 	seeders              int
-	fullHistoryObservers int
 	unknown              int
 }
 
@@ -153,7 +151,6 @@ func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 		maxIntraShardObservers:  peersConn.intraShardObservers,
 		maxCrossShardObservers:  peersConn.crossShardObservers,
 		maxSeeders:              peersConn.seeders,
-		maxFullHistoryObservers: peersConn.fullHistoryObservers,
 		maxUnknown:              peersConn.unknown,
 		preferredPeersHolder:    arg.PreferredPeersHolder,
 	}
@@ -169,22 +166,18 @@ func processNumConnections(arg ArgListsSharder) (peersConnections, error) {
 		intraShardObservers:  int(arg.P2pConfig.Sharding.MaxIntraShardObservers),
 		crossShardObservers:  int(arg.P2pConfig.Sharding.MaxCrossShardObservers),
 		seeders:              int(arg.P2pConfig.Sharding.MaxSeeders),
-		fullHistoryObservers: 0,
-	}
-	if arg.NodeOperationMode == p2p.FullArchiveMode {
-		peersConn.fullHistoryObservers = int(arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers)
-		peersConn.maxPeerCount += peersConn.fullHistoryObservers
 	}
 
-	if peersConn.crossShardObservers+peersConn.intraShardObservers+peersConn.fullHistoryObservers == 0 {
+	log = logger.GetOrCreate(arg.P2pConfig.Logger.Prefix + loggerName)
+	if peersConn.crossShardObservers+peersConn.intraShardObservers == 0 {
 		log.Warn("No connections to observers are possible. This is NOT a recommended setting!")
 	}
 
 	providedPeers := peersConn.intraShardValidators + peersConn.crossShardValidators +
 		peersConn.intraShardObservers + peersConn.crossShardObservers +
-		peersConn.seeders + peersConn.fullHistoryObservers
+		peersConn.seeders
 	if providedPeers+minUnknownPeers > peersConn.maxPeerCount {
-		return peersConnections{}, fmt.Errorf("%w, maxValidators + maxObservers + seeders + full archive nodes should be less than %d", p2p.ErrInvalidValue, peersConn.maxPeerCount)
+		return peersConnections{}, fmt.Errorf("%w, maxValidators + maxObservers + seeders should be less than %d", p2p.ErrInvalidValue, peersConn.maxPeerCount)
 	}
 
 	peersConn.unknown = peersConn.maxPeerCount - providedPeers
@@ -201,12 +194,10 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	existingNumCrossShardValidators := len(peerDistances[crossShardValidators])
 	existingNumCrossShardObservers := len(peerDistances[crossShardObservers])
 	existingNumSeeders := len(peerDistances[seeders])
-	existingNumFullHistoryObservers := len(peerDistances[fullHistoryObservers])
 	existingNumUnknown := len(peerDistances[unknown])
 
 	var numIntraShardValidators, numCrossShardValidators int
 	var numIntraShardObservers, numCrossShardObservers int
-	var numFullHistoryObservers int
 	var numSeeders, numUnknown, remaining int
 
 	numIntraShardValidators, remaining = computeUsedAndSpare(existingNumIntraShardValidators, ls.maxIntraShardValidators)
@@ -214,7 +205,6 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	numIntraShardObservers, remaining = computeUsedAndSpare(existingNumIntraShardObservers, ls.maxIntraShardObservers+remaining)
 	numCrossShardObservers, remaining = computeUsedAndSpare(existingNumCrossShardObservers, ls.maxCrossShardObservers+remaining)
 	numSeeders, _ = computeUsedAndSpare(existingNumSeeders, ls.maxSeeders) // we are not mixing remaining value. We are strict with the number of seeders
-	numFullHistoryObservers, _ = computeUsedAndSpare(existingNumFullHistoryObservers, ls.maxFullHistoryObservers)
 	numUnknown, _ = computeUsedAndSpare(existingNumUnknown, ls.maxUnknown+remaining)
 
 	evictionProposed := evict(peerDistances[intraShardValidators], numIntraShardValidators)
@@ -225,8 +215,6 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	e = evict(peerDistances[crossShardObservers], numCrossShardObservers)
 	evictionProposed = append(evictionProposed, e...)
 	e = evict(peerDistances[seeders], numSeeders)
-	evictionProposed = append(evictionProposed, e...)
-	e = evict(peerDistances[fullHistoryObservers], numFullHistoryObservers)
 	evictionProposed = append(evictionProposed, e...)
 	e = evict(peerDistances[unknown], numUnknown)
 	evictionProposed = append(evictionProposed, e...)
@@ -265,7 +253,6 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		intraShardObservers:  {},
 		crossShardValidators: {},
 		crossShardObservers:  {},
-		fullHistoryObservers: {},
 		seeders:              {},
 		unknown:              {},
 	}
@@ -315,12 +302,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		case core.ValidatorPeer:
 			peerDistances[intraShardValidators] = append(peerDistances[intraShardValidators], pd)
 		case core.ObserverPeer:
-			shouldAppendToFullHistory := peerInfo.PeerSubType == core.FullHistoryObserver && ls.maxFullHistoryObservers > 0
-			if shouldAppendToFullHistory {
-				peerDistances[fullHistoryObservers] = append(peerDistances[fullHistoryObservers], pd)
-			} else {
-				peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)
-			}
+			peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)
 		}
 	}
 

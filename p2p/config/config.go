@@ -5,6 +5,7 @@ type P2PConfig struct {
 	Node                NodeConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 	Sharding            ShardingConfig
+	Logger              LoggerConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -35,11 +36,9 @@ type ShardingConfig struct {
 	MaxCrossShardObservers  uint32
 	MaxSeeders              uint32
 	Type                    string
-	AdditionalConnections   AdditionalConnectionsConfig
 }
 
-// AdditionalConnectionsConfig will hold the additional connections that will be open when certain conditions are met
-// All these values should be added to the maximum target peer count value
-type AdditionalConnectionsConfig struct {
-	MaxFullHistoryObservers uint32
+// LoggerConfig will hold the logger configuration
+type LoggerConfig struct {
+	Prefix string
 }

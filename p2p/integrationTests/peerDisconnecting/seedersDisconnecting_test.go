@@ -34,9 +34,6 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              3,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: config.AdditionalConnectionsConfig{
-			MaxFullHistoryObservers: 0,
-		},
 	}
 	p2pCfg.Node.ThresholdMinConnectedPeers = 3
 
@@ -53,7 +50,6 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 			P2pConfig:             p2pCfg,
 			PreferredPeersHolder:  &mock.PeersHolderStub{},
-			NodeOperationMode:     p2p.NormalOperation,
 			Marshaller:            &testscommon.MarshallerMock{},
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
@@ -131,7 +127,6 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfigSeeder,
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		Marshaller:            &testscommon.MarshallerMock{},
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
@@ -152,7 +147,6 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 			P2pConfig:             p2pConfigSeeder,
 			PreferredPeersHolder:  &mock.PeersHolderStub{},
-			NodeOperationMode:     p2p.NormalOperation,
 			Marshaller:            &testscommon.MarshallerMock{},
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
