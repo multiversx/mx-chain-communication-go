@@ -270,7 +270,7 @@ type P2PKeyConverter interface {
 	IsInterfaceNil() bool
 }
 
-// Facade defines a facade over multiple Messenger interfaces
+// Facade defines a facade over multiple Messenger instances
 type Facade interface {
 	Messenger
 
