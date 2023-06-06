@@ -271,10 +271,10 @@ func (facade *networkMessengersFacade) connectMessengerToPeer(messengerType p2p.
 
 // IsConnected returns true if the provided messenger is connected to the main peer
 func (facade *networkMessengersFacade) IsConnected(peerID core.PeerID) bool {
-	return facade.isMessengerConnected(p2p.RegularMessenger, peerID)
+	return facade.isConnectedOnMessenger(p2p.RegularMessenger, peerID)
 }
 
-func (facade *networkMessengersFacade) isMessengerConnected(messengerType p2p.NetworkMessengerType, peerID core.PeerID) bool {
+func (facade *networkMessengersFacade) isConnectedOnMessenger(messengerType p2p.NetworkMessengerType, peerID core.PeerID) bool {
 	messenger, found := facade.messengers[messengerType]
 	if !found {
 		log.Warn("calling IsConnected on an unknown messenger, returning false...")
