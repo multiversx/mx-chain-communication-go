@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
+	"github.com/multiversx/mx-chain-communication-go/testscommon/creator"
 	"github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/stretchr/testify/require"
@@ -98,7 +99,7 @@ func TestServer_ListenAndRegisterPayloadHandlerAndClose(t *testing.T) {
 	args.URL = "localhost:9211"
 	wsServer, _ := NewWebSocketServer(args)
 
-	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{})
+	_ = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{})
 	wsServer.connectionHandler(&testscommon.WebsocketConnectionStub{
 		ReadMessageCalled: func() (messageType int, payload []byte, err error) {
 			return 0, nil, errors.New("local error")

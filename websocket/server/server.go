@@ -36,7 +36,7 @@ type server struct {
 	log                        core.Logger
 	httpServer                 webSocket.HttpServerHandler
 	transceiversAndConn        transceiversAndConnHandler
-	payloadHandler             webSocket.PayloadHandler
+	payloadHandlerCreator      webSocket.PayloadHandlerCreator
 }
 
 //NewWebSocketServer will create a new instance of server
@@ -51,7 +51,7 @@ func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 		log:                        args.Log,
 		retryDuration:              time.Duration(args.RetryDurationInSeconds) * time.Second,
 		payloadConverter:           args.PayloadConverter,
-		payloadHandler:             webSocket.NewNilPayloadHandler(),
+		payloadHandlerCreator:      webSocket.NewNilPayloadHandlerCreator(),
 		withAcknowledge:            args.WithAcknowledge,
 		dropMessagesIfNoConnection: args.DropMessagesIfNoConnection,
 	}
@@ -89,7 +89,13 @@ func (s *server) connectionHandler(connection webSocket.WSConClient) {
 		s.log.Warn("s.connectionHandler cannot create transceiver", "error", err)
 		return
 	}
-	err = webSocketTransceiver.SetPayloadHandler(s.payloadHandler)
+
+	handler, err := s.payloadHandlerCreator.Create()
+	if err != nil {
+		s.log.Warn("s.connectionHandler cannot create payload handler", "error", err)
+	}
+
+	err = webSocketTransceiver.SetPayloadHandler(handler)
 	if err != nil {
 		s.log.Warn("s.SetPayloadHandler cannot set payload handler", "error", err)
 	}
@@ -175,9 +181,13 @@ func (s *server) start() {
 	}()
 }
 
-// SetPayloadHandler will set the provided payload handler
-func (s *server) SetPayloadHandler(handler webSocket.PayloadHandler) error {
-	s.payloadHandler = handler
+// SetPayloadHandlerCreator will set the provided payload handler creator
+func (s *server) SetPayloadHandlerCreator(creator webSocket.PayloadHandlerCreator) error {
+	if check.IfNil(creator) {
+		return data.ErrNilPayloadHandlerCreator
+	}
+
+	s.payloadHandlerCreator = creator
 	return nil
 }
 

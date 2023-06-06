@@ -34,3 +34,6 @@ var ErrInvalidWebSocketHostMode = errors.New("invalid web socket host mode")
 
 // ErrNoClientsConnected is an error signal indicating the absence of any connected clients
 var ErrNoClientsConnected = errors.New("no client connected")
+
+// ErrNilPayloadHandlerCreator signals that a nil payload handler creator has been provided
+var ErrNilPayloadHandlerCreator = errors.New("nil payload handler creator provided")

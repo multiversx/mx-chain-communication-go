@@ -4,6 +4,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
+	"github.com/multiversx/mx-chain-communication-go/testscommon/creator"
+	"github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	factoryHost "github.com/multiversx/mx-chain-communication-go/websocket/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal/factory"
@@ -42,11 +44,16 @@ func main() {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	_ = wsClient.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string) error {
-			log.Info("received", "topic", topic, "payload", string(payload))
-			wg.Done()
-			return nil
+
+	_ = wsClient.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return &testscommon.PayloadHandlerStub{
+				ProcessPayloadCalled: func(payload []byte, topic string) error {
+					log.Info("received", "topic", topic, "payload", string(payload))
+					wg.Done()
+					return nil
+				},
+			}, nil
 		},
 	})
 

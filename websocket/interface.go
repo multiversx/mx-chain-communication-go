@@ -37,3 +37,9 @@ type HttpServerHandler interface {
 	ListenAndServe() error
 	Shutdown(ctx context.Context) error
 }
+
+// PayloadHandlerCreator dines what a payload handler creator should be able to do
+type PayloadHandlerCreator interface {
+	Create() (PayloadHandler, error)
+	IsInterfaceNil() bool
+}

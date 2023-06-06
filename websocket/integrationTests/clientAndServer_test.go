@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
+	"github.com/multiversx/mx-chain-communication-go/testscommon/creator"
+	"github.com/multiversx/mx-chain-communication-go/websocket"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 )
@@ -23,11 +25,15 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 
 	wg.Add(1)
 
-	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string) error {
-			require.Equal(t, []byte("test"), payload)
-			wg.Done()
-			return nil
+	_ = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return &testscommon.PayloadHandlerStub{
+				ProcessPayloadCalled: func(payload []byte, topic string) error {
+					require.Equal(t, []byte("test"), payload)
+					wg.Done()
+					return nil
+				},
+			}, nil
 		},
 	})
 
@@ -55,7 +61,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	wg1.Add(1)
 	wg2.Add(1)
 	serverReceivedCloseMessage := false
-	log := &testscommon.LoggerStub{
+	logger := &testscommon.LoggerStub{
 		InfoCalled: func(message string, args ...interface{}) {
 			if strings.Contains(message, "connection closed") {
 				serverReceivedCloseMessage = true
@@ -64,14 +70,18 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 		},
 	}
 
-	wsServer, err := createServer(url, log)
+	wsServer, err := createServer(url, logger)
 	require.Nil(t, err)
 
-	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, _ string) error {
-			require.Equal(t, []byte("test"), payload)
-			wg1.Done()
-			return nil
+	_ = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return &testscommon.PayloadHandlerStub{
+				ProcessPayloadCalled: func(payload []byte, _ string) error {
+					require.Equal(t, []byte("test"), payload)
+					wg1.Done()
+					return nil
+				},
+			}, nil
 		},
 	})
 
@@ -116,7 +126,12 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 			return nil
 		},
 	}
-	_ = wsServer.SetPayloadHandler(payloadHandler)
+
+	_ = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return payloadHandler, nil
+		},
+	})
 
 	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
@@ -140,7 +155,13 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	// start the server again
 	wsServer, err = createServer(url, &testscommon.LoggerMock{})
-	_ = wsServer.SetPayloadHandler(payloadHandler)
+	require.Nil(t, err)
+
+	err = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return payloadHandler, nil
+		},
+	})
 	require.Nil(t, err)
 
 	for idx := 100; idx < 200; idx++ {
@@ -184,7 +205,13 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 			return nil
 		},
 	}
-	_ = wsServer.SetPayloadHandler(payloadHandler)
+
+	err = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return payloadHandler, nil
+		},
+	})
+	require.Nil(t, err)
 
 	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
@@ -222,7 +249,12 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 			return nil
 		},
 	}
-	_ = wsServer.SetPayloadHandler(payloadHandler)
+	err = wsServer.SetPayloadHandlerCreator(&creator.PayloadHandlerCreatorStub{
+		CreateCalled: func() (websocket.PayloadHandler, error) {
+			return payloadHandler, nil
+		},
+	})
+	require.Nil(t, err)
 
 	wsClient, err := createClient(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)

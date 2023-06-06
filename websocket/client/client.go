@@ -139,8 +139,17 @@ func (c *client) Send(payload []byte, topic string) error {
 	return c.transceiver.Send(payload, topic, c.wsConn)
 }
 
-// SetPayloadHandler set the payload handler
-func (c *client) SetPayloadHandler(handler websocket.PayloadHandler) error {
+// SetPayloadHandlerCreator set the payload handler creator and create a new instance of PayloadHandler
+func (c *client) SetPayloadHandlerCreator(creator websocket.PayloadHandlerCreator) error {
+	if check.IfNil(creator) {
+		return data.ErrNilPayloadHandlerCreator
+	}
+
+	handler, err := creator.Create()
+	if err != nil {
+		return err
+	}
+
 	return c.transceiver.SetPayloadHandler(handler)
 }
 
