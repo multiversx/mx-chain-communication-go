@@ -194,3 +194,6 @@ var ErrNilConnectionsMetric = errors.New("nil connections metric")
 
 // ErrNilConnectionsProvider signals that a nil connections provider has been provided
 var ErrNilConnectionsProvider = errors.New("nil connections provider")
+
+// ErrNilLogger signals that a nil logger has been provided
+var ErrNilLogger = errors.New("nil logger")

@@ -7,10 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
-
-var log = logger.GetOrCreate("p2p/networksharding/factory")
 
 // ArgsSharderFactory represents the argument for the sharder factory
 type ArgsSharderFactory struct {
@@ -19,10 +17,15 @@ type ArgsSharderFactory struct {
 	P2pConfig            config.P2PConfig
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	NodeOperationMode    p2p.NodeOperation
+	Logger               p2p.Logger
 }
 
 // NewSharder creates new Sharder instances
 func NewSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
+	if check.IfNil(arg.Logger) {
+		return nil, p2p.ErrNilLogger
+	}
+
 	shardingType := arg.P2pConfig.Sharding.Type
 	switch shardingType {
 	case p2p.ListsSharder:
@@ -30,7 +33,7 @@ func NewSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 	case p2p.OneListSharder:
 		return oneListSharder(arg)
 	case p2p.NilListSharder:
-		return nilListSharder()
+		return nilListSharder(arg.Logger)
 	default:
 		return nil, fmt.Errorf("%w when selecting sharder: unknown %s value", p2p.ErrInvalidValue, shardingType)
 	}
@@ -43,13 +46,12 @@ func listSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 		return nil, fmt.Errorf("%w unknown node operation mode %s", p2p.ErrInvalidValue, arg.NodeOperationMode)
 	}
 
-	log.Debug("using lists sharder",
+	arg.Logger.Debug("using lists sharder",
 		"MaxConnectionCount", arg.P2pConfig.Sharding.TargetPeerCount,
 		"MaxIntraShardValidators", arg.P2pConfig.Sharding.MaxIntraShardValidators,
 		"MaxCrossShardValidators", arg.P2pConfig.Sharding.MaxCrossShardValidators,
 		"MaxIntraShardObservers", arg.P2pConfig.Sharding.MaxIntraShardObservers,
 		"MaxCrossShardObservers", arg.P2pConfig.Sharding.MaxCrossShardObservers,
-		"MaxFullHistoryObservers", arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers,
 		"MaxSeeders", arg.P2pConfig.Sharding.MaxSeeders,
 		"node operation", arg.NodeOperationMode,
 	)
@@ -59,12 +61,13 @@ func listSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 		P2pConfig:            arg.P2pConfig,
 		PreferredPeersHolder: arg.PreferredPeersHolder,
 		NodeOperationMode:    arg.NodeOperationMode,
+		Logger:               arg.Logger,
 	}
 	return networksharding.NewListsSharder(argListsSharder)
 }
 
 func oneListSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
-	log.Debug("using one list sharder",
+	arg.Logger.Debug("using one list sharder",
 		"MaxConnectionCount", arg.P2pConfig.Sharding.TargetPeerCount,
 	)
 	return networksharding.NewOneListSharder(
@@ -73,7 +76,7 @@ func oneListSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 	)
 }
 
-func nilListSharder() (p2p.Sharder, error) {
+func nilListSharder(log p2p.Logger) (p2p.Sharder, error) {
 	log.Debug("using nil list sharder")
 	return networksharding.NewNilListSharder(), nil
 }

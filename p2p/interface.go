@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
@@ -62,7 +63,6 @@ type ConnectionsHandler interface {
 	ConnectedAddresses() []string
 	PeerAddresses(pid core.PeerID) []string
 	ConnectedPeersOnTopic(topic string) []core.PeerID
-	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
@@ -156,7 +156,6 @@ type ConnectedPeersInfo struct {
 	IntraShardObservers      map[uint32][]string
 	CrossShardValidators     map[uint32][]string
 	CrossShardObservers      map[uint32][]string
-	FullHistoryObservers     map[uint32][]string
 	NumValidatorsOnShard     map[uint32]int
 	NumObserversOnShard      map[uint32]int
 	NumPreferredPeersOnShard map[uint32]int
@@ -164,7 +163,6 @@ type ConnectedPeersInfo struct {
 	NumIntraShardObservers   int
 	NumCrossShardValidators  int
 	NumCrossShardObservers   int
-	NumFullHistoryObservers  int
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
@@ -267,5 +265,17 @@ type PeerTopicNotifier interface {
 type P2PKeyConverter interface {
 	ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error)
 	ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error)
+	IsInterfaceNil() bool
+}
+
+// Logger defines the behavior of a data logger component
+type Logger interface {
+	Trace(message string, args ...interface{})
+	Debug(message string, args ...interface{})
+	Info(message string, args ...interface{})
+	Warn(message string, args ...interface{})
+	Error(message string, args ...interface{})
+	LogIfError(err error, args ...interface{})
+	GetLevel() logger.LogLevel
 	IsInterfaceNil() bool
 }

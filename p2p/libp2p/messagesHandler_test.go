@@ -56,6 +56,7 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 		Debugger:           &mock.DebuggerStub{},
 		SyncTimer:          &libp2p.LocalSyncTimer{},
 		PeerID:             providedPid,
+		Logger:             &testscommon.LoggerStub{},
 	}
 }
 

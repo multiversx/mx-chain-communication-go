@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,12 +30,10 @@ func createMockArg() factory.ArgsSharderFactory {
 				MaxCrossShardValidators: 1,
 				MaxIntraShardObservers:  1,
 				MaxCrossShardObservers:  1,
-				AdditionalConnections: config.AdditionalConnectionsConfig{
-					MaxFullHistoryObservers: 1,
-				},
 			},
 		},
 		NodeOperationMode: p2p.NormalOperation,
+		Logger:            &testscommon.LoggerStub{},
 	}
 }
 

@@ -40,6 +40,7 @@ type directSender struct {
 	mutexForPeer      *MutexHolder
 	signer            p2p.SignerVerifier
 	marshaller        p2p.Marshaller
+	log               p2p.Logger
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -48,6 +49,7 @@ func NewDirectSender(
 	h host.Host,
 	signer p2p.SignerVerifier,
 	marshaller p2p.Marshaller,
+	logger p2p.Logger,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -61,6 +63,9 @@ func NewDirectSender(
 	}
 	if check.IfNil(marshaller) {
 		return nil, p2p.ErrNilMarshaller
+	}
+	if check.IfNil(logger) {
+		return nil, p2p.ErrNilLogger
 	}
 
 	mutexForPeer, err := NewMutexHolder(maxMutexes)
@@ -76,6 +81,7 @@ func NewDirectSender(
 		mutexForPeer: mutexForPeer,
 		signer:       signer,
 		marshaller:   marshaller,
+		log:          logger,
 	}
 
 	// wire-up a handler for direct messages
@@ -110,7 +116,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 				if err != io.EOF {
 					_ = s.Reset()
-					log.Trace("error reading rpc",
+					ds.log.Trace("error reading rpc",
 						"from", s.Conn().RemotePeer(),
 						"error", err.Error(),
 					)
@@ -124,7 +130,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 			err = ds.processReceivedDirectMessage(msg, s.Conn().RemotePeer())
 			if err != nil {
-				log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
+				ds.log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
 			}
 		}
 	}(reader)
