@@ -15,6 +15,7 @@ type WebSocketConfig struct {
 	Mode                       string // The host operation mode: 'client' or 'server'.
 	RetryDurationInSec         int    // The duration in seconds to wait before retrying the connection in case of failure.
 	WithAcknowledge            bool   // Set to `true` to enable message acknowledgment mechanism.
+	AcknowledgeTimeoutInSec    int    // The duration in seconds to wait for an acknowledgement message
 	BlockingAckOnError         bool   // Set to `true` to send the acknowledgment message only if the processing part of a message succeeds. If an error occurs during processing, the acknowledgment will not be sent.
 	DropMessagesIfNoConnection bool   // Set to `true` to drop messages if there is no active WebSocket connection to send to.
 }

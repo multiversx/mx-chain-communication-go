@@ -19,6 +19,7 @@ import (
 // ArgsWebSocketServer holds all the components needed to create a server
 type ArgsWebSocketServer struct {
 	RetryDurationInSeconds     int
+	AckTimeoutInSeconds        int
 	BlockingAckOnError         bool
 	WithAcknowledge            bool
 	DropMessagesIfNoConnection bool
@@ -31,6 +32,7 @@ type server struct {
 	blockingAckOnError         bool
 	withAcknowledge            bool
 	dropMessagesIfNoConnection bool
+	ackTimeoutInSec            int
 	payloadConverter           webSocket.PayloadConverter
 	retryDuration              time.Duration
 	log                        core.Logger
@@ -54,6 +56,7 @@ func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 		payloadHandler:             webSocket.NewNilPayloadHandler(),
 		withAcknowledge:            args.WithAcknowledge,
 		dropMessagesIfNoConnection: args.DropMessagesIfNoConnection,
+		ackTimeoutInSec:            args.AckTimeoutInSeconds,
 	}
 
 	wsServer.initializeServer(args.URL, data.WSRoute)
@@ -82,6 +85,7 @@ func (s *server) connectionHandler(connection webSocket.WSConClient) {
 		PayloadConverter:   s.payloadConverter,
 		Log:                s.log,
 		RetryDurationInSec: int(s.retryDuration.Seconds()),
+		AckTimeoutInSec:    s.ackTimeoutInSec,
 		BlockingAckOnError: s.blockingAckOnError,
 		WithAcknowledge:    s.withAcknowledge,
 	})
