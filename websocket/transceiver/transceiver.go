@@ -68,7 +68,7 @@ func checkArgs(args ArgsTransceiver) error {
 	if args.RetryDurationInSec == 0 {
 		return data.ErrZeroValueRetryDuration
 	}
-	if args.WithAcknowledge == true && args.AckTimeoutInSec == 0 {
+	if args.WithAcknowledge && args.AckTimeoutInSec == 0 {
 		return data.ErrZeroValueAckTimeout
 	}
 	return nil
