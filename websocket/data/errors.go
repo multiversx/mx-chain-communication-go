@@ -38,5 +38,5 @@ var ErrInvalidWebSocketHostMode = errors.New("invalid web socket host mode")
 // ErrNoClientsConnected is an error signal indicating the absence of any connected clients
 var ErrNoClientsConnected = errors.New("no client connected")
 
-// ErrAckTimeout signal that acknowledge timeout has been reached
-var ErrAckTimeout = errors.New("wait acknowledge timeout occurred")
+// ErrAckTimeout signals that an acknowledgment timeout has been reached
+var ErrAckTimeout = errors.New("acknowledge waiting timeout occurred")
