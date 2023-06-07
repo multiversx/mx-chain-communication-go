@@ -131,10 +131,10 @@ func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
 	if check.IfNil(arg.PreferredPeersHolder) {
-		return nil, fmt.Errorf("%w while creating a new listsShared", p2p.ErrNilPreferredPeersHolder)
+		return nil, fmt.Errorf("%w while creating a new listsSharder", p2p.ErrNilPreferredPeersHolder)
 	}
 	if check.IfNil(arg.Logger) {
-		return nil, fmt.Errorf("%w while creating a new listsShared", p2p.ErrNilLogger)
+		return nil, fmt.Errorf("%w while creating a new listsSharder", p2p.ErrNilLogger)
 	}
 	peersConn, err := processNumConnections(arg)
 	if err != nil {
