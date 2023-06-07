@@ -20,6 +20,9 @@ var ErrEmptyUrl = errors.New("empty websocket url provided")
 // ErrZeroValueRetryDuration signals that a zero value for retry duration has been provided
 var ErrZeroValueRetryDuration = errors.New("zero value provided for retry duration")
 
+// ErrZeroValueAckTimeout signals that a zero value for acknowledge timeout has been provided
+var ErrZeroValueAckTimeout = errors.New("zero value provided for acknowledge timeout")
+
 // ErrConnectionAlreadyOpen signal that the WebSocket connection was already open
 var ErrConnectionAlreadyOpen = errors.New("connection already open")
 
@@ -34,3 +37,6 @@ var ErrInvalidWebSocketHostMode = errors.New("invalid web socket host mode")
 
 // ErrNoClientsConnected is an error signal indicating the absence of any connected clients
 var ErrNoClientsConnected = errors.New("no client connected")
+
+// ErrAckTimeout signal that acknowledge timeout has been reached
+var ErrAckTimeout = errors.New("wait acknowledge timeout occurred")
