@@ -13,14 +13,14 @@ const NullName = nilName
 
 // ------- ContinuousKadDhtDiscoverer
 
-func (ckdd *ContinuousKadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
+func (ckdd *continuousKadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
 	durationBetweenAttempts time.Duration,
 	initialPeersList []string) <-chan struct{} {
 
 	return ckdd.connectToOnePeerFromInitialPeersList(durationBetweenAttempts, initialPeersList)
 }
 
-func (ckdd *ContinuousKadDhtDiscoverer) StopDHT() error {
+func (ckdd *continuousKadDhtDiscoverer) StopDHT() error {
 	ckdd.mutKadDht.Lock()
 	err := ckdd.stopDHT()
 	ckdd.mutKadDht.Unlock()
@@ -54,6 +54,7 @@ func NewOptimizedKadDhtDiscovererWithInitFunc(
 		chanInit:                    make(chan struct{}),
 		errChanInit:                 make(chan error),
 		chanConnectToSeeders:        make(chan struct{}),
+		log:                         arg.Logger,
 	}
 
 	okdd.createKadDhtHandler = createFunc

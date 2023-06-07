@@ -34,9 +34,6 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              3,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: config.AdditionalConnectionsConfig{
-			MaxFullHistoryObservers: 0,
-		},
 	}
 	p2pCfg.Node.ThresholdMinConnectedPeers = 3
 
@@ -61,6 +58,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
+			Logger:                &testscommon.LoggerStub{},
 		}
 		node, err := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
@@ -138,6 +136,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -158,6 +157,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
+			Logger:                &testscommon.LoggerStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

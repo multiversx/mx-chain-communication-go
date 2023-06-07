@@ -59,8 +59,6 @@ const (
 	withoutMessageSigning messageSigningConfig = false
 )
 
-var log = logger.GetOrCreate("p2p/libp2p")
-
 var _ p2p.Messenger = (*networkMessenger)(nil)
 var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
@@ -84,6 +82,7 @@ type networkMessenger struct {
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	mutPeerTopicNotifiers   sync.RWMutex
 	peerTopicNotifiers      []p2p.PeerTopicNotifier
+	log                     p2p.Logger
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -99,6 +98,7 @@ type ArgsNetworkMessenger struct {
 	P2pPrivateKey         commonCrypto.PrivateKey
 	P2pSingleSigner       commonCrypto.SingleSigner
 	P2pKeyGenerator       commonCrypto.KeyGenerator
+	Logger                p2p.Logger
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -128,6 +128,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	if check.IfNil(args.P2pKeyGenerator) {
 		return nil, fmt.Errorf("%w %s", p2p.ErrNilP2pKeyGenerator, baseErrorSuffix)
 	}
+	if check.IfNil(args.Logger) {
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilLogger, baseErrorSuffix)
+	}
 
 	setupExternalP2PLoggers()
 
@@ -143,7 +146,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 	err = addComponentsToNode(args, p2pNode, messageSigning)
 	if err != nil {
-		log.LogIfError(p2pNode.p2pHost.Close())
+		p2pNode.log.LogIfError(p2pNode.p2pHost.Close())
 		return nil, err
 	}
 
@@ -154,13 +157,13 @@ func constructNode(
 	args ArgsNetworkMessenger,
 ) (*networkMessenger, error) {
 
-	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
+	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort, args.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
-	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
+	args.Logger.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher, args.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +211,7 @@ func constructNode(
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
 		peerTopicNotifiers:      make([]p2p.PeerTopicNotifier, 0),
+		log:                     args.Logger,
 	}
 
 	return p2pNode, nil
@@ -230,7 +234,7 @@ func constructNodeWithPortRetry(
 			return nil, err
 		}
 
-		log.Debug("bind error in network messenger", "retry number", i+1, "error", err)
+		p2pNode.log.Debug("bind error in network messenger", "retry number", i+1, "error", err)
 	}
 
 	return nil, lastErr
@@ -266,7 +270,8 @@ func addComponentsToNode(
 	peersOnChannelInstance, err := newPeersOnChannel(
 		pubSub.ListPeers,
 		refreshPeersOnTopic,
-		ttlPeersOnTopic)
+		ttlPeersOnTopic,
+		p2pNode.log)
 	if err != nil {
 		return err
 	}
@@ -286,7 +291,7 @@ func addComponentsToNode(
 		return err
 	}
 
-	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller)
+	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller, p2pNode.log)
 	if err != nil {
 		return err
 	}
@@ -296,17 +301,28 @@ func addComponentsToNode(
 		return err
 	}
 
+	oclb, err := NewOutgoingChannelLoadBalancer(p2pNode.log)
+	if err != nil {
+		return err
+	}
+
+	p2pDebugger, err := debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()), p2pNode.log)
+	if err != nil {
+		return err
+	}
+
 	argsMessageHandler := ArgMessagesHandler{
 		PubSub:             pubSub,
 		DirectSender:       ds,
 		Throttler:          goRoutinesThrottler,
-		OutgoingCLB:        NewOutgoingChannelLoadBalancer(),
+		OutgoingCLB:        oclb,
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
-		Debugger:           debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID())),
+		Debugger:           p2pDebugger,
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
+		Logger:             p2pNode.log,
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {
@@ -326,6 +342,7 @@ func addComponentsToNode(
 		PeerDiscoverer:       peerDiscoverer,
 		PeerID:               p2pNode.ID(),
 		ConnectionsMetric:    connectionsMetric,
+		Logger:               p2pNode.log,
 	}
 	p2pNode.ConnectionsHandler, err = NewConnectionsHandler(argsConnectionsHandler)
 	if err != nil {
@@ -351,7 +368,7 @@ func (netMes *networkMessenger) validateSeeders(seeders []string) error {
 func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig) (PubSub, error) {
 	optsPS := make([]pubsub.Option, 0)
 	if messageSigning == withoutMessageSigning {
-		log.Warn("signature verification is turned off in network messenger instance. NOT recommended in production environment")
+		netMes.log.Warn("signature verification is turned off in network messenger instance. NOT recommended in production environment")
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
@@ -380,6 +397,7 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (
 		P2pConfig:            argsNetMes.P2pConfig,
 		PreferredPeersHolder: argsNetMes.PreferredPeersHolder,
 		NodeOperationMode:    argsNetMes.NodeOperationMode,
+		Logger:               netMes.log,
 	}
 
 	return factory.NewSharder(args)
@@ -392,6 +410,7 @@ func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sha
 		Sharder:            sharder,
 		P2pConfig:          p2pConfig,
 		ConnectionsWatcher: netMes.printConnectionsWatcher,
+		Logger:             netMes.log,
 	}
 
 	return discoveryFactory.NewPeerDiscoverer(args)
@@ -420,6 +439,7 @@ func (netMes *networkMessenger) createConnectionMonitor(
 		PreferredPeersHolder:       preferredPeersHolder,
 		ConnectionsWatcher:         netMes.printConnectionsWatcher,
 		Network:                    netMes.p2pHost.Network(),
+		Logger:                     netMes.log,
 	}
 	return connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 }
@@ -430,7 +450,7 @@ func (netMes *networkMessenger) printLogs() {
 		addresses = append(addresses, fmt.Sprintf("addr%d", i))
 		addresses = append(addresses, address.String()+"/p2p/"+netMes.ID().Pretty())
 	}
-	log.Info("listening on addresses", addresses...)
+	netMes.log.Info("listening on addresses", addresses...)
 
 	go netMes.checkExternalLoggers()
 }
@@ -439,7 +459,7 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
-			log.Debug("closing networkMessenger.checkExternalLoggers go routine")
+			netMes.log.Debug("closing networkMessenger.checkExternalLoggers go routine")
 			return
 		case <-time.After(timeBetweenExternalLoggersCheck):
 		}
@@ -450,23 +470,23 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	log.Debug("closing network messenger's host...")
+	netMes.log.Debug("closing network messenger's host...")
 
 	var err error
-	log.Debug("closing network messenger's messages handler...")
+	netMes.log.Debug("closing network messenger's messages handler...")
 	errMH := netMes.MessageHandler.Close()
 	if errMH != nil {
 		err = errMH
-		log.Warn("networkMessenger.Close",
+		netMes.log.Warn("networkMessenger.Close",
 			"component", "messagesHandler",
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's connections handler...")
+	netMes.log.Debug("closing network messenger's connections handler...")
 	errCH := netMes.ConnectionsHandler.Close()
 	if errCH != nil {
 		err = errCH
-		log.Warn("networkMessenger.Close",
+		netMes.log.Warn("networkMessenger.Close",
 			"component", "connectionsHandler",
 			"error", err)
 	}
@@ -474,34 +494,34 @@ func (netMes *networkMessenger) Close() error {
 	errHost := netMes.p2pHost.Close()
 	if errHost != nil {
 		err = errHost
-		log.Warn("networkMessenger.Close",
+		netMes.log.Warn("networkMessenger.Close",
 			"component", "host",
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's print connection watcher...")
+	netMes.log.Debug("closing network messenger's print connection watcher...")
 	errConnWatcher := netMes.printConnectionsWatcher.Close()
 	if errConnWatcher != nil {
 		err = errConnWatcher
-		log.Warn("networkMessenger.Close",
+		netMes.log.Warn("networkMessenger.Close",
 			"component", "connectionsWatcher",
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's components through the context...")
+	netMes.log.Debug("closing network messenger's components through the context...")
 	netMes.cancelFunc()
 
-	log.Debug("closing network messenger's peerstore...")
+	netMes.log.Debug("closing network messenger's peerstore...")
 	errPeerStore := netMes.p2pHost.Peerstore().Close()
 	if errPeerStore != nil {
 		err = errPeerStore
-		log.Warn("networkMessenger.Close",
+		netMes.log.Warn("networkMessenger.Close",
 			"component", "peerstore",
 			"error", err)
 	}
 
 	if err == nil {
-		log.Info("network messenger closed successfully")
+		netMes.log.Info("network messenger closed successfully")
 	}
 
 	return err
@@ -529,7 +549,7 @@ func (netMes *networkMessenger) AddPeerTopicNotifier(notifier p2p.PeerTopicNotif
 	netMes.peerTopicNotifiers = append(netMes.peerTopicNotifiers, notifier)
 	netMes.mutPeerTopicNotifiers.Unlock()
 
-	log.Debug("networkMessenger.AddPeerTopicNotifier", "type", fmt.Sprintf("%T", notifier))
+	netMes.log.Debug("networkMessenger.AddPeerTopicNotifier", "type", fmt.Sprintf("%T", notifier))
 
 	return nil
 }

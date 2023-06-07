@@ -8,20 +8,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-var log = logger.GetOrCreate("p2p/messagecheck")
 
 type messageVerifier struct {
 	marshaller marshal.Marshalizer
 	p2pSigner  p2pSigner
+	log        p2p.Logger
 }
 
 // ArgsMessageVerifier defines the arguments needed to create a messageVerifier
 type ArgsMessageVerifier struct {
 	Marshaller marshal.Marshalizer
 	P2PSigner  p2pSigner
+	Logger     p2p.Logger
 }
 
 // NewMessageVerifier will create a new instance of messageVerifier
@@ -34,6 +33,7 @@ func NewMessageVerifier(args ArgsMessageVerifier) (*messageVerifier, error) {
 	return &messageVerifier{
 		marshaller: args.Marshaller,
 		p2pSigner:  args.P2PSigner,
+		log:        args.Logger,
 	}, nil
 }
 
@@ -41,8 +41,11 @@ func checkArgs(args ArgsMessageVerifier) error {
 	if check.IfNil(args.Marshaller) {
 		return p2p.ErrNilMarshaller
 	}
-	if args.P2PSigner == nil {
+	if check.IfNil(args.P2PSigner) {
 		return p2p.ErrNilP2PSigner
+	}
+	if check.IfNil(args.Logger) {
+		return p2p.ErrNilLogger
 	}
 
 	return nil
@@ -137,7 +140,7 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 	for _, msg := range messages {
 		pubsubMsg, err := convertP2PMessagetoPubSubMessage(msg)
 		if err != nil {
-			log.Trace("convertP2PMessagetoPubSubMessage", "error", err.Error())
+			m.log.Trace("convertP2PMessagetoPubSubMessage", "error", err.Error())
 			continue
 		}
 
@@ -184,7 +187,7 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 
 		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg, m.marshaller)
 		if err != nil {
-			log.Trace("convertPubSubMessagestoP2PMessage", "error", err.Error())
+			m.log.Trace("convertPubSubMessagestoP2PMessage", "error", err.Error())
 			continue
 		}
 

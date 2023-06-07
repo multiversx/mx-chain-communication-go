@@ -125,6 +125,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 }
 
@@ -137,36 +138,6 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	_ = netw.LinkAll()
 
 	return netw, messenger1, messenger2
-}
-
-func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
-	netw := mocknet.New()
-
-	messenger1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
-	messenger2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
-	messenger3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
-
-	_ = netw.LinkAll()
-
-	nscm1 := mock.NewNetworkShardingCollectorMock()
-	nscm1.PutPeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
-	nscm1.PutPeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
-	nscm1.PutPeerIdSubType(messenger3.ID(), core.RegularPeer)
-	_ = messenger1.SetPeerShardResolver(nscm1)
-
-	nscm2 := mock.NewNetworkShardingCollectorMock()
-	nscm2.PutPeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
-	nscm2.PutPeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
-	nscm2.PutPeerIdSubType(messenger3.ID(), core.RegularPeer)
-	_ = messenger2.SetPeerShardResolver(nscm2)
-
-	nscm3 := mock.NewNetworkShardingCollectorMock()
-	nscm3.PutPeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
-	nscm3.PutPeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
-	nscm3.PutPeerIdSubType(messenger3.ID(), core.RegularPeer)
-	_ = messenger3.SetPeerShardResolver(nscm3)
-
-	return messenger1, messenger2, messenger3
 }
 
 func createMockMessenger() p2p.Messenger {
@@ -300,6 +271,17 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrInvalidConfig))
+	})
+
+	t.Run("nil logger should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.Logger = nil
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.True(t, check.IfNil(messenger))
+		assert.True(t, errors.Is(err, p2p.ErrNilLogger))
 	})
 }
 
@@ -1038,40 +1020,6 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 	assert.True(t, containsPeerID(peersOnTopic24, messenger4.ID()))
 }
 
-// ------- ConnectedFullHistoryPeersOnTopic
-
-func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T) {
-	messenger1, messenger2, messenger3 := createMockNetworkOf3()
-	defer closeMessengers(messenger1, messenger2, messenger3)
-
-	adr2 := messenger2.Addresses()[0]
-	adr3 := messenger3.Addresses()[0]
-	fmt.Println("Connecting ...")
-
-	_ = messenger1.ConnectToPeer(adr2)
-	_ = messenger3.ConnectToPeer(adr2)
-	_ = messenger1.ConnectToPeer(adr3)
-	// connected peers:  1 ----- 2
-	//                   |       |
-	//                   3 ------+
-
-	_ = messenger1.CreateTopic("topic123", false)
-	_ = messenger2.CreateTopic("topic123", false)
-	_ = messenger3.CreateTopic("topic123", false)
-
-	// wait a bit for topic announcements
-	time.Sleep(time.Second)
-
-	assert.Equal(t, 2, len(messenger1.ConnectedPeersOnTopic("topic123")))
-	assert.Equal(t, 1, len(messenger1.ConnectedFullHistoryPeersOnTopic("topic123")))
-
-	assert.Equal(t, 2, len(messenger2.ConnectedPeersOnTopic("topic123")))
-	assert.Equal(t, 1, len(messenger2.ConnectedFullHistoryPeersOnTopic("topic123")))
-
-	assert.Equal(t, 2, len(messenger3.ConnectedPeersOnTopic("topic123")))
-	assert.Equal(t, 2, len(messenger3.ConnectedFullHistoryPeersOnTopic("topic123")))
-}
-
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	pid1 := core.PeerID("pid1")
 	pid2 := core.PeerID("pid2")
@@ -1167,6 +1115,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 			},
 		},
 		P2pKeyGenerator: &mock.KeyGenStub{},
+		Logger:          &testscommon.LoggerStub{},
 	}
 	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
@@ -1237,6 +1186,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		P2pPrivateKey:         &mock.PrivateKeyStub{},
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, err := libp2p.NewNetworkMessenger(args)
@@ -1476,6 +1426,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1544,6 +1495,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1620,6 +1572,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1685,6 +1638,7 @@ func TestNetworkMessenger_UnJoinAllTopicsShouldWork(t *testing.T) {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1907,6 +1861,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		P2pPrivateKey:   mock.NewPrivateKeyMock(),
 		P2pSingleSigner: &mock.SingleSignerStub{},
 		P2pKeyGenerator: &mock.KeyGenStub{},
+		Logger:          &testscommon.LoggerStub{},
 	}
 
 	messenger, err := libp2p.NewNetworkMessenger(args)

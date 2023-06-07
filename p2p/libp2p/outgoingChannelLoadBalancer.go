@@ -5,45 +5,52 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
-var _ ChannelLoadBalancer = (*OutgoingChannelLoadBalancer)(nil)
+var _ ChannelLoadBalancer = (*outgoingChannelLoadBalancer)(nil)
 
 const defaultSendChannel = "default send channel"
 
-// OutgoingChannelLoadBalancer is a component that evenly balances requests to be sent
-type OutgoingChannelLoadBalancer struct {
+// outgoingChannelLoadBalancer is a component that evenly balances requests to be sent
+type outgoingChannelLoadBalancer struct {
 	mut      sync.RWMutex
 	chans    []chan *SendableData
 	mainChan chan *SendableData
 	names    []string
 	//namesChans is defined only for performance purposes as to fast search by name
 	//iteration is done directly on slices as that is used very often and is about 50x
-	//faster then an iteration over a map
+	//faster than an iteration over a map
 	namesChans map[string]chan *SendableData
 	cancelFunc context.CancelFunc
 	ctx        context.Context //we need the context saved here in order to call appendChannel from exported func AddChannel
+	log        p2p.Logger
 }
 
 // NewOutgoingChannelLoadBalancer creates a new instance of a ChannelLoadBalancer instance
-func NewOutgoingChannelLoadBalancer() *OutgoingChannelLoadBalancer {
+func NewOutgoingChannelLoadBalancer(logger p2p.Logger) (*outgoingChannelLoadBalancer, error) {
+	if check.IfNil(logger) {
+		return nil, p2p.ErrNilLogger
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	oclb := &OutgoingChannelLoadBalancer{
+	oclb := &outgoingChannelLoadBalancer{
 		chans:      make([]chan *SendableData, 0),
 		names:      make([]string, 0),
 		namesChans: make(map[string]chan *SendableData),
 		mainChan:   make(chan *SendableData),
 		cancelFunc: cancelFunc,
 		ctx:        ctx,
+		log:        logger,
 	}
 
 	oclb.appendChannel(defaultSendChannel)
 
-	return oclb
+	return oclb, nil
 }
 
-func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
+func (oplb *outgoingChannelLoadBalancer) appendChannel(channel string) {
 	oplb.names = append(oplb.names, channel)
 	ch := make(chan *SendableData)
 	oplb.chans = append(oplb.chans, ch)
@@ -56,7 +63,7 @@ func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
 			select {
 			case obj = <-ch:
 			case <-oplb.ctx.Done():
-				log.Debug("closing OutgoingChannelLoadBalancer's append channel go routine")
+				oplb.log.Debug("closing OutgoingChannelLoadBalancer's append channel go routine")
 				return
 			}
 
@@ -66,7 +73,7 @@ func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
 }
 
 // AddChannel adds a new channel to the throttler, if it does not exists
-func (oplb *OutgoingChannelLoadBalancer) AddChannel(channel string) error {
+func (oplb *outgoingChannelLoadBalancer) AddChannel(channel string) error {
 	if channel == defaultSendChannel {
 		return p2p.ErrChannelCanNotBeReAdded
 	}
@@ -85,7 +92,7 @@ func (oplb *OutgoingChannelLoadBalancer) AddChannel(channel string) error {
 }
 
 // RemoveChannel removes an existing channel from the throttler
-func (oplb *OutgoingChannelLoadBalancer) RemoveChannel(channel string) error {
+func (oplb *outgoingChannelLoadBalancer) RemoveChannel(channel string) error {
 	if channel == defaultSendChannel {
 		return p2p.ErrChannelCanNotBeDeleted
 	}
@@ -125,7 +132,7 @@ func (oplb *OutgoingChannelLoadBalancer) RemoveChannel(channel string) error {
 }
 
 // GetChannelOrDefault fetches the required channel or the default if the channel is not present
-func (oplb *OutgoingChannelLoadBalancer) GetChannelOrDefault(channel string) chan *SendableData {
+func (oplb *outgoingChannelLoadBalancer) GetChannelOrDefault(channel string) chan *SendableData {
 	oplb.mut.RLock()
 	defer oplb.mut.RUnlock()
 
@@ -138,7 +145,7 @@ func (oplb *OutgoingChannelLoadBalancer) GetChannelOrDefault(channel string) cha
 }
 
 // CollectOneElementFromChannels gets the waiting object from mainChan. It is a blocking call.
-func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *SendableData {
+func (oplb *outgoingChannelLoadBalancer) CollectOneElementFromChannels() *SendableData {
 	select {
 	case obj := <-oplb.mainChan:
 		return obj
@@ -148,12 +155,12 @@ func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *Sendab
 }
 
 // Close finishes all started go routines in this instance
-func (oplb *OutgoingChannelLoadBalancer) Close() error {
+func (oplb *outgoingChannelLoadBalancer) Close() error {
 	oplb.cancelFunc()
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (oplb *OutgoingChannelLoadBalancer) IsInterfaceNil() bool {
+func (oplb *outgoingChannelLoadBalancer) IsInterfaceNil() bool {
 	return oplb == nil
 }

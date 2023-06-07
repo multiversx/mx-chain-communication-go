@@ -22,6 +22,7 @@ func createMessageVerifierArgs() messagecheck.ArgsMessageVerifier {
 	return messagecheck.ArgsMessageVerifier{
 		Marshaller: &testscommon.MarshallerStub{},
 		P2PSigner:  &mock.P2PSignerStub{},
+		Logger:     &testscommon.LoggerStub{},
 	}
 }
 
@@ -48,6 +49,17 @@ func TestNewMessageVerifier(t *testing.T) {
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, mv)
 		require.Equal(t, p2p.ErrNilP2PSigner, err)
+	})
+
+	t.Run("nil logger", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMessageVerifierArgs()
+		args.Logger = nil
+
+		mv, err := messagecheck.NewMessageVerifier(args)
+		require.Nil(t, mv)
+		require.Equal(t, p2p.ErrNilLogger, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

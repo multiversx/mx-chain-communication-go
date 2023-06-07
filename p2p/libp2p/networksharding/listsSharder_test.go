@@ -13,8 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/p2p/peersHolder"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,6 +83,7 @@ func createMockListSharderArguments() networksharding.ArgListsSharder {
 				MaxSeeders:              0,
 			},
 		},
+		Logger: &testscommon.LoggerStub{},
 	}
 }
 
@@ -93,7 +94,7 @@ func TestNewListsSharder_InvalidMinimumTargetPeerCountShouldErr(t *testing.T) {
 	arg.P2pConfig.Sharding.TargetPeerCount = networksharding.MinAllowedConnectedPeersListSharder - 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 	assert.True(t, strings.Contains(err.Error(), "maxPeerCount should be at least"))
 }
@@ -105,7 +106,7 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 	arg.PeerResolver = nil
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrNilPeerShardResolver))
 }
 
@@ -116,7 +117,7 @@ func TestNewListsSharder_InvalidIntraShardValidatorsShouldErr(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxIntraShardValidators = networksharding.MinAllowedValidators - 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
@@ -127,7 +128,7 @@ func TestNewListsSharder_InvalidCrossShardValidatorsShouldErr(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxCrossShardValidators = networksharding.MinAllowedValidators - 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
@@ -138,7 +139,7 @@ func TestNewListsSharder_InvalidIntraShardObserversShouldErr(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxIntraShardObservers = networksharding.MinAllowedObservers - 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
@@ -149,7 +150,7 @@ func TestNewListsSharder_InvalidCrossShardObserversShouldErr(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = networksharding.MinAllowedObservers - 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
@@ -160,7 +161,7 @@ func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = networksharding.MinAllowedObservers + 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
@@ -171,8 +172,19 @@ func TestNewListsSharder_NilPreferredPeersShouldErr(t *testing.T) {
 	arg.PreferredPeersHolder = nil
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.True(t, check.IfNil(ls))
+	assert.Nil(t, ls)
 	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
+}
+
+func TestNewListsSharder_NilLoggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockListSharderArguments()
+	arg.Logger = nil
+	ls, err := networksharding.NewListsSharder(arg)
+
+	assert.Nil(t, ls)
+	assert.True(t, errors.Is(err, p2p.ErrNilLogger))
 }
 
 func TestNewListsSharder_NormalShouldWork(t *testing.T) {
@@ -185,10 +197,9 @@ func TestNewListsSharder_NormalShouldWork(t *testing.T) {
 	arg.P2pConfig.Sharding.MaxIntraShardObservers = 4
 	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
 	arg.P2pConfig.Sharding.MaxSeeders = 2
-	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
 	ls, err := networksharding.NewListsSharder(arg)
 
-	assert.False(t, check.IfNil(ls))
+	assert.NotNil(t, ls)
 	assert.Nil(t, err)
 	assert.Equal(t, 25, ls.GetMaxPeerCount())
 	assert.Equal(t, 6, ls.GetMaxIntraShardValidators())
@@ -196,33 +207,6 @@ func TestNewListsSharder_NormalShouldWork(t *testing.T) {
 	assert.Equal(t, 4, ls.GetMaxIntraShardObservers())
 	assert.Equal(t, 3, ls.GetMaxCrossShardObservers())
 	assert.Equal(t, 2, ls.GetMaxSeeders())
-	assert.Equal(t, 0, ls.GetMaxFullHistoryObservers())
-	assert.Equal(t, 5, ls.GetMaxUnknown())
-}
-
-func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockListSharderArguments()
-	arg.NodeOperationMode = p2p.FullArchiveMode
-	arg.P2pConfig.Sharding.TargetPeerCount = 25
-	arg.P2pConfig.Sharding.MaxIntraShardValidators = 6
-	arg.P2pConfig.Sharding.MaxCrossShardValidators = 5
-	arg.P2pConfig.Sharding.MaxIntraShardObservers = 4
-	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
-	arg.P2pConfig.Sharding.MaxSeeders = 2
-	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
-	ls, err := networksharding.NewListsSharder(arg)
-
-	assert.False(t, check.IfNil(ls))
-	assert.Nil(t, err)
-	assert.Equal(t, 26, ls.GetMaxPeerCount())
-	assert.Equal(t, 6, ls.GetMaxIntraShardValidators())
-	assert.Equal(t, 5, ls.GetMaxCrossShardValidators())
-	assert.Equal(t, 4, ls.GetMaxIntraShardObservers())
-	assert.Equal(t, 3, ls.GetMaxCrossShardObservers())
-	assert.Equal(t, 2, ls.GetMaxSeeders())
-	assert.Equal(t, 1, ls.GetMaxFullHistoryObservers())
 	assert.Equal(t, 5, ls.GetMaxUnknown())
 }
 
@@ -572,4 +556,17 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 	// pointer testing
 	assert.True(t, ls.GetPeerShardResolver() == newPeerShardResolver)
 	assert.Nil(t, err)
+}
+
+func TestListsSharder_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockListSharderArguments()
+	arg.Logger = nil
+	ls, _ := networksharding.NewListsSharder(arg)
+	assert.True(t, ls.IsInterfaceNil())
+
+	ls, _ = networksharding.NewListsSharder(createMockListSharderArguments())
+	assert.False(t, ls.IsInterfaceNil())
+
 }
