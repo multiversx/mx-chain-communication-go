@@ -16,7 +16,6 @@ type ArgsSharderFactory struct {
 	Pid                  peer.ID
 	P2pConfig            config.P2PConfig
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
-	NodeOperationMode    p2p.NodeOperation
 	Logger               p2p.Logger
 }
 
@@ -40,12 +39,6 @@ func NewSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 }
 
 func listSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
-	switch arg.NodeOperationMode {
-	case p2p.NormalOperation, p2p.FullArchiveMode:
-	default:
-		return nil, fmt.Errorf("%w unknown node operation mode %s", p2p.ErrInvalidValue, arg.NodeOperationMode)
-	}
-
 	arg.Logger.Debug("using lists sharder",
 		"MaxConnectionCount", arg.P2pConfig.Sharding.TargetPeerCount,
 		"MaxIntraShardValidators", arg.P2pConfig.Sharding.MaxIntraShardValidators,
@@ -53,14 +46,12 @@ func listSharder(arg ArgsSharderFactory) (p2p.Sharder, error) {
 		"MaxIntraShardObservers", arg.P2pConfig.Sharding.MaxIntraShardObservers,
 		"MaxCrossShardObservers", arg.P2pConfig.Sharding.MaxCrossShardObservers,
 		"MaxSeeders", arg.P2pConfig.Sharding.MaxSeeders,
-		"node operation", arg.NodeOperationMode,
 	)
 	argListsSharder := networksharding.ArgListsSharder{
 		PeerResolver:         arg.PeerShardResolver,
 		SelfPeerId:           arg.Pid,
 		P2pConfig:            arg.P2pConfig,
 		PreferredPeersHolder: arg.PreferredPeersHolder,
-		NodeOperationMode:    arg.NodeOperationMode,
 		Logger:               arg.Logger,
 	}
 	return networksharding.NewListsSharder(argListsSharder)

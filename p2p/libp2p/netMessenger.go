@@ -92,7 +92,6 @@ type ArgsNetworkMessenger struct {
 	P2pConfig             config.P2PConfig
 	SyncTimer             p2p.SyncTimer
 	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
-	NodeOperationMode     p2p.NodeOperation
 	PeersRatingHandler    p2p.PeersRatingHandler
 	ConnectionWatcherType string
 	P2pPrivateKey         commonCrypto.PrivateKey
@@ -396,7 +395,6 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (
 		Pid:                  netMes.p2pHost.ID(),
 		P2pConfig:            argsNetMes.P2pConfig,
 		PreferredPeersHolder: argsNetMes.PreferredPeersHolder,
-		NodeOperationMode:    argsNetMes.NodeOperationMode,
 		Logger:               netMes.log,
 	}
 

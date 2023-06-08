@@ -75,7 +75,6 @@ type ArgListsSharder struct {
 	SelfPeerId           peer.ID
 	P2pConfig            config.P2PConfig
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
-	NodeOperationMode    p2p.NodeOperation
 	Logger               p2p.Logger
 }
 
