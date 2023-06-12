@@ -25,4 +25,4 @@ starts a WebSocket client and waits to receive a message.
     go build && ./server
 ```
 7. Wait for the server to successfully send the messages and the clients to receive them.
-8. Once the messages have been sent and received successfully, the client's processes will end (the server binary has to be closed manually).
+8. Close the clients and the server.

@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -37,14 +40,31 @@ func main() {
 		return
 	}
 
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	timer := time.NewTimer(100 * time.Millisecond)
+	defer timer.Stop()
 	count := 0
-	for {
-		message := fmt.Sprintf("messagae %d", count)
-		err = wsServer.Send([]byte(message), "test")
-		if err == nil {
-			count++
-			log.Info("message sent to clients")
+
+	func() {
+		for {
+			message := fmt.Sprintf("messagae %d", count)
+			err = wsServer.Send([]byte(message), "test")
+			if err == nil {
+				count++
+				log.Info("message sent to clients")
+			}
+			timer.Reset(100 * time.Millisecond)
+
+			select {
+			case <-timer.C:
+			case <-interrupt:
+				return
+			}
 		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	}()
+
+	err = wsServer.Close()
+	log.LogIfError(err)
 }
