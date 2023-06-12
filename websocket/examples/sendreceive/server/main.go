@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -36,9 +37,12 @@ func main() {
 		return
 	}
 
+	count := 0
 	for {
-		err = wsServer.Send([]byte("message"), "test")
+		message := fmt.Sprintf("messagae %d", count)
+		err = wsServer.Send([]byte(message), "test")
 		if err == nil {
+			count++
 			log.Info("message sent to clients")
 		}
 		time.Sleep(100 * time.Millisecond)
