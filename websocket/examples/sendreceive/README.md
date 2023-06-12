@@ -13,11 +13,16 @@ starts a WebSocket client and waits to receive a message.
 ``` bash
     go build && ./client
 ```
+
+> One can run multiple instances of the `client` binary.
+
+
+
 4. Open another terminal or command prompt.
 5. Navigate to the server folder.
 6. Build and run the server
 ``` bash
     go build && ./server
 ```
-7. Wait for the server to successfully send the message and the client to receive it.
-8. Once the message has been sent and received successfully, the processes will end.
+7. Wait for the server to successfully send the messages and the clients to receive them.
+8. Once the messages have been sent and received successfully, the client's processes will end (the server binary has to be closed manually).

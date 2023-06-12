@@ -24,6 +24,7 @@ func main() {
 			WithAcknowledge:            true,
 			BlockingAckOnError:         false,
 			DropMessagesIfNoConnection: false,
+			AcknowledgeTimeoutInSec:    10,
 		},
 		Marshaller: marshaller,
 		Log:        log,
@@ -38,7 +39,7 @@ func main() {
 	for {
 		err = wsServer.Send([]byte("message"), "test")
 		if err == nil {
-			break
+			log.Info("message sent to clients")
 		}
 		time.Sleep(100 * time.Millisecond)
 	}

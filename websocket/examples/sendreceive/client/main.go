@@ -25,6 +25,7 @@ func main() {
 			WithAcknowledge:            true,
 			BlockingAckOnError:         false,
 			DropMessagesIfNoConnection: false,
+			AcknowledgeTimeoutInSec:    10,
 		},
 		Marshaller: marshaller,
 		Log:        log,
@@ -41,7 +42,7 @@ func main() {
 	}()
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
+	wg.Add(100)
 	_ = wsClient.SetPayloadHandler(&testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string) error {
 			log.Info("received", "topic", topic, "payload", string(payload))
