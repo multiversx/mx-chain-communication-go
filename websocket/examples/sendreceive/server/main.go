@@ -49,11 +49,11 @@ func main() {
 
 	func() {
 		for {
-			message := fmt.Sprintf("messagae %d", count)
+			message := fmt.Sprintf("message #%d", count)
 			err = wsServer.Send([]byte(message), "test")
 			if err == nil {
 				count++
-				log.Info("message sent to clients")
+				log.Info("message sent to clients", "count", count)
 			}
 			timer.Reset(100 * time.Millisecond)
 
