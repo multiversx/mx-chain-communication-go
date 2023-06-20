@@ -283,7 +283,6 @@ func TestNewMessagesHandler(t *testing.T) {
 			assert.False(t, check.IfNil(mh))
 			time.Sleep(time.Millisecond * 5)
 			assert.True(t, wasPublishCalled.IsSet())
-			assert.Equal(t, p2p.MainNetwork, mh.Network())
 			assert.Nil(t, mh.Close())
 		})
 	})

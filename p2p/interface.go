@@ -16,7 +16,6 @@ import (
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
 	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID) error
-	Network() Network
 	IsInterfaceNil() bool
 }
 
@@ -47,7 +46,6 @@ type MessageHandler interface {
 	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	BroadcastOnChannelUsingPrivateKey(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
-	Network() Network
 	UnJoinAllTopics() error
 	IsInterfaceNil() bool
 }

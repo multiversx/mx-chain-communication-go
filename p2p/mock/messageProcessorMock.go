@@ -45,11 +45,6 @@ func (processor *MessageProcessorMock) GetMessages() map[core.PeerID]int {
 	return result
 }
 
-// Network -
-func (processor *MessageProcessorMock) Network() p2p.Network {
-	return p2p.MainNetwork
-}
-
 // IsInterfaceNil -
 func (processor *MessageProcessorMock) IsInterfaceNil() bool {
 	return processor == nil

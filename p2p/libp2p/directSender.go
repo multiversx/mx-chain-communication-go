@@ -41,6 +41,7 @@ type directSender struct {
 	signer            p2p.SignerVerifier
 	marshaller        p2p.Marshaller
 	log               p2p.Logger
+	network           p2p.Network
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -50,6 +51,7 @@ func NewDirectSender(
 	signer p2p.SignerVerifier,
 	marshaller p2p.Marshaller,
 	logger p2p.Logger,
+	network p2p.Network,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -82,6 +84,7 @@ func NewDirectSender(
 		signer:       signer,
 		marshaller:   marshaller,
 		log:          logger,
+		network:      network,
 	}
 
 	// wire-up a handler for direct messages
@@ -171,7 +174,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		Message: message,
 	}
 
-	msg, err := NewMessage(pbMessage, ds.marshaller, p2p.Direct, ds.messageHandler.Network())
+	msg, err := NewMessage(pbMessage, ds.marshaller, p2p.Direct, ds.network)
 	if err != nil {
 		return err
 	}

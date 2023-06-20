@@ -30,11 +30,6 @@ func (smp *SimpleMessageProcessor) GetLastMessage() []byte {
 	return smp.message
 }
 
-// Network returns main network
-func (smp *SimpleMessageProcessor) Network() p2p.Network {
-	return p2p.MainNetwork
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (smp *SimpleMessageProcessor) IsInterfaceNil() bool {
 	return smp == nil

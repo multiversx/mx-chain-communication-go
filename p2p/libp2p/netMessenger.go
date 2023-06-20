@@ -291,7 +291,7 @@ func addComponentsToNode(
 		return err
 	}
 
-	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller, p2pNode.log)
+	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller, p2pNode.log, args.Network)
 	if err != nil {
 		return err
 	}

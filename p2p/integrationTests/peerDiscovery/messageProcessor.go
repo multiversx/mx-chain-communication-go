@@ -45,11 +45,6 @@ func (mp *MessageProcesssor) WasDataReceived() bool {
 	return mp.wasDataReceived
 }
 
-// Network -
-func (mp *MessageProcesssor) Network() p2p.Network {
-	return p2p.MainNetwork
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *MessageProcesssor) IsInterfaceNil() bool {
 	return mp == nil

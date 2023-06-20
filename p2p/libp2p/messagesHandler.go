@@ -657,11 +657,6 @@ func (handler *messagesHandler) HasTopic(name string) bool {
 	return ok
 }
 
-// Network returns the network of the handler
-func (handler *messagesHandler) Network() p2p.Network {
-	return handler.network
-}
-
 // UnJoinAllTopics call close on all topics
 func (handler *messagesHandler) UnJoinAllTopics() error {
 	handler.mutTopics.Lock()
