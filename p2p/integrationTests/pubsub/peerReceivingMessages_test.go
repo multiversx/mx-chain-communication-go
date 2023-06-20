@@ -17,11 +17,20 @@ var durationTest = 30 * time.Second
 
 type messageProcessorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	NetworkCalled                func() p2p.Network
 }
 
 // ProcessReceivedMessage -
 func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	return mps.ProcessReceivedMessageCalled(message)
+}
+
+// Network -
+func (mps *messageProcessorStub) Network() p2p.Network {
+	if mps.NetworkCalled != nil {
+		return mps.NetworkCalled()
+	}
+	return p2p.MainNetwork
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

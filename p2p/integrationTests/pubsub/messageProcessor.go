@@ -50,6 +50,11 @@ func (mp *messageProcessor) AllMessages() []p2p.MessageP2P {
 	return result
 }
 
+// Network -
+func (mp *messageProcessor) Network() p2p.Network {
+	return p2p.MainNetwork
+}
+
 // IsInterfaceNil -
 func (mp *messageProcessor) IsInterfaceNil() bool {
 	return mp == nil

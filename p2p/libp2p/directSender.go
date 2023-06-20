@@ -171,7 +171,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		Message: message,
 	}
 
-	msg, err := NewMessage(pbMessage, ds.marshaller, p2p.Direct)
+	msg, err := NewMessage(pbMessage, ds.marshaller, p2p.Direct, ds.messageHandler.Network())
 	if err != nil {
 		return err
 	}

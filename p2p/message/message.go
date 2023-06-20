@@ -19,6 +19,7 @@ type Message struct {
 	PeerField            core.PeerID
 	TimestampField       int64
 	BroadcastMethodField p2p.BroadcastMethod
+	NetworkField         p2p.Network
 }
 
 // From returns the message originator's peer ID
@@ -69,6 +70,11 @@ func (m *Message) Timestamp() int64 {
 // BroadcastMethod returns the broadcast method of the message
 func (m *Message) BroadcastMethod() p2p.BroadcastMethod {
 	return m.BroadcastMethodField
+}
+
+// Network returns the network that the current message belongs to
+func (m *Message) Network() p2p.Network {
+	return m.NetworkField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

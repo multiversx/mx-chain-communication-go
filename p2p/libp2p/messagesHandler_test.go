@@ -57,6 +57,7 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 		SyncTimer:          &libp2p.LocalSyncTimer{},
 		PeerID:             providedPid,
 		Logger:             &testscommon.LoggerStub{},
+		Network:            p2p.MainNetwork,
 	}
 }
 
@@ -282,6 +283,7 @@ func TestNewMessagesHandler(t *testing.T) {
 			assert.False(t, check.IfNil(mh))
 			time.Sleep(time.Millisecond * 5)
 			assert.True(t, wasPublishCalled.IsSet())
+			assert.Equal(t, p2p.MainNetwork, mh.Network())
 			assert.Nil(t, mh.Close())
 		})
 	})
@@ -1232,7 +1234,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		assert.False(t, check.IfNil(mh))
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
-		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast, p2p.MainNetwork)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 	})
 	t.Run("request message should not increase rating", func(t *testing.T) {
@@ -1250,7 +1252,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		requestTopic := fmt.Sprintf("topic_%s", core.TopicRequestSuffix)
 		providedPubSubMsg.Topic = &requestTopic
-		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct, p2p.MainNetwork)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 	})
 	t.Run("should increase rating", func(t *testing.T) {
@@ -1268,7 +1270,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		assert.False(t, check.IfNil(mh))
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
-		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct, p2p.MainNetwork)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 		assert.True(t, wasCalled)
 	})

@@ -38,6 +38,7 @@ type ArgMessagesHandler struct {
 	SyncTimer          p2p.SyncTimer
 	PeerID             core.PeerID
 	Logger             p2p.Logger
+	Network            p2p.Network
 }
 
 type messagesHandler struct {
@@ -54,6 +55,7 @@ type messagesHandler struct {
 	syncTimer          p2p.SyncTimer
 	peerID             core.PeerID
 	log                p2p.Logger
+	network            p2p.Network
 
 	mutTopics     sync.RWMutex
 	processors    map[string]TopicProcessor
@@ -86,6 +88,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
 		log:                args.Logger,
+		network:            args.Network,
 	}
 
 	err = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -356,7 +359,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 }
 
 func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
-	msg, errUnmarshal := NewMessage(pbMsg, handler.marshaller, p2p.Broadcast)
+	msg, errUnmarshal := NewMessage(pbMsg, handler.marshaller, p2p.Broadcast, handler.network)
 	if errUnmarshal != nil {
 		// this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
@@ -518,7 +521,7 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 		},
 	}
 
-	msg, err := NewMessage(pubSubMsg, handler.marshaller, p2p.Direct)
+	msg, err := NewMessage(pubSubMsg, handler.marshaller, p2p.Direct, handler.network)
 	if err != nil {
 		return err
 	}
@@ -652,6 +655,11 @@ func (handler *messagesHandler) HasTopic(name string) bool {
 
 	_, ok := handler.topics[name]
 	return ok
+}
+
+// Network returns the network of the handler
+func (handler *messagesHandler) Network() p2p.Network {
+	return handler.network
 }
 
 // UnJoinAllTopics call close on all topics
