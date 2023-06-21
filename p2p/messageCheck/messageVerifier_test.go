@@ -122,7 +122,6 @@ func TestSerializeDeserialize(t *testing.T) {
 				TimestampField:       1,
 				PeerField:            peerID,
 				BroadcastMethodField: p2p.Broadcast,
-				NetworkField:         p2p.MainNetwork,
 			},
 			&message.Message{
 				FromField:            peerID.Bytes(),
@@ -135,7 +134,6 @@ func TestSerializeDeserialize(t *testing.T) {
 				TimestampField:       1,
 				PeerField:            peerID,
 				BroadcastMethodField: p2p.Broadcast,
-				NetworkField:         p2p.MainNetwork,
 			},
 		}
 

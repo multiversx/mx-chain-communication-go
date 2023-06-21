@@ -131,7 +131,7 @@ func convertPubSubMessagestoP2PMessage(msg *pubsubPb.Message, marshaller marshal
 		ValidatorData: nil,
 	}
 
-	return libp2p.NewMessage(pubsubMsg, marshaller, p2p.Broadcast, p2p.MainNetwork)
+	return libp2p.NewMessage(pubsubMsg, marshaller, p2p.Broadcast)
 }
 
 // Serialize will serialize a list of p2p messages

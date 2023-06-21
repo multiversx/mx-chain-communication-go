@@ -41,12 +41,3 @@ const Direct BroadcastMethod = "Direct"
 
 // Broadcast defines a broadcast message
 const Broadcast BroadcastMethod = "Broadcast"
-
-// Network defines the network a message belongs to
-type Network string
-
-// MainNetwork defines the main network
-const MainNetwork Network = "MainNetwork"
-
-// FullArchiveNetwork defines the full archive network
-const FullArchiveNetwork Network = "FullArchiveNetwork"

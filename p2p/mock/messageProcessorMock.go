@@ -22,7 +22,7 @@ func NewMessageProcessorMock() *MessageProcessorMock {
 }
 
 // ProcessReceivedMessage -
-func (processor *MessageProcessorMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (processor *MessageProcessorMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	processor.mut.Lock()
 	defer processor.mut.Unlock()
 

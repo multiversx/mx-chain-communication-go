@@ -21,7 +21,6 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	key := []byte("key")
 	peer := core.PeerID("peer")
 	msgType := p2p.Direct
-	network := p2p.FullArchiveNetwork
 
 	msg := &message.Message{
 		FromField:            from,
@@ -32,7 +31,6 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 		KeyField:             key,
 		PeerField:            peer,
 		BroadcastMethodField: msgType,
-		NetworkField:         network,
 	}
 
 	assert.False(t, check.IfNil(msg))
@@ -44,5 +42,4 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	assert.Equal(t, key, msg.Key())
 	assert.Equal(t, peer, msg.Peer())
 	assert.Equal(t, msgType, msg.BroadcastMethod())
-	assert.Equal(t, network, msg.Network())
 }

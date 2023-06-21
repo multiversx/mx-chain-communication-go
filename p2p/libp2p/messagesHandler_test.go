@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
 	p2pCrypto "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
+	"github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -57,7 +58,6 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 		SyncTimer:          &libp2p.LocalSyncTimer{},
 		PeerID:             providedPid,
 		Logger:             &testscommon.LoggerStub{},
-		Network:            p2p.MainNetwork,
 	}
 }
 
@@ -150,7 +150,7 @@ func TestNewMessagesHandler(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		args.DirectSender = &mock.DirectSenderStub{
-			RegisterDirectMessageProcessorCalled: func(handler p2p.MessageProcessor) error {
+			RegisterDirectMessageProcessorCalled: func(handler p2p.MessageHandler) error {
 				return expectedError
 			},
 		}
@@ -571,7 +571,7 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 		assert.False(t, check.IfNil(mh))
 
 		tp := &mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 				return expectedError
 			},
 		}
@@ -863,12 +863,12 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		counter := uint32(0)
 		providedMsgProcessors := []p2p.MessageProcessor{
 			&mock.MessageProcessorStub{
-				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 					atomic.AddUint32(&counter, 1)
 					return expectedError
 				},
 			}, &mock.MessageProcessorStub{
-				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 					atomic.AddUint32(&counter, 1)
 					return nil
 				},
@@ -1210,10 +1210,22 @@ func TestMessagesHandler_Close(t *testing.T) {
 func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 
-	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-	assert.False(t, check.IfNil(mh))
+	t.Run("nil message should return nil", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid"))
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+		assert.False(t, check.IfNil(mh))
+
+		assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid", &mock.MessageHandlerStub{}))
+	})
+	t.Run("nil source should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+		assert.False(t, check.IfNil(mh))
+
+		assert.Nil(t, mh.ProcessReceivedMessage(&message.Message{}, "pid", nil))
+	})
 }
 
 func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
@@ -1233,7 +1245,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		assert.False(t, check.IfNil(mh))
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
-		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast, p2p.MainNetwork)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 	})
 	t.Run("request message should not increase rating", func(t *testing.T) {
@@ -1251,7 +1263,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		requestTopic := fmt.Sprintf("topic_%s", core.TopicRequestSuffix)
 		providedPubSubMsg.Topic = &requestTopic
-		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct, p2p.MainNetwork)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 	})
 	t.Run("should increase rating", func(t *testing.T) {
@@ -1269,7 +1281,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		assert.False(t, check.IfNil(mh))
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
-		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct, p2p.MainNetwork)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 		assert.True(t, wasCalled)
 	})

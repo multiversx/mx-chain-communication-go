@@ -98,7 +98,6 @@ type ArgsNetworkMessenger struct {
 	P2pSingleSigner       commonCrypto.SingleSigner
 	P2pKeyGenerator       commonCrypto.KeyGenerator
 	Logger                p2p.Logger
-	Network               p2p.Network
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -291,7 +290,7 @@ func addComponentsToNode(
 		return err
 	}
 
-	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller, p2pNode.log, args.Network)
+	ds, err := NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode, marshaller, p2pNode.log)
 	if err != nil {
 		return err
 	}
@@ -323,7 +322,6 @@ func addComponentsToNode(
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,
-		Network:            args.Network,
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {

@@ -241,7 +241,6 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		debugger:           args.Debugger,
 		syncTimer:          args.SyncTimer,
 		peerID:             args.PeerID,
-		network:            args.Network,
 		processors:         make(map[string]TopicProcessor),
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),

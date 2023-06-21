@@ -99,3 +99,6 @@ type ConnectionsMetric interface {
 	ResetNumDisconnections() uint32
 	IsInterfaceNil() bool
 }
+
+type DirectMessageHandler interface {
+}

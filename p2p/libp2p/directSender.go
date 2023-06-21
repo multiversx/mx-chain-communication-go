@@ -34,14 +34,13 @@ type directSender struct {
 	ctx               context.Context
 	hostP2P           host.Host
 	mutMessageHandler sync.RWMutex
-	messageHandler    p2p.MessageProcessor
+	messageHandler    p2p.MessageHandler
 	mutSeenMessages   sync.Mutex
 	seenMessages      *timecache.TimeCache
 	mutexForPeer      *MutexHolder
 	signer            p2p.SignerVerifier
 	marshaller        p2p.Marshaller
 	log               p2p.Logger
-	network           p2p.Network
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -51,7 +50,6 @@ func NewDirectSender(
 	signer p2p.SignerVerifier,
 	marshaller p2p.Marshaller,
 	logger p2p.Logger,
-	network p2p.Network,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -84,7 +82,6 @@ func NewDirectSender(
 		signer:       signer,
 		marshaller:   marshaller,
 		log:          logger,
-		network:      network,
 	}
 
 	// wire-up a handler for direct messages
@@ -94,7 +91,7 @@ func NewDirectSender(
 }
 
 // RegisterDirectMessageProcessor registers the handler to be called when a new direct message is received
-func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageProcessor) error {
+func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageHandler) error {
 	if check.IfNil(handler) {
 		return p2p.ErrNilDirectSendMessageHandler
 	}
@@ -174,12 +171,12 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		Message: message,
 	}
 
-	msg, err := NewMessage(pbMessage, ds.marshaller, p2p.Direct, ds.network)
+	msg, err := NewMessage(pbMessage, ds.marshaller, p2p.Direct)
 	if err != nil {
 		return err
 	}
 
-	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer))
+	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer), ds.messageHandler)
 }
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
