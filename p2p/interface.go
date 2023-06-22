@@ -48,6 +48,7 @@ type MessageHandler interface {
 	BroadcastOnChannelUsingPrivateKey(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopics() error
+	Type() MessageHandlerType
 	IsInterfaceNil() bool
 }
 

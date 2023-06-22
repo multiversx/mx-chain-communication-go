@@ -38,6 +38,7 @@ type ArgMessagesHandler struct {
 	SyncTimer          p2p.SyncTimer
 	PeerID             core.PeerID
 	Logger             p2p.Logger
+	HandlerType        p2p.MessageHandlerType
 }
 
 type messagesHandler struct {
@@ -54,6 +55,7 @@ type messagesHandler struct {
 	syncTimer          p2p.SyncTimer
 	peerID             core.PeerID
 	log                p2p.Logger
+	handlerType        p2p.MessageHandlerType
 
 	mutTopics     sync.RWMutex
 	processors    map[string]TopicProcessor
@@ -86,6 +88,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
 		log:                args.Logger,
+		handlerType:        args.HandlerType,
 	}
 
 	err = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -682,6 +685,11 @@ func (handler *messagesHandler) UnJoinAllTopics() error {
 	}
 
 	return errFound
+}
+
+// Type returns the type of the message handler
+func (handler *messagesHandler) Type() p2p.MessageHandlerType {
+	return handler.handlerType
 }
 
 // Close closes the messages handler

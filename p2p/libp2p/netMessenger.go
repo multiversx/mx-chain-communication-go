@@ -98,6 +98,7 @@ type ArgsNetworkMessenger struct {
 	P2pSingleSigner       commonCrypto.SingleSigner
 	P2pKeyGenerator       commonCrypto.KeyGenerator
 	Logger                p2p.Logger
+	MessageHandlerType    p2p.MessageHandlerType
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -322,6 +323,7 @@ func addComponentsToNode(
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,
+		HandlerType:        args.MessageHandlerType,
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {

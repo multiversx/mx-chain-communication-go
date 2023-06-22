@@ -20,6 +20,7 @@ type MessageHandlerStub struct {
 	UnJoinAllTopicsCalled                   func() error
 	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	CloseCalled                             func() error
+	TypeCalled                              func() p2p.MessageHandlerType
 }
 
 // CreateTopic -
@@ -120,6 +121,14 @@ func (stub *MessageHandlerStub) Close() error {
 		return stub.CloseCalled()
 	}
 	return nil
+}
+
+// Type -
+func (stub *MessageHandlerStub) Type() p2p.MessageHandlerType {
+	if stub.TypeCalled != nil {
+		return stub.TypeCalled()
+	}
+	return p2p.RegularMessageHandler
 }
 
 // IsInterfaceNil -
