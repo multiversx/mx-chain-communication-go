@@ -58,7 +58,6 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 		SyncTimer:          &libp2p.LocalSyncTimer{},
 		PeerID:             providedPid,
 		Logger:             &testscommon.LoggerStub{},
-		HandlerType:        p2p.RegularMessageHandler,
 	}
 }
 
@@ -165,7 +164,6 @@ func TestNewMessagesHandler(t *testing.T) {
 		mh, err := libp2p.NewMessagesHandler(createMockArgMessagesHandler())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(mh))
-		assert.Equal(t, p2p.RegularMessageHandler, mh.Type())
 		assert.Nil(t, mh.Close())
 	})
 	t.Run("process loop", func(t *testing.T) {

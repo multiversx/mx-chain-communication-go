@@ -41,12 +41,3 @@ const Direct BroadcastMethod = "Direct"
 
 // Broadcast defines a broadcast message
 const Broadcast BroadcastMethod = "Broadcast"
-
-// MessageHandlerType defines the type of the message handler
-type MessageHandlerType string
-
-// RegularMessageHandler defines a message handler for the main network
-const RegularMessageHandler MessageHandlerType = "Regular"
-
-// FullArchiveMessageHandler defines a message handler for the full archive network
-const FullArchiveMessageHandler MessageHandlerType = "FullArchive"

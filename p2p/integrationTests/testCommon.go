@@ -139,7 +139,6 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
-		MessageHandlerType:    p2p.RegularMessageHandler,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
