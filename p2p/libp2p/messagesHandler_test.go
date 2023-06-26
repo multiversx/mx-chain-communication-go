@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
 	p2pCrypto "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
+	"github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -149,7 +150,7 @@ func TestNewMessagesHandler(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		args.DirectSender = &mock.DirectSenderStub{
-			RegisterDirectMessageProcessorCalled: func(handler p2p.MessageProcessor) error {
+			RegisterDirectMessageProcessorCalled: func(handler p2p.MessageHandler) error {
 				return expectedError
 			},
 		}
@@ -570,7 +571,7 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 		assert.False(t, check.IfNil(mh))
 
 		tp := &mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 				return expectedError
 			},
 		}
@@ -862,12 +863,12 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		counter := uint32(0)
 		providedMsgProcessors := []p2p.MessageProcessor{
 			&mock.MessageProcessorStub{
-				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 					atomic.AddUint32(&counter, 1)
 					return expectedError
 				},
 			}, &mock.MessageProcessorStub{
-				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 					atomic.AddUint32(&counter, 1)
 					return nil
 				},
@@ -1209,10 +1210,22 @@ func TestMessagesHandler_Close(t *testing.T) {
 func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 
-	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-	assert.False(t, check.IfNil(mh))
+	t.Run("nil message should return nil", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid"))
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+		assert.False(t, check.IfNil(mh))
+
+		assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid", &mock.MessageHandlerStub{}))
+	})
+	t.Run("nil source should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+		assert.False(t, check.IfNil(mh))
+
+		assert.Nil(t, mh.ProcessReceivedMessage(&message.Message{}, "pid", nil))
+	})
 }
 
 func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {

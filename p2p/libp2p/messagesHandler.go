@@ -336,7 +336,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 		identifiers, msgProcessors := topicProcs.GetList()
 		messageOk := true
 		for index, msgProc := range msgProcessors {
-			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer)
+			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
 				handler.log.Trace("p2p validator",
 					"error", err.Error(),
@@ -523,12 +523,15 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 		return err
 	}
 
-	return handler.ProcessReceivedMessage(msg, handler.peerID)
+	return handler.ProcessReceivedMessage(msg, handler.peerID, handler)
 }
 
 // ProcessReceivedMessage handles received direct messages
-func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	if check.IfNil(message) {
+		return nil
+	}
+	if check.IfNil(source) {
 		return nil
 	}
 
@@ -552,7 +555,7 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		// a separate sequence counter for direct sender
 		messageOk := true
 		for index, msgProc := range msgProcessors {
-			errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer)
+			errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, source)
 			if errProcess != nil {
 				handler.log.Trace("p2p validator",
 					"error", errProcess.Error(),

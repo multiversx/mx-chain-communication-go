@@ -15,7 +15,7 @@ import (
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID, source MessageHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -35,6 +35,7 @@ type Reconnecter interface {
 // MessageHandler defines the behaviour of a component able to send and process messages
 type MessageHandler interface {
 	io.Closer
+	MessageProcessor
 
 	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
@@ -107,7 +108,7 @@ type MessageP2P interface {
 type DirectSender interface {
 	NextSequenceNumber() []byte
 	Send(topic string, buff []byte, peer core.PeerID) error
-	RegisterDirectMessageProcessor(handler MessageProcessor) error
+	RegisterDirectMessageProcessor(handler MessageHandler) error
 	IsInterfaceNil() bool
 }
 

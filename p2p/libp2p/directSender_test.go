@@ -29,8 +29,8 @@ import (
 const timeout = time.Second * 5
 const testMaxSize = 1 << 21
 
-var blankMessageHandler = &mock.MessageProcessorStub{
-	ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+var blankMessageHandler = &mock.MessageHandlerStub{
+	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 		return nil
 	},
 }
@@ -398,8 +398,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 		marshaller,
 		&testscommon.LoggerStub{},
 	)
-	_ = ds.RegisterDirectMessageProcessor(&mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 			wasCalled = true
 			return nil
 		},
@@ -437,8 +437,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 		marshaller,
 		&testscommon.LoggerStub{},
 	)
-	_ = ds.RegisterDirectMessageProcessor(&mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 			return checkErr
 		},
 	})
@@ -770,8 +770,8 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 		marshaller,
 		&testscommon.LoggerStub{},
 	)
-	_ = ds.RegisterDirectMessageProcessor(&mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 			receivedMsg = message
 			chanDone <- true
 			return nil

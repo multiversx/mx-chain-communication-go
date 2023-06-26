@@ -34,7 +34,7 @@ type directSender struct {
 	ctx               context.Context
 	hostP2P           host.Host
 	mutMessageHandler sync.RWMutex
-	messageHandler    p2p.MessageProcessor
+	messageHandler    p2p.MessageHandler
 	mutSeenMessages   sync.Mutex
 	seenMessages      *timecache.TimeCache
 	mutexForPeer      *MutexHolder
@@ -91,7 +91,7 @@ func NewDirectSender(
 }
 
 // RegisterDirectMessageProcessor registers the handler to be called when a new direct message is received
-func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageProcessor) error {
+func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageHandler) error {
 	if check.IfNil(handler) {
 		return p2p.ErrNilDirectSendMessageHandler
 	}
@@ -176,7 +176,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		return err
 	}
 
-	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer))
+	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer), ds.messageHandler)
 }
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
