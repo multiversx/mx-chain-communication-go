@@ -329,7 +329,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := handler.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
-			handler.log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic, "network")
+			handler.log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic)
 			return false
 		}
 
