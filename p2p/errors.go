@@ -192,8 +192,8 @@ var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
 // ErrNilConnectionsMetric signals that a nil connections metric has been provided
 var ErrNilConnectionsMetric = errors.New("nil connections metric")
 
-// ErrNilConnectionsProvider signals that a nil connections provider has been provided
-var ErrNilConnectionsProvider = errors.New("nil connections provider")
+// ErrNilConnectionsHandler signals that a nil connections handler has been provided
+var ErrNilConnectionsHandler = errors.New("nil connections handler")
 
 // ErrNilLogger signals that a nil logger has been provided
 var ErrNilLogger = errors.New("nil logger")
