@@ -23,6 +23,7 @@ func createArgs() ArgsTransceiver {
 		PayloadConverter:   payloadConverter,
 		Log:                &testscommon.LoggerMock{},
 		RetryDurationInSec: 1,
+		AckTimeoutInSec:    2,
 		WithAcknowledge:    false,
 	}
 }
@@ -59,6 +60,14 @@ func TestNewReceiver(t *testing.T) {
 		ws, err := NewTransceiver(args)
 		require.Nil(t, ws)
 		require.Equal(t, data.ErrZeroValueRetryDuration, err)
+	})
+	t.Run("zero acknowledge timeout, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.AckTimeoutInSec = 0
+		args.WithAcknowledge = true
+		ws, err := NewTransceiver(args)
+		require.Nil(t, ws)
+		require.Equal(t, data.ErrZeroValueAckTimeout, err)
 	})
 }
 
@@ -254,4 +263,20 @@ func TestWsTransceiverWaitForAck(t *testing.T) {
 	require.Nil(t, err)
 
 	wg.Wait()
+}
+
+func TestWsTransceiver_SendMessageWaitAcKTimeout(t *testing.T) {
+	args := createArgs()
+	args.AckTimeoutInSec = 2
+	args.WithAcknowledge = true
+
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	conn := &testscommon.WebsocketConnectionStub{}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicSaveBlock, conn)
+	require.Equal(t, data.ErrAckTimeout, err)
 }

@@ -1,7 +1,9 @@
 package main
 
 import (
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -25,6 +27,7 @@ func main() {
 			WithAcknowledge:            true,
 			BlockingAckOnError:         false,
 			DropMessagesIfNoConnection: false,
+			AcknowledgeTimeoutInSec:    10,
 		},
 		Marshaller: marshaller,
 		Log:        log,
@@ -40,15 +43,18 @@ func main() {
 		_ = wsClient.Close()
 	}()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	_ = wsClient.SetPayloadHandler(&testscommon.PayloadHandlerStub{
+	err = wsClient.SetPayloadHandler(&testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string) error {
 			log.Info("received", "topic", topic, "payload", string(payload))
-			wg.Done()
 			return nil
 		},
 	})
+	log.LogIfError(err)
 
-	wg.Wait()
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	<-interrupt
+	err = wsClient.Close()
+	log.LogIfError(err)
 }
