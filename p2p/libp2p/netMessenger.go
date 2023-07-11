@@ -233,7 +233,7 @@ func constructNodeWithPortRetry(
 			return nil, err
 		}
 
-		p2pNode.log.Debug("bind error in network messenger", "retry number", i+1, "error", err)
+		args.Logger.Debug("bind error in network messenger", "retry number", i+1, "error", err)
 	}
 
 	return nil, lastErr
