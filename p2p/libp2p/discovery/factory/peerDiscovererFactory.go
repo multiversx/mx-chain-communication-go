@@ -22,6 +22,7 @@ type ArgsPeerDiscoverer struct {
 	Sharder            p2p.Sharder
 	P2pConfig          config.P2PConfig
 	ConnectionsWatcher p2p.ConnectionsWatcher
+	NetworkType        p2p.NetworkType
 	Logger             p2p.Logger
 }
 
@@ -52,6 +53,7 @@ func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, er
 		BucketSize:                  args.P2pConfig.KadDhtPeerDiscovery.BucketSize,
 		RoutingTableRefresh:         time.Second * time.Duration(args.P2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
 		ConnectionWatcher:           args.ConnectionsWatcher,
+		NetworkType:                 args.NetworkType,
 		Logger:                      args.Logger,
 	}
 

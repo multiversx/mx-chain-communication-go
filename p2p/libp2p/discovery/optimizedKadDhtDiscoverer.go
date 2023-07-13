@@ -32,6 +32,7 @@ type optimizedKadDhtDiscoverer struct {
 	chanConnectToSeeders        chan struct{}
 	createKadDhtHandler         func(ctx context.Context) (KadDhtHandler, error)
 	connectionWatcher           p2p.ConnectionsWatcher
+	networkType                 p2p.NetworkType
 	log                         p2p.Logger
 }
 
@@ -63,6 +64,7 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		errChanInit:                 make(chan error),
 		chanConnectToSeeders:        make(chan struct{}),
 		connectionWatcher:           arg.ConnectionWatcher,
+		networkType:                 arg.NetworkType,
 		log:                         arg.Logger,
 	}
 
@@ -199,14 +201,19 @@ func (okdd *optimizedKadDhtDiscoverer) tryToReconnectAtLeastToASeeder(ctx contex
 		select {
 		case <-ctx.Done():
 			okdd.log.Debug("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
-				"num seeders", len(okdd.initialPeersList), "connected to a seeder", true, "context", "done")
+				"network", okdd.networkType,
+				"num seeders", len(okdd.initialPeersList),
+				"connected to a seeder", true,
+				"context", "done")
 			return true
 		default:
 		}
 	}
 
 	okdd.log.Debug("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
-		"num seeders", len(okdd.initialPeersList), "connected to a seeder", connectedToOneSeeder)
+		"network", okdd.networkType,
+		"num seeders", len(okdd.initialPeersList),
+		"connected to a seeder", connectedToOneSeeder)
 
 	return connectedToOneSeeder
 }
@@ -231,7 +238,7 @@ func (okdd *optimizedKadDhtDiscoverer) findPeers(ctx context.Context) {
 
 	err := okdd.kadDHT.Bootstrap(ctx)
 	if err != nil {
-		okdd.log.Debug("kad dht bootstrap", "error", err)
+		okdd.log.Debug("kad dht bootstrap", "network", okdd.networkType, "error", err)
 	}
 }
 

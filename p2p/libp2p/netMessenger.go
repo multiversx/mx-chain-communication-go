@@ -82,6 +82,7 @@ type networkMessenger struct {
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	mutPeerTopicNotifiers   sync.RWMutex
 	peerTopicNotifiers      []p2p.PeerTopicNotifier
+	networkType             p2p.NetworkType
 	log                     p2p.Logger
 }
 
@@ -97,6 +98,7 @@ type ArgsNetworkMessenger struct {
 	P2pPrivateKey         commonCrypto.PrivateKey
 	P2pSingleSigner       commonCrypto.SingleSigner
 	P2pKeyGenerator       commonCrypto.KeyGenerator
+	NetworkType           p2p.NetworkType
 	Logger                p2p.Logger
 }
 
@@ -210,6 +212,7 @@ func constructNode(
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
 		peerTopicNotifiers:      make([]p2p.PeerTopicNotifier, 0),
+		networkType:             args.NetworkType,
 		log:                     args.Logger,
 	}
 
@@ -341,6 +344,7 @@ func addComponentsToNode(
 		PeerDiscoverer:       peerDiscoverer,
 		PeerID:               p2pNode.ID(),
 		ConnectionsMetric:    connectionsMetric,
+		NetworkType:          p2pNode.networkType,
 		Logger:               p2pNode.log,
 	}
 	p2pNode.ConnectionsHandler, err = NewConnectionsHandler(argsConnectionsHandler)
@@ -408,6 +412,7 @@ func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sha
 		Sharder:            sharder,
 		P2pConfig:          p2pConfig,
 		ConnectionsWatcher: netMes.printConnectionsWatcher,
+		NetworkType:        netMes.networkType,
 		Logger:             netMes.log,
 	}
 

@@ -28,6 +28,7 @@ type ArgConnectionsHandler struct {
 	PeerDiscoverer       p2p.PeerDiscoverer
 	PeerID               core.PeerID
 	ConnectionsMetric    ConnectionsMetric
+	NetworkType          p2p.NetworkType
 	Logger               p2p.Logger
 }
 
@@ -44,6 +45,7 @@ type connectionsHandler struct {
 	peerDiscoverer       p2p.PeerDiscoverer
 	peerID               core.PeerID
 	connectionsMetric    ConnectionsMetric
+	networkType          p2p.NetworkType
 	log                  p2p.Logger
 }
 
@@ -423,6 +425,7 @@ func (handler *connectionsHandler) printConnectionsStatus() {
 
 	peersInfo := handler.GetConnectedPeersInfo()
 	handler.log.Debug("network connection status",
+		"network", handler.networkType,
 		"known peers", len(handler.Peers()),
 		"connected peers", len(handler.ConnectedPeers()),
 		"intra shard validators", peersInfo.NumIntraShardValidators,
@@ -441,6 +444,7 @@ func (handler *connectionsHandler) printConnectionsStatus() {
 	disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
 
 	handler.log.Debug("network connection metrics",
+		"network", handler.networkType,
 		"connections/s", connsPerSec,
 		"disconnections/s", disconnsPerSec,
 		"connections", conns,
