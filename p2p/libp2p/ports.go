@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 )
 
-func getPort(port string, handler func(int) error) (int, error) {
+func getPort(port string, handler func(int) error, log p2p.Logger) (int, error) {
 	val, err := strconv.Atoi(port)
 	if err == nil {
 		if val < 0 {
@@ -42,10 +43,14 @@ func getPort(port string, handler func(int) error) (int, error) {
 		return 0, p2p.ErrEndPortIsSmallerThanStartPort
 	}
 
-	return choosePort(startPort, endPort, handler)
+	return choosePort(startPort, endPort, handler, log)
 }
 
-func choosePort(startPort int, endPort int, handler func(int) error) (int, error) {
+func choosePort(startPort int, endPort int, handler func(int) error, log p2p.Logger) (int, error) {
+	if check.IfNil(log) {
+		return 0, p2p.ErrNilLogger
+	}
+
 	log.Debug("generating random free port",
 		"range", fmt.Sprintf("%d-%d", startPort, endPort),
 	)

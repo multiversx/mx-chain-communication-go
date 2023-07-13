@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/metrics/factory"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 )
 
 // NewMockMessenger creates a new sandbox testable instance of libP2P messenger
@@ -43,8 +44,9 @@ func NewMockMessenger(
 		p2pHost:    NewConnectableHost(h),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
+		log:        args.Logger,
 	}
-	p2pNode.printConnectionsWatcher, err = factory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
+	p2pNode.printConnectionsWatcher, err = factory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher, &testscommon.LoggerStub{})
 	if err != nil {
 		return nil, err
 	}

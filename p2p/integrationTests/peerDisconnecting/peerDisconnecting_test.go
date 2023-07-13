@@ -41,9 +41,6 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: config.AdditionalConnectionsConfig{
-			MaxFullHistoryObservers: 1,
-		},
 	}
 	p2pCfg.Node.ThresholdMinConnectedPeers = 3
 
@@ -63,7 +60,6 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfigSeeder,
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		Marshaller:            &testscommon.MarshallerMock{},
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
@@ -71,6 +67,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 	// Step 1. Create advertiser
 	advertiser, err := libp2p.NewMockMessenger(argSeeder, netw)
@@ -84,7 +81,6 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 			P2pConfig:             p2pConfig,
 			PreferredPeersHolder:  &mock.PeersHolderStub{},
-			NodeOperationMode:     p2p.NormalOperation,
 			Marshaller:            &testscommon.MarshallerMock{},
 			SyncTimer:             &mock.SyncTimerStub{},
 			PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
@@ -92,6 +88,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			P2pPrivateKey:         mock.NewPrivateKeyMock(),
 			P2pSingleSigner:       &mock.SingleSignerStub{},
 			P2pKeyGenerator:       &mock.KeyGenStub{},
+			Logger:                &testscommon.LoggerStub{},
 		}
 		node, errCreate := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, errCreate)

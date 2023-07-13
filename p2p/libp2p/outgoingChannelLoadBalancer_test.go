@@ -8,16 +8,29 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
+var errInvalidType = errors.New("invalid type")
 var errLenDifferent = errors.New("len different for names and chans")
 var errLenDifferentNamesChans = errors.New("len different for names and chans")
 var errMissingChannel = errors.New("missing channel")
 var errChannelsMismatch = errors.New("channels mismatch")
 var durationWait = time.Second * 2
 
-func checkIntegrity(oclb *libp2p.OutgoingChannelLoadBalancer, name string) error {
+func checkIntegrity(oclbInstance libp2p.ChannelLoadBalancer, name string) error {
+	type x interface {
+		Chans() []chan *libp2p.SendableData
+		Names() []string
+		NamesChans() map[string]chan *libp2p.SendableData
+	}
+
+	oclb, ok := oclbInstance.(x)
+	if !ok {
+		return errInvalidType
+	}
+
 	if len(oclb.Names()) != len(oclb.Chans()) {
 		return errLenDifferent
 	}
@@ -45,23 +58,33 @@ func checkIntegrity(oclb *libp2p.OutgoingChannelLoadBalancer, name string) error
 	return nil
 }
 
-//------- NewOutgoingChannelLoadBalancer
-
-func TestNewOutgoingChannelLoadBalancer_ShouldNotProduceNil(t *testing.T) {
+func TestNewOutgoingChannelLoadBalancer(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	t.Run("nil logger should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.NotNil(t, oclb)
-}
+		oclb, err := libp2p.NewOutgoingChannelLoadBalancer(nil)
+		assert.Equal(t, p2p.ErrNilLogger, err)
+		assert.Nil(t, oclb)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewOutgoingChannelLoadBalancer_ShouldAddDefaultChannel(t *testing.T) {
-	t.Parallel()
+		oclb, err := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
+		assert.Nil(t, err)
+		assert.NotNil(t, oclb)
+	})
+	t.Run("should work and add default channel", func(t *testing.T) {
+		t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+		oclb, err := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
+		assert.Nil(t, err)
+		assert.NotNil(t, oclb)
 
-	assert.Equal(t, 1, len(oclb.Names()))
-	assert.Nil(t, checkIntegrity(oclb, libp2p.DefaultSendChannel()))
+		assert.Equal(t, 1, len(oclb.Names()))
+		assert.Nil(t, checkIntegrity(oclb, libp2p.DefaultSendChannel()))
+	})
 }
 
 //------- AddChannel
@@ -69,7 +92,7 @@ func TestNewOutgoingChannelLoadBalancer_ShouldAddDefaultChannel(t *testing.T) {
 func TestOutgoingChannelLoadBalancer_AddChannelNewChannelShouldNotErrAndAddNewChannel(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	err := oclb.AddChannel("test")
 
@@ -82,7 +105,7 @@ func TestOutgoingChannelLoadBalancer_AddChannelNewChannelShouldNotErrAndAddNewCh
 func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	err := oclb.AddChannel(libp2p.DefaultSendChannel())
 
@@ -92,7 +115,7 @@ func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testin
 func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test")
 	err := oclb.AddChannel("test")
@@ -106,7 +129,7 @@ func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldDoNothing(t *te
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveDefaultShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	err := oclb.RemoveChannel(libp2p.DefaultSendChannel())
 
@@ -116,7 +139,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveDefaultShouldErr(t *test
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveNotFoundChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	err := oclb.RemoveChannel("test")
 
@@ -126,7 +149,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveNotFoundChannelShouldErr
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveLastChannelAddedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test1")
 	_ = oclb.AddChannel("test2")
@@ -146,7 +169,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveLastChannelAddedShouldWo
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveFirstChannelAddedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test1")
 	_ = oclb.AddChannel("test2")
@@ -166,7 +189,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveFirstChannelAddedShouldW
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveMiddleChannelAddedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test1")
 	_ = oclb.AddChannel("test2")
@@ -188,7 +211,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveMiddleChannelAddedShould
 func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultNotFoundShouldReturnDefault(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test1")
 
@@ -200,7 +223,7 @@ func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultNotFoundShouldReturnDefa
 func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultFoundShouldReturnChannel(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test1")
 
@@ -214,7 +237,7 @@ func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultFoundShouldReturnChannel
 func TestOutgoingChannelLoadBalancer_CollectFromChannelsNoObjectsShouldWaitBlocking(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	chanDone := make(chan struct{})
 
@@ -234,7 +257,7 @@ func TestOutgoingChannelLoadBalancer_CollectFromChannelsNoObjectsShouldWaitBlock
 func TestOutgoingChannelLoadBalancer_CollectOneElementFromChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oclb := libp2p.NewOutgoingChannelLoadBalancer()
+	oclb, _ := libp2p.NewOutgoingChannelLoadBalancer(&testscommon.LoggerStub{})
 
 	_ = oclb.AddChannel("test")
 

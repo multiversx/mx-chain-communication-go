@@ -6,6 +6,7 @@ import (
 
 	p2pCrypto "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ func TestConvertPublicKeyToPeerID(t *testing.T) {
 	t.Run("should work using a generated identity", func(t *testing.T) {
 		t.Parallel()
 
-		generator := p2pCrypto.NewIdentityGenerator()
+		generator, _ := p2pCrypto.NewIdentityGenerator(&testscommon.LoggerStub{})
 		skBytes, pid, err := generator.CreateRandomP2PIdentity()
 		assert.Nil(t, err)
 

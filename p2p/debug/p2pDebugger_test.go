@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,9 +24,20 @@ func shouldNotCompute() bool {
 func TestNewP2PDebugger(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
+	t.Run("nil logger should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.False(t, check.IfNil(pd))
+		pd, err := NewP2PDebugger("", nil)
+		assert.Equal(t, p2p.ErrNilLogger, err)
+		assert.Nil(t, pd)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		pd, err := NewP2PDebugger("", &testscommon.LoggerStub{})
+		assert.NoError(t, err)
+		assert.NotNil(t, pd)
+	})
 }
 
 //------- AddIncomingMessage
@@ -241,4 +253,14 @@ func TestP2pDebugger_statsToString(t *testing.T) {
 
 	assert.True(t, strings.Contains(str, topic2))
 	assert.True(t, strings.Contains(str, core.ConvertBytes(size2)))
+}
+
+func TestP2pDebugger_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pd *p2pDebugger
+	assert.True(t, pd.IsInterfaceNil())
+
+	pd, _ = NewP2PDebugger("", &testscommon.LoggerStub{})
+	assert.False(t, pd.IsInterfaceNil())
 }

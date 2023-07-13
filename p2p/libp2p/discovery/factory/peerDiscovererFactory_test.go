@@ -3,6 +3,7 @@ package factory_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
@@ -10,10 +11,26 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/discovery"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/discovery/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewPeerDiscoverer_NilLoggerShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := factory.ArgsPeerDiscoverer{
+		Context:            context.Background(),
+		Host:               &mock.ConnectableHostStub{},
+		Sharder:            &mock.SharderStub{},
+		P2pConfig:          config.P2PConfig{},
+		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+		Logger:             nil,
+	}
+	pDiscoverer, err := factory.NewPeerDiscoverer(args)
+	assert.Equal(t, p2p.ErrNilLogger, err)
+	assert.Nil(t, pDiscoverer)
+}
 func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.T) {
 	t.Parallel()
 
@@ -27,6 +44,7 @@ func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+		Logger:             &testscommon.LoggerStub{},
 	}
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)
 	_, ok := pDiscoverer.(*discovery.NilDiscoverer)
@@ -54,13 +72,13 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+		Logger:             &testscommon.LoggerStub{},
 	}
 
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)
-	_, ok := pDiscoverer.(*discovery.ContinuousKadDhtDiscoverer)
+	assert.Equal(t, "*discovery.continuousKadDhtDiscoverer", fmt.Sprintf("%T", pDiscoverer))
 
 	assert.NotNil(t, pDiscoverer)
-	assert.True(t, ok)
 	assert.Nil(t, err)
 }
 
@@ -83,6 +101,7 @@ func TestNewPeerDiscoverer_OptimizedKadDhtShouldWork(t *testing.T) {
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+		Logger:             &testscommon.LoggerStub{},
 	}
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)
 
@@ -108,6 +127,7 @@ func TestNewPeerDiscoverer_UnknownSharderShouldErr(t *testing.T) {
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+		Logger:             &testscommon.LoggerStub{},
 	}
 
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)
@@ -135,6 +155,7 @@ func TestNewPeerDiscoverer_UnknownKadDhtShouldErr(t *testing.T) {
 			},
 		},
 		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+		Logger:             &testscommon.LoggerStub{},
 	}
 
 	pDiscoverer, err := factory.NewPeerDiscoverer(args)

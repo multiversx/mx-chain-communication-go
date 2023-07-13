@@ -3,6 +3,7 @@ package debug
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
@@ -14,6 +15,7 @@ func newTestP2PDebugger(
 	pd := &p2pDebugger{
 		selfPeerId: selfPeerId,
 		data:       make(map[string]*metric),
+		log:        &testscommon.LoggerStub{},
 	}
 	pd.shouldProcessDataFn = shouldProcessDataFn
 	pd.printStringFn = printStringFn

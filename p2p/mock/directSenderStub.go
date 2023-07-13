@@ -9,7 +9,7 @@ import (
 type DirectSenderStub struct {
 	NextSequenceNumberCalled             func() []byte
 	SendCalled                           func(topic string, buff []byte, peer core.PeerID) error
-	RegisterDirectMessageProcessorCalled func(handler p2p.MessageProcessor) error
+	RegisterDirectMessageProcessorCalled func(handler p2p.MessageHandler) error
 }
 
 // NextSequenceNumber -
@@ -29,7 +29,7 @@ func (stub *DirectSenderStub) Send(topic string, buff []byte, peer core.PeerID) 
 }
 
 // RegisterDirectMessageProcessor -
-func (stub *DirectSenderStub) RegisterDirectMessageProcessor(handler p2p.MessageProcessor) error {
+func (stub *DirectSenderStub) RegisterDirectMessageProcessor(handler p2p.MessageHandler) error {
 	if stub.RegisterDirectMessageProcessorCalled != nil {
 		return stub.RegisterDirectMessageProcessorCalled(handler)
 	}

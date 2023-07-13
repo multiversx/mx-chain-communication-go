@@ -33,12 +33,12 @@ func createMessenger() p2p.Messenger {
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
+		Logger:                &testscommon.LoggerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
@@ -87,7 +87,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 
 	_ = mes2.CreateTopic(topic, false)
 	_ = mes2.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
 			}

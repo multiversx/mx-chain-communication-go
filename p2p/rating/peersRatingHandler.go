@@ -23,18 +23,18 @@ const (
 	int32Size      = 4
 )
 
-var log = logger.GetOrCreate("p2p/peersRating")
-
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
 	TopRatedCache types.Cacher
 	BadRatedCache types.Cacher
+	Logger        p2p.Logger
 }
 
 type peersRatingHandler struct {
 	topRatedCache types.Cacher
 	badRatedCache types.Cacher
 	mut           sync.RWMutex
+	log           p2p.Logger
 }
 
 // NewPeersRatingHandler returns a new peers rating handler
@@ -47,6 +47,7 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, err
 	return &peersRatingHandler{
 		topRatedCache: args.TopRatedCache,
 		badRatedCache: args.BadRatedCache,
+		log:           args.Logger,
 	}, nil
 }
 
@@ -56,6 +57,9 @@ func checkHandlerArgs(args ArgPeersRatingHandler) error {
 	}
 	if check.IfNil(args.BadRatedCache) {
 		return fmt.Errorf("%w for BadRatedCache", p2p.ErrNilCacher)
+	}
+	if check.IfNil(args.Logger) {
+		return p2p.ErrNilLogger
 	}
 
 	return nil
@@ -171,7 +175,7 @@ func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, min
 }
 
 func (prh *peersRatingHandler) displayPeersRating(peers *[]core.PeerID, minNumOfPeersExpected int) {
-	if log.GetLevel() != logger.LogTrace {
+	if prh.log.GetLevel() != logger.LogTrace {
 		return
 	}
 
@@ -190,7 +194,7 @@ func (prh *peersRatingHandler) displayPeersRating(peers *[]core.PeerID, minNumOf
 		}
 	}
 
-	log.Trace("Best peers to request from", "min requested", minNumOfPeersExpected, "peers ratings", strPeersRatings)
+	prh.log.Trace("Best peers to request from", "min requested", minNumOfPeersExpected, "peers ratings", strPeersRatings)
 }
 
 func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.PeerID, []core.PeerID) {

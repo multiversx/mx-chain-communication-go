@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
@@ -12,7 +13,7 @@ import (
 const MinTimeToLive = minTimeToLive
 
 // NewPrintConnectionsWatcherWithHandler -
-func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler func(pid core.PeerID, connection string)) (*printConnectionsWatcher, error) {
+func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler func(pid core.PeerID, connection string, log p2p.Logger)) (*printConnectionsWatcher, error) {
 	if timeToLive < minTimeToLive {
 		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", ErrInvalidValueForTimeToLiveParam, timeToLive, minTimeToLive)
 	}
@@ -30,8 +31,8 @@ func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler fun
 	return pcw, nil
 }
 
-func LogPrintHandler(pid core.PeerID, connection string) {
-	logPrintHandler(pid, connection)
+func LogPrintHandler(pid core.PeerID, connection string, log p2p.Logger) {
+	logPrintHandler(pid, connection, log)
 }
 
 func (pcw *printConnectionsWatcher) GoRoutineClosed() bool {

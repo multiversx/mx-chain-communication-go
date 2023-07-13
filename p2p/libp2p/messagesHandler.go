@@ -37,6 +37,8 @@ type ArgMessagesHandler struct {
 	Debugger           p2p.Debugger
 	SyncTimer          p2p.SyncTimer
 	PeerID             core.PeerID
+	NetworkType        p2p.NetworkType
+	Logger             p2p.Logger
 }
 
 type messagesHandler struct {
@@ -52,6 +54,8 @@ type messagesHandler struct {
 	debugger           p2p.Debugger
 	syncTimer          p2p.SyncTimer
 	peerID             core.PeerID
+	networkType        p2p.NetworkType
+	log                p2p.Logger
 
 	mutTopics     sync.RWMutex
 	processors    map[string]TopicProcessor
@@ -83,6 +87,8 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		processors:         make(map[string]TopicProcessor),
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
+		networkType:        args.NetworkType,
+		log:                args.Logger,
 	}
 
 	err = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -123,6 +129,9 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	if check.IfNil(args.SyncTimer) {
 		return p2p.ErrNilSyncTimer
 	}
+	if check.IfNil(args.Logger) {
+		return p2p.ErrNilLogger
+	}
 
 	return nil
 }
@@ -132,7 +141,7 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 		select {
 		case <-time.After(durationBetweenSends):
 		case <-handler.ctx.Done():
-			log.Debug("closing messages handler's send from channel load balancer go routine")
+			handler.log.Debug("closing messages handler's send from channel load balancer go routine")
 			return
 		}
 
@@ -145,7 +154,8 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 		topic := handler.topics[sendableData.Topic]
 		handler.mutTopics.RUnlock()
 		if topic == nil {
-			log.Warn("writing on a topic that the node did not register on - message dropped",
+			handler.log.Warn("writing on a topic that the node did not register on - message dropped",
+				"network", handler.networkType,
 				"topic", sendableData.Topic,
 			)
 
@@ -159,7 +169,7 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 
 		errPublish := handler.publish(topic, sendableData, packedSendableDataBuff)
 		if errPublish != nil {
-			log.Trace("error sending data", "error", errPublish)
+			handler.log.Trace("error sending data", "network", handler.networkType, "error", errPublish)
 		}
 	}
 }
@@ -184,7 +194,7 @@ func (handler *messagesHandler) BroadcastOnChannel(channel string, topic string,
 	go func() {
 		err := handler.broadcastOnChannelBlocking(channel, topic, buff)
 		if err != nil {
-			log.Warn("p2p broadcast", "error", err.Error())
+			handler.log.Warn("p2p broadcast", "network", handler.networkType, "error", err.Error())
 		}
 	}()
 }
@@ -234,7 +244,7 @@ func (handler *messagesHandler) BroadcastOnChannelUsingPrivateKey(
 	go func() {
 		err := handler.broadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
-			log.Warn("p2p broadcast using private key", "error", err.Error())
+			handler.log.Warn("p2p broadcast using private key", "network", handler.networkType, "error", err.Error())
 		}
 	}()
 }
@@ -323,16 +333,17 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := handler.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
-			log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic)
+			handler.log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic)
 			return false
 		}
 
 		identifiers, msgProcessors := topicProcs.GetList()
 		messageOk := true
 		for index, msgProc := range msgProcessors {
-			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer)
+			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
-				log.Trace("p2p validator",
+				handler.log.Trace("p2p validator",
+					"network", handler.networkType,
 					"error", err.Error(),
 					"topic", topic,
 					"originator", p2p.MessageOriginatorPid(msg),
@@ -374,7 +385,8 @@ func (handler *messagesHandler) checkMessage(msg p2p.MessageP2P, pid core.PeerID
 	err := handler.validateMessageByTimestamp(msg)
 	if err != nil {
 		// not reprocessing nor re-broadcasting the same message over and over again
-		log.Trace("received an invalid message",
+		handler.log.Trace("received an invalid message",
+			"network", handler.networkType,
 			"originator pid", p2p.MessageOriginatorPid(msg),
 			"from connected pid", p2p.PeerIdToShortString(pid),
 			"sequence", hex.EncodeToString(msg.SeqNo()),
@@ -397,14 +409,14 @@ func (handler *messagesHandler) blacklistPid(pid core.PeerID, banDuration time.D
 		return
 	}
 
-	log.Debug("blacklisted due to incompatible p2p message",
+	handler.log.Debug("blacklisted due to incompatible p2p message",
 		"pid", pid.Pretty(),
 		"time", banDuration,
 	)
 
 	err := handler.connMonitor.PeerDenialEvaluator().UpsertPeerID(pid, banDuration)
 	if err != nil {
-		log.Warn("error blacklisting peer ID in network messenger",
+		handler.log.Warn("error blacklisting peer ID in network messenger",
 			"pid", pid.Pretty(),
 			"error", err.Error(),
 		)
@@ -517,12 +529,15 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 		return err
 	}
 
-	return handler.ProcessReceivedMessage(msg, handler.peerID)
+	return handler.ProcessReceivedMessage(msg, handler.peerID, handler)
 }
 
 // ProcessReceivedMessage handles received direct messages
-func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	if check.IfNil(message) {
+		return nil
+	}
+	if check.IfNil(source) {
 		return nil
 	}
 
@@ -546,9 +561,9 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		// a separate sequence counter for direct sender
 		messageOk := true
 		for index, msgProc := range msgProcessors {
-			errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer)
+			errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, source)
 			if errProcess != nil {
-				log.Trace("p2p validator",
+				handler.log.Trace("p2p validator",
 					"error", errProcess.Error(),
 					"topic", msg.Topic(),
 					"originator", p2p.MessageOriginatorPid(msg),
@@ -588,7 +603,7 @@ func (handler *messagesHandler) createMessageBytes(buff []byte) []byte {
 
 	buffToSend, errMarshal := handler.marshaller.Marshal(message)
 	if errMarshal != nil {
-		log.Warn("error sending data", "error", errMarshal)
+		handler.log.Warn("error sending data", "error", errMarshal)
 		return nil
 	}
 
@@ -627,7 +642,7 @@ func (handler *messagesHandler) CreateTopic(name string, createChannelForTopic b
 		for {
 			_, errSubscrNext = subscrRequest.Next(handler.ctx)
 			if errSubscrNext != nil {
-				log.Debug("closed subscription",
+				handler.log.Debug("closed subscription",
 					"topic", subscrRequest.Topic(),
 					"err", errSubscrNext,
 				)
@@ -662,7 +677,7 @@ func (handler *messagesHandler) UnJoinAllTopics() error {
 
 		err := t.Close()
 		if err != nil {
-			log.Warn("error closing topic",
+			handler.log.Warn("error closing topic",
 				"topic", topicName,
 				"error", err,
 			)
@@ -680,20 +695,20 @@ func (handler *messagesHandler) Close() error {
 	handler.cancelFunc()
 
 	var err error
-	log.Debug("closing messages handler's outgoing load balancer...")
+	handler.log.Debug("closing messages handler's outgoing load balancer...")
 	errOCLB := handler.outgoingCLB.Close()
 	if errOCLB != nil {
 		err = errOCLB
-		log.Warn("messagesHandler.Close",
+		handler.log.Warn("messagesHandler.Close",
 			"component", "outgoingCLB",
 			"error", err)
 	}
 
-	log.Debug("closing messages handler's debugger...")
+	handler.log.Debug("closing messages handler's debugger...")
 	errDebugger := handler.debugger.Close()
 	if errDebugger != nil {
 		err = errDebugger
-		log.Warn("messagesHandler.Close",
+		handler.log.Warn("messagesHandler.Close",
 			"component", "debugger",
 			"error", err)
 	}

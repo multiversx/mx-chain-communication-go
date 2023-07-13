@@ -19,7 +19,7 @@ func newMessageProcessor() *messageProcessor {
 }
 
 // ProcessReceivedMessage -
-func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
 

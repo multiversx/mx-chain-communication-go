@@ -154,30 +154,37 @@ func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifie
 	netMes.MessageHandler.(*messagesHandler).DirectSender().signer = signer
 }
 
-func (oplb *OutgoingChannelLoadBalancer) Chans() []chan *SendableData {
+// Chans -
+func (oplb *outgoingChannelLoadBalancer) Chans() []chan *SendableData {
 	return oplb.chans
 }
 
-func (oplb *OutgoingChannelLoadBalancer) Names() []string {
+// Names -
+func (oplb *outgoingChannelLoadBalancer) Names() []string {
 	return oplb.names
 }
 
-func (oplb *OutgoingChannelLoadBalancer) NamesChans() map[string]chan *SendableData {
+// NamesChans -
+func (oplb *outgoingChannelLoadBalancer) NamesChans() map[string]chan *SendableData {
 	return oplb.namesChans
 }
 
+// DefaultSendChannel -
 func DefaultSendChannel() string {
 	return defaultSendChannel
 }
 
+// NewPeersOnChannel -
 func NewPeersOnChannel(
 	fetchPeersHandler func(topic string) []peer.ID,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
+	logger p2p.Logger,
 ) (*peersOnChannel, error) {
-	return newPeersOnChannel(fetchPeersHandler, refreshInterval, ttlInterval)
+	return newPeersOnChannel(fetchPeersHandler, refreshInterval, ttlInterval, logger)
 }
 
+// NewPeersOnChannel -
 func (poc *peersOnChannel) SetPeersOnTopic(topic string, lastUpdated time.Time, peers []core.PeerID) {
 	poc.mutPeers.Lock()
 	poc.peers[topic] = peers
@@ -185,6 +192,7 @@ func (poc *peersOnChannel) SetPeersOnTopic(topic string, lastUpdated time.Time, 
 	poc.mutPeers.Unlock()
 }
 
+// GetPeers -
 func (poc *peersOnChannel) GetPeers(topic string) []core.PeerID {
 	poc.mutPeers.RLock()
 	defer poc.mutPeers.RUnlock()
@@ -192,22 +200,27 @@ func (poc *peersOnChannel) GetPeers(topic string) []core.PeerID {
 	return poc.peers[topic]
 }
 
+// SetTimeHandler -
 func (poc *peersOnChannel) SetTimeHandler(handler func() time.Time) {
 	poc.getTimeHandler = handler
 }
 
-func GetPort(port string, handler func(int) error) (int, error) {
-	return getPort(port, handler)
+// GetPort -
+func GetPort(port string, handler func(int) error, log p2p.Logger) (int, error) {
+	return getPort(port, handler, log)
 }
 
+// CheckFreePort -
 func CheckFreePort(port int) error {
 	return checkFreePort(port)
 }
 
+// NewTopicProcessors -
 func NewTopicProcessors() *topicProcessors {
 	return newTopicProcessors()
 }
 
+// NewUnknownPeerShardResolver -
 func NewUnknownPeerShardResolver() *unknownPeerShardResolver {
 	return &unknownPeerShardResolver{}
 }
@@ -231,6 +244,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		processors:         make(map[string]TopicProcessor),
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
+		log:                args.Logger,
 	}
 
 	_ = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -296,6 +310,7 @@ func NewConnectionsHandlerWithNoRoutine(args ArgConnectionsHandler) *connections
 		peerDiscoverer:       args.PeerDiscoverer,
 		peerID:               args.PeerID,
 		connectionsMetric:    args.ConnectionsMetric,
+		log:                  args.Logger,
 	}
 }
 

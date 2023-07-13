@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,14 +15,26 @@ import (
 func TestNewIdentityGenerator(t *testing.T) {
 	t.Parallel()
 
-	generator := crypto.NewIdentityGenerator()
-	assert.False(t, check.IfNil(generator))
+	t.Run("nil logger should error", func(t *testing.T) {
+		t.Parallel()
+
+		generator, err := crypto.NewIdentityGenerator(nil)
+		assert.Equal(t, p2p.ErrNilLogger, err)
+		assert.Nil(t, generator)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		generator, err := crypto.NewIdentityGenerator(&testscommon.LoggerStub{})
+		assert.NoError(t, err)
+		assert.NotNil(t, generator)
+	})
 }
 
 func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 	t.Parallel()
 
-	generator := crypto.NewIdentityGenerator()
+	generator, _ := crypto.NewIdentityGenerator(&testscommon.LoggerStub{})
 
 	skKey1, _, errGenerate := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
 	require.Nil(t, errGenerate)
@@ -75,7 +88,7 @@ func TestIdentityGenerator_CreateP2PPrivateKey(t *testing.T) {
 func TestIdentityGenerator_CreateRandomP2PIdentity(t *testing.T) {
 	t.Parallel()
 
-	generator := crypto.NewIdentityGenerator()
+	generator, _ := crypto.NewIdentityGenerator(&testscommon.LoggerStub{})
 	sk1, pid1, err := generator.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 
@@ -88,4 +101,14 @@ func TestIdentityGenerator_CreateRandomP2PIdentity(t *testing.T) {
 	assert.Equal(t, 39, len(pid1))
 	assert.Equal(t, 32, len(sk2))
 	assert.Equal(t, 39, len(pid2))
+}
+
+func TestIdentityGenerator_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	generator, _ := crypto.NewIdentityGenerator(nil)
+	assert.True(t, generator.IsInterfaceNil())
+
+	generator, _ = crypto.NewIdentityGenerator(&testscommon.LoggerStub{})
+	assert.False(t, generator.IsInterfaceNil())
 }

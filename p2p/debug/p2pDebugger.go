@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/display"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-var log = logger.GetOrCreate("debug/p2p")
 
 const printInterval = time.Second
 
@@ -59,13 +59,19 @@ type p2pDebugger struct {
 	cancelFunc          func()
 	shouldProcessDataFn func() bool
 	printStringFn       func(data string)
+	log                 p2p.Logger
 }
 
 // NewP2PDebugger creates a new p2p debug instance
-func NewP2PDebugger(selfPeerId core.PeerID) *p2pDebugger {
+func NewP2PDebugger(selfPeerId core.PeerID, logger p2p.Logger) (*p2pDebugger, error) {
+	if check.IfNil(logger) {
+		return nil, p2p.ErrNilLogger
+	}
+
 	pd := &p2pDebugger{
 		selfPeerId: selfPeerId,
 		data:       make(map[string]*metric),
+		log:        logger,
 	}
 	pd.shouldProcessDataFn = pd.isLogTrace
 	pd.printStringFn = pd.printLog
@@ -75,15 +81,15 @@ func NewP2PDebugger(selfPeerId core.PeerID) *p2pDebugger {
 
 	go pd.continuouslyPrintStatistics(ctx)
 
-	return pd
+	return pd, nil
 }
 
 func (pd *p2pDebugger) isLogTrace() bool {
-	return log.GetLevel() == logger.LogTrace
+	return pd.log.GetLevel() == logger.LogTrace
 }
 
 func (pd *p2pDebugger) printLog(data string) {
-	log.Trace(fmt.Sprintf("p2p topic stats for %s\n", pd.selfPeerId.Pretty()) + data)
+	pd.log.Trace(fmt.Sprintf("p2p topic stats for %s\n", pd.selfPeerId.Pretty()) + data)
 }
 
 // AddIncomingMessage adds a new incoming message stats in metrics structs
@@ -139,7 +145,7 @@ func (pd *p2pDebugger) continuouslyPrintStatistics(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("p2p debugger continuouslyPrintStatistics go routine is stopping...")
+			pd.log.Debug("p2p debugger continuouslyPrintStatistics go routine is stopping...")
 			return
 		case <-time.After(printInterval):
 		}

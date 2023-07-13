@@ -48,11 +48,6 @@ func (ls *listsSharder) GetMaxSeeders() int {
 	return ls.maxSeeders
 }
 
-// GetMaxFullHistoryObservers -
-func (ls *listsSharder) GetMaxFullHistoryObservers() int {
-	return ls.maxFullHistoryObservers
-}
-
 // GetMaxUnknown -
 func (ls *listsSharder) GetMaxUnknown() int {
 	return ls.maxUnknown

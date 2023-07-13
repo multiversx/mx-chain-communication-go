@@ -14,7 +14,7 @@ type SimpleMessageProcessor struct {
 }
 
 // ProcessReceivedMessage records the message
-func (smp *SimpleMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (smp *SimpleMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	smp.mutMessage.Lock()
 	smp.message = message.Data()
 	smp.mutMessage.Unlock()

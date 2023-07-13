@@ -29,8 +29,8 @@ import (
 const timeout = time.Second * 5
 const testMaxSize = 1 << 21
 
-var blankMessageHandler = &mock.MessageProcessorStub{
-	ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+var blankMessageHandler = &mock.MessageHandlerStub{
+	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 		return nil
 	},
 }
@@ -81,6 +81,7 @@ func TestNewDirectSender(t *testing.T) {
 			&mock.ConnectableHostStub{},
 			&mock.P2PSignerStub{},
 			&testscommon.MarshallerMock{},
+			&testscommon.LoggerStub{},
 		)
 
 		assert.True(t, check.IfNil(ds))
@@ -94,6 +95,7 @@ func TestNewDirectSender(t *testing.T) {
 			nil,
 			&mock.P2PSignerStub{},
 			&testscommon.MarshallerMock{},
+			&testscommon.LoggerStub{},
 		)
 
 		assert.True(t, check.IfNil(ds))
@@ -107,6 +109,7 @@ func TestNewDirectSender(t *testing.T) {
 			generateHostStub(),
 			&mock.P2PSignerStub{},
 			&testscommon.MarshallerMock{},
+			&testscommon.LoggerStub{},
 		)
 		assert.False(t, check.IfNil(ds))
 		assert.Nil(t, err)
@@ -122,6 +125,7 @@ func TestNewDirectSender(t *testing.T) {
 			generateHostStub(),
 			nil,
 			&testscommon.MarshallerMock{},
+			&testscommon.LoggerStub{},
 		)
 
 		assert.True(t, check.IfNil(ds))
@@ -135,10 +139,25 @@ func TestNewDirectSender(t *testing.T) {
 			generateHostStub(),
 			&mock.P2PSignerStub{},
 			nil,
+			&testscommon.LoggerStub{},
 		)
 
 		assert.True(t, check.IfNil(ds))
 		assert.Equal(t, p2p.ErrNilMarshaller, err)
+	})
+	t.Run("nil logger", func(t *testing.T) {
+		t.Parallel()
+
+		ds, err := libp2p.NewDirectSender(
+			context.Background(),
+			generateHostStub(),
+			&mock.P2PSignerStub{},
+			&testscommon.MarshallerMock{},
+			nil,
+		)
+
+		assert.True(t, check.IfNil(ds))
+		assert.Equal(t, p2p.ErrNilLogger, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -148,6 +167,7 @@ func TestNewDirectSender(t *testing.T) {
 			generateHostStub(),
 			&mock.P2PSignerStub{},
 			&testscommon.MarshallerMock{},
+			&testscommon.LoggerStub{},
 		)
 
 		assert.False(t, check.IfNil(ds))
@@ -173,6 +193,7 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 		hs,
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	assert.NotNil(t, handlerCalled)
@@ -189,6 +210,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -205,6 +227,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -229,6 +252,7 @@ func TestDirectSender_ProcessReceivedDirectMessageKeyFieldIsNotNilShouldErr(t *t
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -265,6 +289,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAbnormalSeqNoFieldShouldErr(t 
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -290,6 +315,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -319,6 +345,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		marshaller,
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -369,9 +396,10 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		marshaller,
+		&testscommon.LoggerStub{},
 	)
-	_ = ds.RegisterDirectMessageProcessor(&mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 			wasCalled = true
 			return nil
 		},
@@ -407,9 +435,10 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		marshaller,
+		&testscommon.LoggerStub{},
 	)
-	_ = ds.RegisterDirectMessageProcessor(&mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 			return checkErr
 		},
 	})
@@ -463,6 +492,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 		},
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	messageTooLarge := bytes.Repeat([]byte{65}, libp2p.MaxSendBuffSize)
@@ -491,6 +521,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 		},
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	err := ds.Send("topic", []byte("data"), "not connected peer")
@@ -515,6 +546,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 		hs,
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -531,7 +563,6 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 		return nil, errNewStream
 	}
 
-	providedData := []byte("data")
 	topic := "topic"
 	err := ds.Send(topic, providedData, core.PeerID(cs.RemotePeer()))
 
@@ -543,7 +574,6 @@ func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
 
 	netw := &mock.NetworkStub{}
 
-	expectedErr := errors.New("expected error")
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		&mock.ConnectableHostStub{
@@ -558,6 +588,7 @@ func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
 			},
 		},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -572,7 +603,6 @@ func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
 		return []network.Conn{cs}
 	}
 
-	providedData := []byte("data")
 	topic := "topic"
 	err := ds.Send(topic, providedData, core.PeerID(cs.RemotePeer()))
 
@@ -594,6 +624,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 		},
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -625,7 +656,6 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 		}
 	}(stream)
 
-	providedData := []byte("data")
 	topic := "topic"
 	err = ds.Send(topic, providedData, core.PeerID(cs.RemotePeer()))
 	assert.Nil(t, err)
@@ -659,6 +689,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 		hs,
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -696,7 +727,6 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 		}
 	}(stream)
 
-	providedData := []byte("data")
 	topic := "topic"
 	err := ds.Send(topic, providedData, core.PeerID(cs.RemotePeer()))
 
@@ -738,9 +768,10 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 		hs,
 		&mock.P2PSignerStub{},
 		marshaller,
+		&testscommon.LoggerStub{},
 	)
-	_ = ds.RegisterDirectMessageProcessor(&mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 			receivedMsg = message
 			chanDone <- true
 			return nil
@@ -800,6 +831,7 @@ func TestDirectSender_ProcessReceivedDirectMessageButHandlerNotSetShouldErr(t *t
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 
 	err := ds.ProcessReceivedDirectMessage(nil, "peer")
@@ -815,6 +847,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 		generateHostStub(),
 		&mock.P2PSignerStub{},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -836,7 +869,6 @@ func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {
 	t.Parallel()
 
 	verifyCalled := false
-	expectedErr := fmt.Errorf("expected error")
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -847,6 +879,7 @@ func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {
 			},
 		},
 		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
@@ -869,7 +902,6 @@ func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {
 func TestDirectSender_ProcessReceivedDirectMessageNewMessageFails(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expected error")
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -879,6 +911,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNewMessageFails(t *testing.T) 
 				return expectedErr
 			},
 		},
+		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(blankMessageHandler)
 
