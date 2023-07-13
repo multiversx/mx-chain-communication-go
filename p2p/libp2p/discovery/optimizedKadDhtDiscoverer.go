@@ -201,19 +201,19 @@ func (okdd *optimizedKadDhtDiscoverer) tryToReconnectAtLeastToASeeder(ctx contex
 		select {
 		case <-ctx.Done():
 			okdd.log.Debug("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
+				"network", okdd.networkType,
 				"num seeders", len(okdd.initialPeersList),
 				"connected to a seeder", true,
-				"context", "done",
-				"network", okdd.networkType)
+				"context", "done")
 			return true
 		default:
 		}
 	}
 
 	okdd.log.Debug("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
+		"network", okdd.networkType,
 		"num seeders", len(okdd.initialPeersList),
-		"connected to a seeder", connectedToOneSeeder,
-		"network", okdd.networkType)
+		"connected to a seeder", connectedToOneSeeder)
 
 	return connectedToOneSeeder
 }
@@ -238,7 +238,7 @@ func (okdd *optimizedKadDhtDiscoverer) findPeers(ctx context.Context) {
 
 	err := okdd.kadDHT.Bootstrap(ctx)
 	if err != nil {
-		okdd.log.Debug("kad dht bootstrap", "error", err, "network", okdd.networkType)
+		okdd.log.Debug("kad dht bootstrap", "network", okdd.networkType, "error", err)
 	}
 }
 

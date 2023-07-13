@@ -155,8 +155,8 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 		handler.mutTopics.RUnlock()
 		if topic == nil {
 			handler.log.Warn("writing on a topic that the node did not register on - message dropped",
-				"topic", sendableData.Topic,
 				"network", handler.networkType,
+				"topic", sendableData.Topic,
 			)
 
 			continue
@@ -169,7 +169,7 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 
 		errPublish := handler.publish(topic, sendableData, packedSendableDataBuff)
 		if errPublish != nil {
-			handler.log.Trace("error sending data", "error", errPublish, "network", handler.networkType)
+			handler.log.Trace("error sending data", "network", handler.networkType, "error", errPublish)
 		}
 	}
 }
@@ -194,7 +194,7 @@ func (handler *messagesHandler) BroadcastOnChannel(channel string, topic string,
 	go func() {
 		err := handler.broadcastOnChannelBlocking(channel, topic, buff)
 		if err != nil {
-			handler.log.Warn("p2p broadcast", "error", err.Error(), "network", handler.networkType)
+			handler.log.Warn("p2p broadcast", "network", handler.networkType, "error", err.Error())
 		}
 	}()
 }
@@ -244,7 +244,7 @@ func (handler *messagesHandler) BroadcastOnChannelUsingPrivateKey(
 	go func() {
 		err := handler.broadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
-			handler.log.Warn("p2p broadcast using private key", "error", err.Error(), "network", handler.networkType)
+			handler.log.Warn("p2p broadcast using private key", "network", handler.networkType, "error", err.Error())
 		}
 	}()
 }
@@ -343,13 +343,13 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
 				handler.log.Trace("p2p validator",
+					"network", handler.networkType,
 					"error", err.Error(),
 					"topic", topic,
 					"originator", p2p.MessageOriginatorPid(msg),
 					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 					"seq no", p2p.MessageOriginatorSeq(msg),
 					"topic identifier", identifiers[index],
-					"network", handler.networkType,
 				)
 				messageOk = false
 			}
@@ -386,12 +386,12 @@ func (handler *messagesHandler) checkMessage(msg p2p.MessageP2P, pid core.PeerID
 	if err != nil {
 		// not reprocessing nor re-broadcasting the same message over and over again
 		handler.log.Trace("received an invalid message",
+			"network", handler.networkType,
 			"originator pid", p2p.MessageOriginatorPid(msg),
 			"from connected pid", p2p.PeerIdToShortString(pid),
 			"sequence", hex.EncodeToString(msg.SeqNo()),
 			"timestamp", msg.Timestamp(),
 			"error", err,
-			"network", handler.networkType,
 		)
 		handler.processDebugMessage(topic, pid, uint64(len(msg.Data())), true)
 

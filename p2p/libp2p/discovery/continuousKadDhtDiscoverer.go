@@ -261,8 +261,8 @@ func (ckdd *continuousKadDhtDiscoverer) tryConnectToSeeder(
 			}
 		} else {
 			ckdd.log.Debug("connected to seeder",
-				"address", initialPeer,
-				"network", ckdd.networkType)
+				"network", ckdd.networkType,
+				"address", initialPeer)
 		}
 
 		break
