@@ -31,6 +31,7 @@ type ArgKadDht struct {
 	RoutingTableRefresh         time.Duration
 	KddSharder                  p2p.Sharder
 	ConnectionWatcher           p2p.ConnectionsWatcher
+	NetworkType                 p2p.NetworkType
 	Logger                      p2p.Logger
 }
 
@@ -51,6 +52,7 @@ type continuousKadDhtDiscoverer struct {
 	hostConnManagement   *hostWithConnectionManagement
 	sharder              Sharder
 	connectionWatcher    p2p.ConnectionsWatcher
+	networkType          p2p.NetworkType
 	log                  p2p.Logger
 }
 
@@ -74,6 +76,7 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*continuousKadDhtDiscoverer, 
 		bucketSize:           arg.BucketSize,
 		routingTableRefresh:  arg.RoutingTableRefresh,
 		connectionWatcher:    arg.ConnectionWatcher,
+		networkType:          arg.NetworkType,
 		log:                  arg.Logger,
 	}, nil
 }
@@ -257,7 +260,9 @@ func (ckdd *continuousKadDhtDiscoverer) tryConnectToSeeder(
 				continue
 			}
 		} else {
-			ckdd.log.Debug("connected to seeder", "address", initialPeer)
+			ckdd.log.Debug("connected to seeder",
+				"address", initialPeer,
+				"network", ckdd.networkType)
 		}
 
 		break
