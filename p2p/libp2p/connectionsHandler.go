@@ -70,6 +70,7 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 		peerID:               args.PeerID,
 		connectionsMetric:    args.ConnectionsMetric,
 		log:                  args.Logger,
+		networkType:          args.NetworkType,
 	}
 
 	go handler.printLogs()
