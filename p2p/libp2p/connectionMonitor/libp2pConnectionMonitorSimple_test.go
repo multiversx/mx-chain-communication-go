@@ -9,8 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/connectionMonitor"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,6 +26,7 @@ func createMockArgsConnectionMonitorSimple() connectionMonitor.ArgsConnectionMon
 		PreferredPeersHolder:       &mock.PeersHolderStub{},
 		ConnectionsWatcher:         &mock.ConnectionsWatcherStub{},
 		Network:                    &mock.NetworkStub{},
+		Logger:                     &testscommon.LoggerStub{},
 	}
 }
 
@@ -40,7 +41,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilReconnecter, err)
-		assert.True(t, check.IfNil(lcms))
+		assert.Nil(t, lcms)
 	})
 	t.Run("nil sharder should error", func(t *testing.T) {
 		t.Parallel()
@@ -50,7 +51,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilSharder, err)
-		assert.True(t, check.IfNil(lcms))
+		assert.Nil(t, lcms)
 	})
 	t.Run("nil preferred peers holder should error", func(t *testing.T) {
 		t.Parallel()
@@ -60,7 +61,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilPreferredPeersHolder, err)
-		assert.True(t, check.IfNil(lcms))
+		assert.Nil(t, lcms)
 	})
 	t.Run("nil connections watcher should error", func(t *testing.T) {
 		t.Parallel()
@@ -70,7 +71,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
-		assert.True(t, check.IfNil(lcms))
+		assert.Nil(t, lcms)
 	})
 	t.Run("nil network should error", func(t *testing.T) {
 		t.Parallel()
@@ -80,7 +81,17 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilNetwork, err)
-		assert.True(t, check.IfNil(lcms))
+		assert.Nil(t, lcms)
+	})
+	t.Run("nil logger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsConnectionMonitorSimple()
+		args.Logger = nil
+		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
+
+		assert.Equal(t, p2p.ErrNilLogger, err)
+		assert.Nil(t, lcms)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -89,7 +100,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(lcms))
+		assert.NotNil(t, lcms)
 		assert.Nil(t, lcms.Close())
 	})
 }
@@ -373,4 +384,16 @@ func TestNewLibp2pConnectionMonitorSimple_checkConnectionsBlocking(t *testing.T)
 	case <-time.After(durationTimeoutWaiting):
 		assert.Fail(t, "timeout")
 	}
+}
+
+func TestLibp2pConnectionMonitorSimple_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsConnectionMonitorSimple()
+	args.Logger = nil
+	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
+	assert.True(t, lcms.IsInterfaceNil())
+
+	lcms, _ = connectionMonitor.NewLibp2pConnectionMonitorSimple(createMockArgsConnectionMonitorSimple())
+	assert.False(t, lcms.IsInterfaceNil())
 }

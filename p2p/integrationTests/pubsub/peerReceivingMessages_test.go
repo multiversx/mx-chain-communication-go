@@ -16,12 +16,12 @@ import (
 var durationTest = 30 * time.Second
 
 type messageProcessorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P, source p2p.MessageHandler) error
 }
 
 // ProcessReceivedMessage -
-func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
-	return mps.ProcessReceivedMessageCalled(message)
+func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, source p2p.MessageHandler) error {
+	return mps.ProcessReceivedMessageCalled(message, source)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -76,7 +76,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 		}
 
 		err = peers[idx].RegisterMessageProcessor(testTopic, "test", &messageProcessorStub{
-			ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
+			ProcessReceivedMessageCalled: func(message p2p.MessageP2P, source p2p.MessageHandler) error {
 				time.Sleep(time.Second)
 
 				mutMapMessages.Lock()

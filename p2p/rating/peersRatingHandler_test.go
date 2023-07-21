@@ -10,8 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	coreMocks "github.com/multiversx/mx-chain-core-go/data/mock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +21,7 @@ func createMockArgs() ArgPeersRatingHandler {
 	return ArgPeersRatingHandler{
 		TopRatedCache: &mock.CacherStub{},
 		BadRatedCache: &mock.CacherStub{},
+		Logger:        &testscommon.LoggerStub{},
 	}
 }
 
@@ -36,7 +37,7 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		prh, err := NewPeersRatingHandler(args)
 		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "TopRatedCache"))
-		assert.True(t, check.IfNil(prh))
+		assert.Nil(t, prh)
 	})
 	t.Run("nil bad rated cache should error", func(t *testing.T) {
 		t.Parallel()
@@ -47,14 +48,24 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		prh, err := NewPeersRatingHandler(args)
 		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
-		assert.True(t, check.IfNil(prh))
+		assert.Nil(t, prh)
+	})
+	t.Run("nil logger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.Logger = nil
+
+		prh, err := NewPeersRatingHandler(args)
+		assert.Equal(t, p2p.ErrNilLogger, err)
+		assert.Nil(t, prh)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		prh, err := NewPeersRatingHandler(createMockArgs())
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 	})
 }
 
@@ -84,7 +95,7 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 			},
 		}
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		prh.IncreaseRating(providedPid)
 		assert.True(t, wasCalled)
@@ -109,7 +120,7 @@ func TestPeersRatingHandler_IncreaseRating(t *testing.T) {
 		}
 
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		prh.IncreaseRating(providedPid)
 		val, found := cacheMap[string(providedPid.Bytes())]
@@ -154,7 +165,7 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 			},
 		}
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		prh.DecreaseRating(providedPid)
 		assert.True(t, wasCalled)
@@ -198,7 +209,7 @@ func TestPeersRatingHandler_DecreaseRating(t *testing.T) {
 		}
 
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		// first call adds it with specific rating
 		prh.DecreaseRating(providedPid)
@@ -243,7 +254,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		t.Parallel()
 
 		prh, _ := NewPeersRatingHandler(createMockArgs())
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		res := prh.GetTopRatedPeersFromList([]core.PeerID{"pid"}, 0)
 		assert.Equal(t, 0, len(res))
@@ -252,7 +263,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		t.Parallel()
 
 		prh, _ := NewPeersRatingHandler(createMockArgs())
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		res := prh.GetTopRatedPeersFromList(nil, 1)
 		assert.Equal(t, 0, len(res))
@@ -261,7 +272,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		t.Parallel()
 
 		prh, _ := NewPeersRatingHandler(createMockArgs())
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		providedListOfPeers := []core.PeerID{"pid 1", "pid 2"}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 5)
@@ -284,7 +295,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 			},
 		}
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		providedListOfPeers := []core.PeerID{providedPid}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 1)
@@ -320,7 +331,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 			},
 		}
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		providedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
 		expectedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
@@ -330,12 +341,16 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		log.SetLevel(logger.LogTrace) // coverage
 		providedPid1, providedPid2, providedPid3 := core.PeerID("provided pid 1"), core.PeerID("provided pid 2"), core.PeerID("provided pid 3")
 		args := createMockArgs()
 		args.TopRatedCache = coreMocks.NewCacherMock()
+		args.Logger = &testscommon.LoggerStub{
+			GetLevelCalled: func() logger.LogLevel {
+				return logger.LogTrace // coverage
+			},
+		}
 		prh, _ := NewPeersRatingHandler(args)
-		assert.False(t, check.IfNil(prh))
+		assert.NotNil(t, prh)
 
 		extraPid := core.PeerID("extra pid")
 		providedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3, extraPid}
@@ -352,7 +367,7 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 	args.BadRatedCache = coreMocks.NewCacherMock()
 
 	prh, _ := NewPeersRatingHandler(args)
-	assert.False(t, check.IfNil(prh))
+	assert.NotNil(t, prh)
 
 	numOps := 200
 	var wg sync.WaitGroup
@@ -384,4 +399,14 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 	wg.Wait()
+}
+
+func TestPeersRatingHandler_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var prh *peersRatingHandler
+	assert.True(t, prh.IsInterfaceNil())
+
+	prh, _ = NewPeersRatingHandler(createMockArgs())
+	assert.False(t, prh.IsInterfaceNil())
 }

@@ -28,6 +28,8 @@ type ArgConnectionsHandler struct {
 	PeerDiscoverer       p2p.PeerDiscoverer
 	PeerID               core.PeerID
 	ConnectionsMetric    ConnectionsMetric
+	NetworkType          p2p.NetworkType
+	Logger               p2p.Logger
 }
 
 type connectionsHandler struct {
@@ -43,6 +45,8 @@ type connectionsHandler struct {
 	peerDiscoverer       p2p.PeerDiscoverer
 	peerID               core.PeerID
 	connectionsMetric    ConnectionsMetric
+	networkType          p2p.NetworkType
+	log                  p2p.Logger
 }
 
 // NewConnectionsHandler creates a new connections manager
@@ -65,6 +69,8 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 		peerDiscoverer:       args.PeerDiscoverer,
 		peerID:               args.PeerID,
 		connectionsMetric:    args.ConnectionsMetric,
+		log:                  args.Logger,
+		networkType:          args.NetworkType,
 	}
 
 	go handler.printLogs()
@@ -97,6 +103,9 @@ func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
 	if check.IfNil(args.ConnectionsMetric) {
 		return p2p.ErrNilConnectionsMetric
 	}
+	if check.IfNil(args.Logger) {
+		return p2p.ErrNilLogger
+	}
 
 	return nil
 }
@@ -105,7 +114,7 @@ func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
 func (handler *connectionsHandler) Bootstrap() error {
 	err := handler.peerDiscoverer.Bootstrap()
 	if err == nil {
-		log.Info("started the network discovery process...")
+		handler.log.Info("started the network discovery process...")
 	}
 	return err
 }
@@ -140,12 +149,12 @@ func (handler *connectionsHandler) ConnectToPeer(address string) error {
 func (handler *connectionsHandler) WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
 	startTime := time.Now()
 	defer func() {
-		log.Debug("connectionsHandler.WaitForConnections",
+		handler.log.Debug("connectionsHandler.WaitForConnections",
 			"waited", time.Since(startTime), "num connected peers", len(handler.ConnectedPeers()))
 	}()
 
 	if minNumOfPeers == 0 {
-		log.Debug("connectionsHandler.WaitForConnections", "waiting", maxWaitingTime)
+		handler.log.Debug("connectionsHandler.WaitForConnections", "waiting", maxWaitingTime)
 		time.Sleep(maxWaitingTime)
 		return
 	}
@@ -154,7 +163,7 @@ func (handler *connectionsHandler) WaitForConnections(maxWaitingTime time.Durati
 }
 
 func (handler *connectionsHandler) waitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
-	log.Debug("connectionsHandler.WaitForConnections", "waiting", maxWaitingTime, "min num of peers", minNumOfPeers)
+	handler.log.Debug("connectionsHandler.WaitForConnections", "waiting", maxWaitingTime, "min num of peers", minNumOfPeers)
 	ctxMaxWaitingTime, cancel := context.WithTimeout(context.Background(), maxWaitingTime)
 	defer cancel()
 
@@ -251,25 +260,6 @@ func (handler *connectionsHandler) ConnectedPeersOnTopic(topic string) []core.Pe
 	return handler.peersOnChannel.ConnectedPeersOnChannel(topic)
 }
 
-// ConnectedFullHistoryPeersOnTopic returns the connected peers on a provided topic
-func (handler *connectionsHandler) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
-	peerList := handler.ConnectedPeersOnTopic(topic)
-	fullHistoryList := make([]core.PeerID, 0)
-
-	handler.mutPeerResolver.RLock()
-	peerShardResolver := handler.peerShardResolver
-	handler.mutPeerResolver.RUnlock()
-
-	for _, topicPeer := range peerList {
-		peerInfo := peerShardResolver.GetPeerInfo(topicPeer)
-		if peerInfo.PeerSubType == core.FullHistoryObserver {
-			fullHistoryList = append(fullHistoryList, topicPeer)
-		}
-	}
-
-	return fullHistoryList
-}
-
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
 // between peerID and shardId
 func (handler *connectionsHandler) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
@@ -299,7 +289,6 @@ func (handler *connectionsHandler) GetConnectedPeersInfo() *p2p.ConnectedPeersIn
 		IntraShardObservers:      make(map[uint32][]string),
 		CrossShardValidators:     make(map[uint32][]string),
 		CrossShardObservers:      make(map[uint32][]string),
-		FullHistoryObservers:     make(map[uint32][]string),
 		NumObserversOnShard:      make(map[uint32]int),
 		NumValidatorsOnShard:     make(map[uint32]int),
 		NumPreferredPeersOnShard: make(map[uint32]int),
@@ -350,11 +339,6 @@ func (handler *connectionsHandler) appendPeerInfo(peerInfo, selfPeerInfo core.P2
 		}
 	case core.ObserverPeer:
 		connPeerInfo.NumObserversOnShard[peerInfo.ShardID]++
-		if peerInfo.PeerSubType == core.FullHistoryObserver {
-			connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
-			connPeerInfo.NumFullHistoryObservers++
-			break
-		}
 		if selfPeerInfo.ShardID != peerInfo.ShardID {
 			connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
 			connPeerInfo.NumCrossShardObservers++
@@ -399,20 +383,20 @@ func (handler *connectionsHandler) Close() error {
 	handler.cancelFunc()
 
 	var err error
-	log.Debug("closing connections handler's peers on channel...")
+	handler.log.Debug("closing connections handler's peers on channel...")
 	errPoc := handler.peersOnChannel.Close()
 	if errPoc != nil {
 		err = errPoc
-		log.Warn("connectionsHandler.Close",
+		handler.log.Warn("connectionsHandler.Close",
 			"component", "peersOnChannel",
 			"error", errPoc)
 	}
 
-	log.Debug("closing connections handler's connection monitor...")
+	handler.log.Debug("closing connections handler's connection monitor...")
 	errConnMonitor := handler.connMonitor.Close()
 	if errConnMonitor != nil {
 		err = errConnMonitor
-		log.Warn("connectionsHandler.Close",
+		handler.log.Warn("connectionsHandler.Close",
 			"component", "connMonitor",
 			"error", errConnMonitor)
 	}
@@ -428,7 +412,7 @@ func (handler *connectionsHandler) printLogs() {
 		timer.Reset(timeBetweenPeerPrints)
 		select {
 		case <-handler.ctx.Done():
-			log.Debug("closing connectionsHandler.printLogsStats go routine")
+			handler.log.Debug("closing connectionsHandler.printLogsStats go routine")
 			return
 		case <-timer.C:
 			handler.printConnectionsStatus()
@@ -441,14 +425,14 @@ func (handler *connectionsHandler) printConnectionsStatus() {
 	disconns := handler.connectionsMetric.ResetNumDisconnections()
 
 	peersInfo := handler.GetConnectedPeersInfo()
-	log.Debug("network connection status",
+	handler.log.Debug("network connection status",
+		"network", handler.networkType,
 		"known peers", len(handler.Peers()),
 		"connected peers", len(handler.ConnectedPeers()),
 		"intra shard validators", peersInfo.NumIntraShardValidators,
 		"intra shard observers", peersInfo.NumIntraShardObservers,
 		"cross shard validators", peersInfo.NumCrossShardValidators,
 		"cross shard observers", peersInfo.NumCrossShardObservers,
-		"full history observers", peersInfo.NumFullHistoryObservers,
 		"unknown", len(peersInfo.UnknownPeers),
 		"seeders", len(peersInfo.Seeders),
 		"current shard", peersInfo.SelfShardID,
@@ -460,7 +444,8 @@ func (handler *connectionsHandler) printConnectionsStatus() {
 	connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
 	disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
 
-	log.Debug("network connection metrics",
+	handler.log.Debug("network connection metrics",
+		"network", handler.networkType,
 		"connections/s", connsPerSec,
 		"disconnections/s", disconnsPerSec,
 		"connections", conns,

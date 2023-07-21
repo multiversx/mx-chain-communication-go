@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,7 @@ func createMockArgConnectionsHandler() libp2p.ArgConnectionsHandler {
 		PeerDiscoverer:       &mock.PeerDiscovererStub{},
 		PeerID:               providedPid,
 		ConnectionsMetric:    &mock.ConnectionsMetricStub{},
+		Logger:               &testscommon.LoggerStub{},
 	}
 }
 
@@ -108,6 +110,15 @@ func TestNewConnectionsHandler(t *testing.T) {
 		args.ConnectionsMetric = nil
 		ch, err := libp2p.NewConnectionsHandler(args)
 		assert.Equal(t, p2p.ErrNilConnectionsMetric, err)
+		assert.True(t, check.IfNil(ch))
+	})
+	t.Run("nil Logger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.Logger = nil
+		ch, err := libp2p.NewConnectionsHandler(args)
+		assert.Equal(t, p2p.ErrNilLogger, err)
 		assert.True(t, check.IfNil(ch))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -444,29 +455,6 @@ func TestConnectionsHandler_ConnectedPeersOnTopic(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestConnectionsHandler_ConnectedFullHistoryPeersOnTopic(t *testing.T) {
-	t.Parallel()
-
-	providedConnectedPIDs := []core.PeerID{core.PeerID("connected pid1"), core.PeerID("connected pid2")}
-	args := createMockArgConnectionsHandler()
-	args.PeersOnChannel = &mock.PeersOnChannelStub{
-		ConnectedPeersOnChannelCalled: func(topic string) []core.PeerID {
-			return providedConnectedPIDs
-		},
-	}
-	args.PeerShardResolver = &mock.PeerShardResolverStub{
-		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-			return core.P2PPeerInfo{
-				PeerSubType: core.FullHistoryObserver,
-			}
-		},
-	}
-	ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
-	assert.False(t, check.IfNil(ch))
-	connectedFH := ch.ConnectedFullHistoryPeersOnTopic("topic")
-	assert.Equal(t, providedConnectedPIDs, connectedFH)
-}
-
 func TestConnectionsHandler_SetPeerShardResolver(t *testing.T) {
 	t.Parallel()
 
@@ -614,18 +602,16 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 		UnknownPeers:             []string{getExpectedConn(providedUnknown)},
 		Seeders:                  []string{getExpectedConn(providedSeeder)},
 		IntraShardValidators:     map[uint32][]string{0: {getExpectedConn(providedValidatorIntra)}},
-		IntraShardObservers:      map[uint32][]string{0: {getExpectedConn(providedObserverIntra)}},
+		IntraShardObservers:      map[uint32][]string{0: {getExpectedConn(providedObserverIntra), getExpectedConn(providedFullHistory)}},
 		CrossShardValidators:     map[uint32][]string{core.MetachainShardId: {getExpectedConn(providedValidatorCross)}},
 		CrossShardObservers:      map[uint32][]string{core.MetachainShardId: {getExpectedConn(providedObserverCross)}},
-		FullHistoryObservers:     map[uint32][]string{0: {getExpectedConn(providedFullHistory)}},
 		NumValidatorsOnShard:     map[uint32]int{0: 1, core.MetachainShardId: 1},
 		NumObserversOnShard:      map[uint32]int{0: 2, core.MetachainShardId: 1},
 		NumPreferredPeersOnShard: map[uint32]int{0: 1},
 		NumIntraShardValidators:  1,
-		NumIntraShardObservers:   1,
+		NumIntraShardObservers:   2,
 		NumCrossShardValidators:  1,
 		NumCrossShardObservers:   1,
-		NumFullHistoryObservers:  1,
 	}
 	connPeersInfo := ch.GetConnectedPeersInfo()
 	assert.Equal(t, expectedResult, connPeersInfo)

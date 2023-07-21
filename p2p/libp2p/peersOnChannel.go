@@ -8,6 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 // peersOnChannel manages peers on topics
@@ -22,6 +23,7 @@ type peersOnChannel struct {
 	fetchPeersHandler func(topic string) []peer.ID
 	getTimeHandler    func() time.Time
 	cancelFunc        context.CancelFunc
+	log               p2p.Logger
 }
 
 // newPeersOnChannel returns a new peersOnChannel object
@@ -29,6 +31,7 @@ func newPeersOnChannel(
 	fetchPeersHandler func(topic string) []peer.ID,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
+	logger p2p.Logger,
 ) (*peersOnChannel, error) {
 
 	if fetchPeersHandler == nil {
@@ -40,6 +43,9 @@ func newPeersOnChannel(
 	if ttlInterval == 0 {
 		return nil, p2p.ErrInvalidDurationProvided
 	}
+	if check.IfNil(logger) {
+		return nil, p2p.ErrNilLogger
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -50,6 +56,7 @@ func newPeersOnChannel(
 		ttlInterval:       ttlInterval,
 		fetchPeersHandler: fetchPeersHandler,
 		cancelFunc:        cancelFunc,
+		log:               logger,
 	}
 	poc.getTimeHandler = poc.clockTime
 
@@ -90,7 +97,7 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("refreshPeersOnAllKnownTopics's go routine is stopping...")
+			poc.log.Debug("refreshPeersOnAllKnownTopics's go routine is stopping...")
 			return
 		case <-time.After(poc.refreshInterval):
 		}

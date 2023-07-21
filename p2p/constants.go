@@ -11,6 +11,9 @@ const NormalOperation NodeOperation = "normal operation"
 // FullArchiveMode defines the node operation as a full archive mode
 const FullArchiveMode NodeOperation = "full archive mode"
 
+// NetworkType defines the type of the network a messenger is running on
+type NetworkType string
+
 const (
 	displayLastPidChars = 12
 

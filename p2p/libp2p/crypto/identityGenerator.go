@@ -5,19 +5,26 @@ import (
 
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 var emptyPrivateKeyBytes = []byte("")
-var log = logger.GetOrCreate("p2p/libp2p/crypto")
 
 type identityGenerator struct {
+	log p2p.Logger
 }
 
 // NewIdentityGenerator creates a new identity generator
-func NewIdentityGenerator() *identityGenerator {
-	return &identityGenerator{}
+func NewIdentityGenerator(logger p2p.Logger) (*identityGenerator, error) {
+	if check.IfNil(logger) {
+		return nil, p2p.ErrNilLogger
+	}
+
+	return &identityGenerator{
+		log: logger,
+	}, nil
 }
 
 // CreateRandomP2PIdentity creates a valid random p2p identity to sign messages on the behalf of other identity
@@ -52,7 +59,7 @@ func (generator *identityGenerator) CreateP2PPrivateKey(privateKeyBytes []byte) 
 			return nil, err
 		}
 
-		log.Info("createP2PPrivateKey: generated a new private key for p2p signing")
+		generator.log.Info("createP2PPrivateKey: generated a new private key for p2p signing")
 
 		return prvKey, nil
 	}
@@ -62,7 +69,7 @@ func (generator *identityGenerator) CreateP2PPrivateKey(privateKeyBytes []byte) 
 		return nil, err
 	}
 
-	log.Info("createP2PPrivateKey: using the provided private key for p2p signing")
+	generator.log.Info("createP2PPrivateKey: using the provided private key for p2p signing")
 
 	return prvKey, nil
 }

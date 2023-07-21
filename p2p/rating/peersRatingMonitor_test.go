@@ -8,17 +8,16 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	coreMocks "github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgPeersRatingMonitor() ArgPeersRatingMonitor {
 	return ArgPeersRatingMonitor{
-		TopRatedCache:       &mock.CacherStub{},
-		BadRatedCache:       &mock.CacherStub{},
-		ConnectionsProvider: &mock.ConnectionsProviderStub{},
+		TopRatedCache: &mock.CacherStub{},
+		BadRatedCache: &mock.CacherStub{},
 	}
 }
 
@@ -34,7 +33,7 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		monitor, err := NewPeersRatingMonitor(args)
 		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "TopRatedCache"))
-		assert.True(t, check.IfNil(monitor))
+		assert.Nil(t, monitor)
 	})
 	t.Run("nil bad rated cache should error", func(t *testing.T) {
 		t.Parallel()
@@ -45,17 +44,38 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		monitor, err := NewPeersRatingMonitor(args)
 		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
-		assert.True(t, check.IfNil(monitor))
+		assert.Nil(t, monitor)
 	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := ArgPeersRatingMonitor{
+			TopRatedCache: coreMocks.NewCacherMock(),
+			BadRatedCache: coreMocks.NewCacherMock(),
+		}
+
+		monitor, err := NewPeersRatingMonitor(args)
+		assert.Nil(t, err)
+		assert.NotNil(t, monitor)
+	})
+}
+
+func TestPeersRatingMonitor_GetConnectedPeersRatings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nil connections provider should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgPeersRatingMonitor()
-		args.ConnectionsProvider = nil
-
+		args := ArgPeersRatingMonitor{
+			TopRatedCache: coreMocks.NewCacherMock(),
+			BadRatedCache: coreMocks.NewCacherMock(),
+		}
 		monitor, err := NewPeersRatingMonitor(args)
-		assert.Equal(t, p2p.ErrNilConnectionsProvider, err)
-		assert.True(t, check.IfNil(monitor))
+		assert.Nil(t, err)
+
+		ratings, err := monitor.GetConnectedPeersRatings(nil)
+		assert.Equal(t, p2p.ErrNilConnectionsHandler, err)
+		assert.Empty(t, ratings)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -82,7 +102,7 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		args.BadRatedCache.Put(commonPid.Bytes(), int32(-10), 32) // should use the one from top-rated
 
 		extraConnectedPid := core.PeerID("extra_connected_pid")
-		args.ConnectionsProvider = &mock.ConnectionsProviderStub{
+		connectionsProvider := &testscommon.ConnectionsHandlerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{topPid2, topPid3, badPid2, badPid3, commonPid, extraConnectedPid}
 			},
@@ -90,7 +110,6 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 
 		monitor, err := NewPeersRatingMonitor(args)
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(monitor))
 
 		expectedMap := map[string]string{
 			commonPid.Pretty():         "10",
@@ -101,7 +120,21 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 			topPid3.Pretty():           "0",
 		}
 		expectedStr, _ := json.Marshal(&expectedMap)
-		ratings := monitor.GetConnectedPeersRatings()
+		ratings, err := monitor.GetConnectedPeersRatings(connectionsProvider)
+		assert.NoError(t, err)
 		assert.Equal(t, string(expectedStr), ratings)
 	})
+}
+
+func TestPeersRatingMonitor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var monitor *peersRatingMonitor
+	assert.True(t, monitor.IsInterfaceNil())
+
+	monitor, _ = NewPeersRatingMonitor(ArgPeersRatingMonitor{
+		TopRatedCache: coreMocks.NewCacherMock(),
+		BadRatedCache: coreMocks.NewCacherMock(),
+	})
+	assert.False(t, monitor.IsInterfaceNil())
 }

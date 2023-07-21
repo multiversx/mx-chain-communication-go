@@ -34,12 +34,13 @@ type directSender struct {
 	ctx               context.Context
 	hostP2P           host.Host
 	mutMessageHandler sync.RWMutex
-	messageHandler    p2p.MessageProcessor
+	messageHandler    p2p.MessageHandler
 	mutSeenMessages   sync.Mutex
 	seenMessages      *timecache.TimeCache
 	mutexForPeer      *MutexHolder
 	signer            p2p.SignerVerifier
 	marshaller        p2p.Marshaller
+	log               p2p.Logger
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -48,6 +49,7 @@ func NewDirectSender(
 	h host.Host,
 	signer p2p.SignerVerifier,
 	marshaller p2p.Marshaller,
+	logger p2p.Logger,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -61,6 +63,9 @@ func NewDirectSender(
 	}
 	if check.IfNil(marshaller) {
 		return nil, p2p.ErrNilMarshaller
+	}
+	if check.IfNil(logger) {
+		return nil, p2p.ErrNilLogger
 	}
 
 	mutexForPeer, err := NewMutexHolder(maxMutexes)
@@ -76,6 +81,7 @@ func NewDirectSender(
 		mutexForPeer: mutexForPeer,
 		signer:       signer,
 		marshaller:   marshaller,
+		log:          logger,
 	}
 
 	// wire-up a handler for direct messages
@@ -85,7 +91,7 @@ func NewDirectSender(
 }
 
 // RegisterDirectMessageProcessor registers the handler to be called when a new direct message is received
-func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageProcessor) error {
+func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageHandler) error {
 	if check.IfNil(handler) {
 		return p2p.ErrNilDirectSendMessageHandler
 	}
@@ -110,7 +116,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 				if err != io.EOF {
 					_ = s.Reset()
-					log.Trace("error reading rpc",
+					ds.log.Trace("error reading rpc",
 						"from", s.Conn().RemotePeer(),
 						"error", err.Error(),
 					)
@@ -124,7 +130,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 			err = ds.processReceivedDirectMessage(msg, s.Conn().RemotePeer())
 			if err != nil {
-				log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
+				ds.log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
 			}
 		}
 	}(reader)
@@ -170,7 +176,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		return err
 	}
 
-	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer))
+	return ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer), ds.messageHandler)
 }
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {

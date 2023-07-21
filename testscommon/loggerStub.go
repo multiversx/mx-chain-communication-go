@@ -1,5 +1,7 @@
 package testscommon
 
+import logger "github.com/multiversx/mx-chain-logger-go"
+
 // LoggerStub -
 type LoggerStub struct {
 	TraceCalled      func(message string, args ...interface{})
@@ -8,51 +10,61 @@ type LoggerStub struct {
 	WarnCalled       func(message string, args ...interface{})
 	ErrorCalled      func(message string, args ...interface{})
 	LogIfErrorCalled func(err error, args ...interface{})
+	GetLevelCalled   func() logger.LogLevel
 }
 
 // Trace -
-func (l *LoggerStub) Trace(message string, args ...interface{}) {
-	if l.TraceCalled != nil {
-		l.TraceCalled(message, args)
+func (stub *LoggerStub) Trace(message string, args ...interface{}) {
+	if stub.TraceCalled != nil {
+		stub.TraceCalled(message, args)
 	}
 }
 
 // Debug -
-func (l *LoggerStub) Debug(message string, args ...interface{}) {
-	if l.DebugCalled != nil {
-		l.DebugCalled(message, args)
+func (stub *LoggerStub) Debug(message string, args ...interface{}) {
+	if stub.DebugCalled != nil {
+		stub.DebugCalled(message, args)
 	}
 }
 
 // Info -
-func (l *LoggerStub) Info(message string, args ...interface{}) {
-	if l.InfoCalled != nil {
-		l.InfoCalled(message, args)
+func (stub *LoggerStub) Info(message string, args ...interface{}) {
+	if stub.InfoCalled != nil {
+		stub.InfoCalled(message, args)
 	}
 }
 
 // Warn -
-func (l *LoggerStub) Warn(message string, args ...interface{}) {
-	if l.WarnCalled != nil {
-		l.WarnCalled(message, args)
+func (stub *LoggerStub) Warn(message string, args ...interface{}) {
+	if stub.WarnCalled != nil {
+		stub.WarnCalled(message, args)
 	}
 }
 
 // Error -
-func (l *LoggerStub) Error(message string, args ...interface{}) {
-	if l.ErrorCalled != nil {
-		l.ErrorCalled(message, args)
+func (stub *LoggerStub) Error(message string, args ...interface{}) {
+	if stub.ErrorCalled != nil {
+		stub.ErrorCalled(message, args)
 	}
 }
 
 // LogIfError -
-func (l *LoggerStub) LogIfError(err error, args ...interface{}) {
-	if l.LogIfErrorCalled != nil {
-		l.LogIfErrorCalled(err, args)
+func (stub *LoggerStub) LogIfError(err error, args ...interface{}) {
+	if stub.LogIfErrorCalled != nil {
+		stub.LogIfErrorCalled(err, args)
 	}
 }
 
+// GetLevel -
+func (stub *LoggerStub) GetLevel() logger.LogLevel {
+	if stub.GetLevelCalled != nil {
+		return stub.GetLevelCalled()
+	}
+
+	return logger.LogTrace
+}
+
 // IsInterfaceNil -
-func (l *LoggerStub) IsInterfaceNil() bool {
+func (stub *LoggerStub) IsInterfaceNil() bool {
 	return false
 }
