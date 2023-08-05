@@ -59,9 +59,9 @@ func closeMessengers(messengers ...p2p.Messenger) {
 }
 
 func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
-	err := messenger.CreateTopic(testTopic, false)
+	_ = messenger.CreateTopic(testTopic, false)
 
-	err = messenger.RegisterMessageProcessor(testTopic, "identifier",
+	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 				if !bytes.Equal(matchData, message.Data()) {
@@ -79,7 +79,6 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 				return nil
 			},
 		})
-	_ = err
 }
 
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
