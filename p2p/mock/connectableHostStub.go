@@ -23,7 +23,7 @@ type ConnectableHostStub struct {
 	MuxCalled                   func() protocol.Switch
 	ConnectCalled               func(ctx context.Context, pi peer.AddrInfo) error
 	SetStreamHandlerCalled      func(pid protocol.ID, handler network.StreamHandler)
-	SetStreamHandlerMatchCalled func(protocol.ID, func(string) bool, network.StreamHandler)
+	SetStreamHandlerMatchCalled func(id protocol.ID, f func(protocol.ID) bool, handler network.StreamHandler)
 	RemoveStreamHandlerCalled   func(pid protocol.ID)
 	NewStreamCalled             func(ctx context.Context, p peer.ID, pids ...protocol.ID) (network.Stream, error)
 	CloseCalled                 func() error
@@ -112,9 +112,9 @@ func (hs *ConnectableHostStub) SetStreamHandler(pid protocol.ID, handler network
 }
 
 // SetStreamHandlerMatch -
-func (hs *ConnectableHostStub) SetStreamHandlerMatch(pid protocol.ID, handler func(string) bool, streamHandler network.StreamHandler) {
+func (hs *ConnectableHostStub) SetStreamHandlerMatch(id protocol.ID, f func(protocol.ID) bool, handler network.StreamHandler) {
 	if hs.SetStreamHandlerMatchCalled != nil {
-		hs.SetStreamHandlerMatchCalled(pid, handler, streamHandler)
+		hs.SetStreamHandlerMatchCalled(id, f, handler)
 	}
 }
 

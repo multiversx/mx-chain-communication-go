@@ -4,10 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/whyrusleeping/timecache"
@@ -317,4 +319,9 @@ func NewConnectionsHandlerWithNoRoutine(args ArgConnectionsHandler) *connections
 // PrintConnectionsStatus -
 func (handler *connectionsHandler) PrintConnectionsStatus() {
 	handler.printConnectionsStatus()
+}
+
+// ParseTransportOptions -
+func ParseTransportOptions(configs config.TransportConfig, port int) ([]libp2p.Option, []string, error) {
+	return parseTransportOptions(configs, port)
 }

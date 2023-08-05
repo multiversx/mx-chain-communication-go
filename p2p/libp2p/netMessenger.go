@@ -12,6 +12,10 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
+	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-communication-go/p2p/debug"
@@ -29,9 +33,6 @@ import (
 )
 
 const (
-	// TestListenAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP used in testing
-	TestListenAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
-
 	// DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 	DirectSendID = protocol.ID("/erd/directsend/1.0.0")
 
@@ -88,7 +89,6 @@ type networkMessenger struct {
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	ListenAddress         string
 	Marshaller            p2p.Marshaller
 	P2pConfig             config.P2PConfig
 	SyncTimer             p2p.SyncTimer
@@ -174,19 +174,23 @@ func constructNode(
 		return nil, err
 	}
 
-	address := fmt.Sprintf(args.ListenAddress+"%d", port)
-	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(address),
+	transportOptions, addresses, err := parseTransportOptions(args.P2pConfig.Node.Transports, port)
+	if err != nil {
+		return nil, err
+	}
+
+	options := []libp2p.Option{
+		libp2p.ListenAddrStrings(addresses...),
 		libp2p.Identity(p2pPrivateKey),
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		libp2p.DefaultTransports,
 		// we need to disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
+	options = append(options, transportOptions...)
 
-	h, err := libp2p.New(opts...)
+	h, err := libp2p.New(options...)
 	if err != nil {
 		return nil, err
 	}
@@ -219,6 +223,66 @@ func constructNode(
 	return p2pNode, nil
 }
 
+func parseTransportOptions(configs config.TransportConfig, port int) ([]libp2p.Option, []string, error) {
+	options := make([]libp2p.Option, 0)
+	addresses := make([]string, 0)
+
+	tcpAddress := configs.TCP.ListenAddress
+	if len(tcpAddress) > 0 {
+		if !strictCheckStringForIntMarkup(tcpAddress) {
+			return nil, nil, p2p.ErrInvalidTCPAddress
+		}
+
+		addresses = append(addresses, fmt.Sprintf(tcpAddress, port))
+		if configs.TCP.PreventPortReuse {
+			options = append(options, libp2p.Transport(tcp.NewTCPTransport, tcp.DisableReuseport()))
+		} else {
+			options = append(options, libp2p.Transport(tcp.NewTCPTransport))
+		}
+	}
+
+	quicAddress := configs.QUICAddress
+	if len(quicAddress) > 0 {
+		if !strictCheckStringForIntMarkup(quicAddress) {
+			return nil, nil, p2p.ErrInvalidQUICAddress
+		}
+
+		addresses = append(addresses, fmt.Sprintf(quicAddress, port))
+		options = append(options, libp2p.Transport(quic.NewTransport))
+	}
+
+	webSocketAddress := configs.WebSocketAddress
+	if len(webSocketAddress) > 0 {
+		if !strictCheckStringForIntMarkup(webSocketAddress) {
+			return nil, nil, p2p.ErrInvalidWSAddress
+		}
+
+		addresses = append(addresses, fmt.Sprintf(webSocketAddress, port))
+		options = append(options, libp2p.Transport(ws.New))
+	}
+
+	webTransportAddress := configs.WebTransportAddress
+	if len(webTransportAddress) > 0 {
+		if !strictCheckStringForIntMarkup(webTransportAddress) {
+			return nil, nil, p2p.ErrInvalidWebTransportAddress
+		}
+
+		addresses = append(addresses, fmt.Sprintf(webTransportAddress, port))
+		options = append(options, libp2p.Transport(webtransport.New))
+	}
+
+	if len(addresses) == 0 {
+		return nil, nil, p2p.ErrNoTransportsDefined
+	}
+
+	return options, addresses, nil
+}
+
+func strictCheckStringForIntMarkup(str string) bool {
+	intMarkup := "%d"
+	return strings.Count(str, intMarkup) == 1
+}
+
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
 ) (*networkMessenger, error) {
@@ -243,6 +307,8 @@ func constructNodeWithPortRetry(
 }
 
 func setupExternalP2PLoggers() {
+	_ = logging.SetLogLevel("*", "PANIC")
+
 	for _, external := range externalPackages {
 		logLevel := logger.GetLoggerLogLevel("external/" + external)
 		if logLevel > logger.LogTrace {

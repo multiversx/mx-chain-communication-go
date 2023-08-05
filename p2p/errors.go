@@ -197,3 +197,18 @@ var ErrNilConnectionsHandler = errors.New("nil connections handler")
 
 // ErrNilLogger signals that a nil logger has been provided
 var ErrNilLogger = errors.New("nil logger")
+
+// ErrInvalidTCPAddress signals that an invalid TCP address was used
+var ErrInvalidTCPAddress = errors.New("invalid TCP address")
+
+// ErrInvalidQUICAddress signals that an invalid QUIC address was used
+var ErrInvalidQUICAddress = errors.New("invalid QUIC address")
+
+// ErrInvalidWSAddress signals that an invalid WebSocket address was used
+var ErrInvalidWSAddress = errors.New("invalid WebSocket address")
+
+// ErrInvalidWebTransportAddress signals that an invalid WebTransport address was used
+var ErrInvalidWebTransportAddress = errors.New("invalid WebTransport address")
+
+// ErrNoTransportsDefined signals that no transports were defined
+var ErrNoTransportsDefined = errors.New("no transports defined")

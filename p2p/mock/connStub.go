@@ -23,6 +23,8 @@ type ConnStub struct {
 	GetStreamsCalled      func() []network.Stream
 	StatCalled            func() network.ConnStats
 	ScopeCalled           func() network.ConnScope
+	ConnStateCalled       func() network.ConnectionState
+	IsClosedCalled        func() bool
 }
 
 // ID -
@@ -99,5 +101,23 @@ func (cs *ConnStub) Scope() network.ConnScope {
 		cs.ScopeCalled()
 	}
 
-	return network.NullScope
+	return &network.NullScope{}
+}
+
+// ConnState -
+func (cs *ConnStub) ConnState() network.ConnectionState {
+	if cs.ConnStateCalled != nil {
+		return cs.ConnStateCalled()
+	}
+
+	return network.ConnectionState{}
+}
+
+// IsClosed -
+func (cs *ConnStub) IsClosed() bool {
+	if cs.CloseCalled != nil {
+		return cs.IsClosedCalled()
+	}
+
+	return false
 }

@@ -82,7 +82,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 				}
 
 				// do not print the message.Data() or matchData as the test TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork
-				// will cause disruption on the github action page
+				// will cause disruption on the GitHub action page
 
 				wg.Done()
 
@@ -103,13 +103,21 @@ func getConnectableAddress(messenger p2p.Messenger) string {
 	return ""
 }
 
+func createTestTCPTransportConfig() config.TransportConfig {
+	return config.TransportConfig{
+		TCP: config.TCPProtocolConfig{
+			ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+		},
+	}
+}
+
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -192,7 +200,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilMarshaller))
 	})
-
 	t.Run("nil preferred peers holder", func(t *testing.T) {
 		t.Parallel()
 
@@ -203,7 +210,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
 	})
-
 	t.Run("nil peers rating handler", func(t *testing.T) {
 		t.Parallel()
 
@@ -214,7 +220,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(mes))
 		assert.True(t, errors.Is(err, p2p.ErrNilPeersRatingHandler))
 	})
-
 	t.Run("nil sync timer", func(t *testing.T) {
 		t.Parallel()
 
@@ -225,7 +230,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilSyncTimer))
 	})
-
 	t.Run("nil p2p private key", func(t *testing.T) {
 		t.Parallel()
 
@@ -236,7 +240,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilP2pPrivateKey))
 	})
-
 	t.Run("nil p2p single signer", func(t *testing.T) {
 		t.Parallel()
 
@@ -247,7 +250,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilP2pSingleSigner))
 	})
-
 	t.Run("nil p2p key generator", func(t *testing.T) {
 		t.Parallel()
 
@@ -258,7 +260,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilP2pKeyGenerator))
 	})
-
 	t.Run("self id as seeder should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -272,7 +273,6 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrInvalidConfig))
 	})
-
 	t.Run("nil logger should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -282,6 +282,16 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilLogger))
+	})
+	t.Run("invalid transport should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pConfig.Node.Transports = config.TransportConfig{}
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.Nil(t, messenger)
+		assert.True(t, errors.Is(err, p2p.ErrNoTransportsDefined))
 	})
 }
 
@@ -336,7 +346,6 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 
 func TestNewNetworkMessenger_WithListenAddrWithIp4AndTcpShouldWork(t *testing.T) {
 	arg := createMockNetworkArgs()
-	arg.ListenAddress = libp2p.TestListenAddrWithIp4AndTcp
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		Type:                             "optimized",
@@ -1091,11 +1100,11 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
 	args := libp2p.ArgsNetworkMessenger{
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1166,11 +1175,11 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 	msg := []byte("test message")
 
 	args := libp2p.ArgsNetworkMessenger{
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1406,11 +1415,11 @@ func TestNetworkMessenger_DoubleCloseShouldWork(t *testing.T) {
 
 func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1475,11 +1484,11 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 
 func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1552,11 +1561,11 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 
 func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1618,11 +1627,11 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 
 func TestNetworkMessenger_UnJoinAllTopicsShouldWork(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
-		Marshaller:    &testscommon.ProtoMarshallerMock{},
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
+		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:       "0",
+				Transports: createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1828,13 +1837,13 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 
 	args := libp2p.ArgsNetworkMessenger{
-		ListenAddress: libp2p.TestListenAddrWithIp4AndTcp,
-		Marshaller:    &marshal.GogoProtoMarshalizer{},
+		Marshaller: &marshal.GogoProtoMarshalizer{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port:                       "0",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
+				Transports:                 createTestTCPTransportConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,
@@ -2126,5 +2135,166 @@ func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
 		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic2"] >= 2)
 		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic2"] >= 2)
 		mut.RUnlock()
+	})
+}
+
+func TestParseTransportOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no transports defined, should error", func(t *testing.T) {
+		t.Parallel()
+
+		options, addresses, err := libp2p.ParseTransportOptions(config.TransportConfig{}, 0)
+		assert.Nil(t, options)
+		assert.Nil(t, addresses)
+		assert.Equal(t, p2p.ErrNoTransportsDefined, err)
+	})
+	t.Run("TCP address", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("malformed TCP address, no int markup, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					TCP: config.TCPProtocolConfig{
+						ListenAddress: "malformed address",
+					},
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidTCPAddress, err)
+		})
+		t.Run("malformed TCP address, multiple int markups, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					TCP: config.TCPProtocolConfig{
+						ListenAddress: "malformed address %d %d",
+					},
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidTCPAddress, err)
+		})
+		t.Run("without port reuse, should work", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					TCP: config.TCPProtocolConfig{
+						ListenAddress:    p2p.LocalHostListenAddrWithIp4AndTcp,
+						PreventPortReuse: true,
+					},
+				}, 100)
+			assert.Equal(t, 1, len(options))
+			assert.Equal(t, 1, len(addresses))
+			assert.Equal(t, "/ip4/127.0.0.1/tcp/100", addresses[0])
+			assert.Nil(t, err)
+		})
+		t.Run("with port reuse, should work", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					TCP: config.TCPProtocolConfig{
+						ListenAddress:    p2p.LocalHostListenAddrWithIp4AndTcp,
+						PreventPortReuse: false,
+					},
+				}, 100)
+			assert.Equal(t, 1, len(options))
+			assert.Equal(t, 1, len(addresses))
+			assert.Equal(t, "/ip4/127.0.0.1/tcp/100", addresses[0])
+			assert.Nil(t, err)
+		})
+	})
+	t.Run("QUIC address", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("malformed QUIC address, no int markup, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					QUICAddress: "malformed address",
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidQUICAddress, err)
+		})
+		t.Run("malformed QUIC address, multiple int markups, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					QUICAddress: "malformed address %d %d",
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidQUICAddress, err)
+		})
+		t.Run("should work", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					QUICAddress: "/ip4/127.0.0.1/udp/%d/quic-v1",
+				}, 100)
+			assert.Equal(t, 1, len(options))
+			assert.Equal(t, 1, len(addresses))
+			assert.Equal(t, "/ip4/127.0.0.1/udp/100/quic-v1", addresses[0])
+			assert.Nil(t, err)
+		})
+	})
+	t.Run("WebSocket address", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("malformed WebSocket address, no int markup, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					WebSocketAddress: "malformed address",
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidWSAddress, err)
+		})
+		t.Run("malformed WebSocket address, multiple int markups, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					WebSocketAddress: "malformed address %d %d",
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidWSAddress, err)
+		})
+		t.Run("should work", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					WebSocketAddress: "/ip4/127.0.0.1/tcp/%d/ws",
+				}, 100)
+			assert.Equal(t, 1, len(options))
+			assert.Equal(t, 1, len(addresses))
+			assert.Equal(t, "/ip4/127.0.0.1/tcp/100/ws", addresses[0])
+			assert.Nil(t, err)
+		})
+	})
+	t.Run("WebTransport address", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("malformed WebTransport address, no int markup, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					WebTransportAddress: "malformed address",
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidWebTransportAddress, err)
+		})
+		t.Run("malformed WebTransport address, multiple int markups, should error", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					WebTransportAddress: "malformed address %d %d",
+				}, 0)
+			assert.Nil(t, options)
+			assert.Nil(t, addresses)
+			assert.Equal(t, p2p.ErrInvalidWebTransportAddress, err)
+		})
+		t.Run("should work", func(t *testing.T) {
+			options, addresses, err := libp2p.ParseTransportOptions(
+				config.TransportConfig{
+					WebTransportAddress: "/ip4/127.0.0.1/udp/%d/quic-v1/webtransport",
+				}, 100)
+			assert.Equal(t, 1, len(options))
+			assert.Equal(t, 1, len(addresses))
+			assert.Equal(t, "/ip4/127.0.0.1/udp/100/quic-v1/webtransport", addresses[0])
+			assert.Nil(t, err)
+		})
 	})
 }

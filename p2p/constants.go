@@ -2,19 +2,13 @@ package p2p
 
 import "time"
 
-// NodeOperation defines the p2p node operation
-type NodeOperation string
-
-// NormalOperation defines the normal mode operation: either seeder, observer or validator
-const NormalOperation NodeOperation = "normal operation"
-
-// FullArchiveMode defines the node operation as a full archive mode
-const FullArchiveMode NodeOperation = "full archive mode"
-
 // NetworkType defines the type of the network a messenger is running on
 type NetworkType string
 
 const (
+	// LocalHostListenAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
+	LocalHostListenAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/%d"
+
 	displayLastPidChars = 12
 
 	// ListsSharder is the variant that uses lists
