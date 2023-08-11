@@ -26,6 +26,11 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
 			Port: "0",
+			Transports: config.TransportConfig{
+				TCP: config.TCPProtocolConfig{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -69,11 +74,11 @@ func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapin
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
 //
-//                             0------------------- 1
-//                             |                    |
-//        2 ------------------ 3 ------------------ 4
-//        |                    |                    |
-//        5                    6                    7
+//	                     0------------------- 1
+//	                     |                    |
+//	2 ------------------ 3 ------------------ 4
+//	|                    |                    |
+//	5                    6                    7
 func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 	peers := createMessengersWithNoDiscovery(8)
 
@@ -129,7 +134,6 @@ func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) e
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshaller:            TestMarshaller,
-		ListenAddress:         libp2p.TestListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
@@ -159,6 +163,11 @@ func createP2PConfigWithNoDiscovery() config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
 			Port: "0",
+			Transports: config.TransportConfig{
+				TCP: config.TCPProtocolConfig{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,

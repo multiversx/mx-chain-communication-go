@@ -158,5 +158,5 @@ func (sm *streamMock) CloseRead() error {
 
 // Scope -
 func (sm *streamMock) Scope() network.StreamScope {
-	return network.NullScope
+	return &network.NullScope{}
 }

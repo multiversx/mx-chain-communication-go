@@ -6,6 +6,7 @@ import (
 
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -30,12 +31,12 @@ type PeerstoreStub struct {
 	PutCalled                    func(p peer.ID, key string, val interface{}) error
 	RecordLatencyCalled          func(id peer.ID, duration time.Duration)
 	LatencyEWMACalled            func(id peer.ID) time.Duration
-	GetProtocolsCalled           func(id peer.ID) ([]string, error)
-	AddProtocolsCalled           func(id peer.ID, s ...string) error
-	SetProtocolsCalled           func(id peer.ID, s ...string) error
-	RemoveProtocolsCalled        func(id peer.ID, s ...string) error
-	SupportsProtocolsCalled      func(id peer.ID, s ...string) ([]string, error)
-	FirstSupportedProtocolCalled func(id peer.ID, s ...string) (string, error)
+	GetProtocolsCalled           func(id peer.ID) ([]protocol.ID, error)
+	AddProtocolsCalled           func(id peer.ID, id2 ...protocol.ID) error
+	SetProtocolsCalled           func(id peer.ID, id2 ...protocol.ID) error
+	RemoveProtocolsCalled        func(id peer.ID, id2 ...protocol.ID) error
+	SupportsProtocolsCalled      func(id peer.ID, id2 ...protocol.ID) ([]protocol.ID, error)
+	FirstSupportedProtocolCalled func(id peer.ID, id2 ...protocol.ID) (protocol.ID, error)
 	PeerInfoCalled               func(id peer.ID) peer.AddrInfo
 	PeersCalled                  func() peer.IDSlice
 	RemovePeerCalled             func(id peer.ID)
@@ -199,7 +200,7 @@ func (ps *PeerstoreStub) LatencyEWMA(id peer.ID) time.Duration {
 }
 
 // GetProtocols -
-func (ps *PeerstoreStub) GetProtocols(id peer.ID) ([]string, error) {
+func (ps *PeerstoreStub) GetProtocols(id peer.ID) ([]protocol.ID, error) {
 	if ps.GetProtocolsCalled != nil {
 		return ps.GetProtocolsCalled(id)
 	}
@@ -208,45 +209,45 @@ func (ps *PeerstoreStub) GetProtocols(id peer.ID) ([]string, error) {
 }
 
 // AddProtocols -
-func (ps *PeerstoreStub) AddProtocols(id peer.ID, s ...string) error {
+func (ps *PeerstoreStub) AddProtocols(id peer.ID, id2 ...protocol.ID) error {
 	if ps.AddProtocolsCalled != nil {
-		return ps.AddProtocolsCalled(id, s...)
+		return ps.AddProtocolsCalled(id, id2...)
 	}
 
 	return nil
 }
 
 // SetProtocols -
-func (ps *PeerstoreStub) SetProtocols(id peer.ID, s ...string) error {
+func (ps *PeerstoreStub) SetProtocols(id peer.ID, id2 ...protocol.ID) error {
 	if ps.SetProtocolsCalled != nil {
-		return ps.SetProtocolsCalled(id, s...)
+		return ps.SetProtocolsCalled(id, id2...)
 	}
 
 	return nil
 }
 
 // RemoveProtocols -
-func (ps *PeerstoreStub) RemoveProtocols(id peer.ID, s ...string) error {
+func (ps *PeerstoreStub) RemoveProtocols(id peer.ID, id2 ...protocol.ID) error {
 	if ps.RemoveProtocolsCalled != nil {
-		return ps.RemoveProtocolsCalled(id, s...)
+		return ps.RemoveProtocolsCalled(id, id2...)
 	}
 
 	return nil
 }
 
 // SupportsProtocols -
-func (ps *PeerstoreStub) SupportsProtocols(id peer.ID, s ...string) ([]string, error) {
+func (ps *PeerstoreStub) SupportsProtocols(id peer.ID, id2 ...protocol.ID) ([]protocol.ID, error) {
 	if ps.SupportsProtocolsCalled != nil {
-		return ps.SupportsProtocolsCalled(id, s...)
+		return ps.SupportsProtocolsCalled(id, id2...)
 	}
 
 	return nil, nil
 }
 
 // FirstSupportedProtocol -
-func (ps *PeerstoreStub) FirstSupportedProtocol(id peer.ID, s ...string) (string, error) {
+func (ps *PeerstoreStub) FirstSupportedProtocol(id peer.ID, id2 ...protocol.ID) (protocol.ID, error) {
 	if ps.FirstSupportedProtocolCalled != nil {
-		return ps.FirstSupportedProtocolCalled(id, s...)
+		return ps.FirstSupportedProtocolCalled(id, id2...)
 	}
 
 	return "", nil

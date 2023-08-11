@@ -13,6 +13,21 @@ type NodeConfig struct {
 	MaximumExpectedPeerCount        uint64
 	ThresholdMinConnectedPeers      uint32
 	MinNumPeersToWaitForOnBootstrap uint32
+	Transports                      TransportConfig
+}
+
+// TransportConfig specify the supported protocols by the node
+type TransportConfig struct {
+	TCP                 TCPProtocolConfig
+	QUICAddress         string
+	WebSocketAddress    string
+	WebTransportAddress string
+}
+
+// TCPProtocolConfig specify the TCP protocol config
+type TCPProtocolConfig struct {
+	ListenAddress    string
+	PreventPortReuse bool
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings

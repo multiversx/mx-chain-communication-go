@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -102,6 +103,8 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 		case <-time.After(poc.refreshInterval):
 		}
 
+		poc.log.Trace("peersOnChannel.refreshPeersOnAllKnownTopics - check")
+
 		listTopicsToBeRefreshed := make([]string, 0)
 
 		// build required topic list
@@ -114,6 +117,8 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 		}
 		poc.mutPeers.RUnlock()
 
+		poc.log.Trace("peersOnChannel.refreshPeersOnAllKnownTopics", "listTopicsToBeRefreshed", strings.Join(listTopicsToBeRefreshed, ", "))
+
 		for _, topic := range listTopicsToBeRefreshed {
 			_ = poc.refreshPeersOnTopic(topic)
 		}
@@ -124,12 +129,17 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
 	list := poc.fetchPeersHandler(topic)
 	connectedPeers := make([]core.PeerID, len(list))
+	peers := make([]string, 0, len(list))
 	for i, pid := range list {
 		peerID := core.PeerID(pid)
 		connectedPeers[i] = peerID
+		peers = append(peers, peerID.Pretty())
 	}
 
 	poc.updateConnectedPeersOnTopic(topic, connectedPeers)
+
+	poc.log.Trace("refreshed peers on topic", "topic", topic, "connected peers", strings.Join(peers, ", "))
+
 	return connectedPeers
 }
 
