@@ -13,10 +13,10 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.6.3
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/multiformats/go-multiaddr v0.9.0
-	github.com/multiversx/mx-chain-core-go v1.2.13-0.20230816090241-133da66033a9
-	github.com/multiversx/mx-chain-crypto-go v1.2.8-0.20230816100617-0f47cf084591
-	github.com/multiversx/mx-chain-logger-go v1.0.13-0.20230816094710-e4e216ffef4e
-	github.com/multiversx/mx-chain-storage-go v1.0.12-0.20230816101312-3d09977f9d2c
+	github.com/multiversx/mx-chain-core-go v1.2.13
+	github.com/multiversx/mx-chain-crypto-go v1.2.8
+	github.com/multiversx/mx-chain-logger-go v1.0.13
+	github.com/multiversx/mx-chain-storage-go v1.0.12
 	github.com/stretchr/testify v1.8.4
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 )
