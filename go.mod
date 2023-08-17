@@ -1,6 +1,6 @@
 module github.com/multiversx/mx-chain-communication-go
 
-go 1.17
+go 1.20
 
 require (
 	github.com/gogo/protobuf v1.3.2
@@ -8,15 +8,15 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-libp2p v0.28.1
+	github.com/libp2p/go-libp2p v0.28.2
 	github.com/libp2p/go-libp2p-kad-dht v0.23.0
 	github.com/libp2p/go-libp2p-kbucket v0.6.3
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/multiformats/go-multiaddr v0.9.0
-	github.com/multiversx/mx-chain-core-go v1.2.5
-	github.com/multiversx/mx-chain-crypto-go v1.2.6
-	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-storage-go v1.0.8
+	github.com/multiversx/mx-chain-core-go v1.2.13
+	github.com/multiversx/mx-chain-crypto-go v1.2.8
+	github.com/multiversx/mx-chain-logger-go v1.0.13
+	github.com/multiversx/mx-chain-storage-go v1.0.12
 	github.com/stretchr/testify v1.8.4
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 )
@@ -99,8 +99,8 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
-	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
+	github.com/quic-go/qtls-go1-19 v0.3.3 // indirect
+	github.com/quic-go/qtls-go1-20 v0.2.3 // indirect
 	github.com/quic-go/quic-go v0.33.0 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
