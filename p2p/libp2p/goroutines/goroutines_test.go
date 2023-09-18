@@ -118,6 +118,7 @@ func TestDisconnectWillCloseGoRoutines(t *testing.T) {
 		P2pSingleSigner:       &singlesig.Secp256k1Signer{},
 		P2pKeyGenerator:       keyGen,
 		Logger:                &testscommon.LoggerStub{},
+		Debugger:              &mock.DebuggerStub{},
 	}
 	args.P2pPrivateKey, _ = keyGen.GeneratePair()
 

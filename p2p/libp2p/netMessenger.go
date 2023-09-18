@@ -18,7 +18,6 @@ import (
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
-	"github.com/multiversx/mx-chain-communication-go/p2p/debug"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/connectionMonitor"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
 	discoveryFactory "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/discovery/factory"
@@ -100,6 +99,7 @@ type ArgsNetworkMessenger struct {
 	P2pKeyGenerator       commonCrypto.KeyGenerator
 	NetworkType           p2p.NetworkType
 	Logger                p2p.Logger
+	Debugger              p2p.Debugger
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -131,6 +131,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	}
 	if check.IfNil(args.Logger) {
 		return nil, fmt.Errorf("%w %s", p2p.ErrNilLogger, baseErrorSuffix)
+	}
+	if check.IfNil(args.Debugger) {
+		return nil, fmt.Errorf("%w %s", p2p.ErrNilDebugger, baseErrorSuffix)
 	}
 
 	setupExternalP2PLoggers()
@@ -374,11 +377,6 @@ func addComponentsToNode(
 		return err
 	}
 
-	p2pDebugger, err := debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()), p2pNode.log)
-	if err != nil {
-		return err
-	}
-
 	argsMessageHandler := ArgMessagesHandler{
 		PubSub:             pubSub,
 		DirectSender:       ds,
@@ -387,7 +385,7 @@ func addComponentsToNode(
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
-		Debugger:           p2pDebugger,
+		Debugger:           args.Debugger,
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,
