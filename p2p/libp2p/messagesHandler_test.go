@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
@@ -54,7 +53,6 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 			},
 		},
 		PeersRatingHandler: &mock.PeersRatingHandlerStub{},
-		Debugger:           &mock.DebuggerStub{},
 		SyncTimer:          &libp2p.LocalSyncTimer{},
 		PeerID:             providedPid,
 		Logger:             &testscommon.LoggerStub{},
@@ -71,7 +69,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.PubSub = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilPubSub, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil DirectSender should error", func(t *testing.T) {
 		t.Parallel()
@@ -80,7 +78,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.DirectSender = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilDirectSender, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil Throttler should error", func(t *testing.T) {
 		t.Parallel()
@@ -89,7 +87,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.Throttler = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilThrottler, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil OutgoingCLB should error", func(t *testing.T) {
 		t.Parallel()
@@ -98,7 +96,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.OutgoingCLB = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilChannelLoadBalancer, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil Marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -107,7 +105,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.Marshaller = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilMarshaller, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil ConnMonitor should error", func(t *testing.T) {
 		t.Parallel()
@@ -116,7 +114,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.ConnMonitor = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilConnectionMonitor, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil PeersRatingHandler should error", func(t *testing.T) {
 		t.Parallel()
@@ -125,16 +123,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.PeersRatingHandler = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilPeersRatingHandler, err)
-		assert.True(t, check.IfNil(mh))
-	})
-	t.Run("nil Debugger should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgMessagesHandler()
-		args.Debugger = nil
-		mh, err := libp2p.NewMessagesHandler(args)
-		assert.Equal(t, p2p.ErrNilDebugger, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("nil SyncTimer should error", func(t *testing.T) {
 		t.Parallel()
@@ -143,7 +132,7 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.SyncTimer = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilSyncTimer, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("RegisterMessageHandler fails", func(t *testing.T) {
 		t.Parallel()
@@ -156,14 +145,14 @@ func TestNewMessagesHandler(t *testing.T) {
 		}
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, expectedError, err)
-		assert.True(t, check.IfNil(mh))
+		assert.Nil(t, mh)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		mh, err := libp2p.NewMessagesHandler(createMockArgMessagesHandler())
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 		assert.Nil(t, mh.Close())
 	})
 	t.Run("process loop", func(t *testing.T) {
@@ -185,7 +174,7 @@ func TestNewMessagesHandler(t *testing.T) {
 				},
 			}
 			mh, _ := libp2p.NewMessagesHandler(args)
-			assert.False(t, check.IfNil(mh))
+			assert.NotNil(t, mh)
 			time.Sleep(time.Millisecond * 50)
 			assert.Nil(t, mh.Close())
 		})
@@ -209,7 +198,7 @@ func TestNewMessagesHandler(t *testing.T) {
 				},
 			}
 			mh, _ := libp2p.NewMessagesHandler(args)
-			assert.False(t, check.IfNil(mh))
+			assert.NotNil(t, mh)
 			time.Sleep(time.Millisecond * 50)
 			assert.Nil(t, mh.Close())
 		})
@@ -241,7 +230,7 @@ func TestNewMessagesHandler(t *testing.T) {
 			}
 			mh := libp2p.NewMessagesHandlerWithTopics(args, topics, true)
 
-			assert.False(t, check.IfNil(mh))
+			assert.NotNil(t, mh)
 			time.Sleep(time.Millisecond * 50)
 			assert.True(t, wasMarshalCalled.IsSet())
 			assert.Nil(t, mh.Close())
@@ -280,7 +269,7 @@ func TestNewMessagesHandler(t *testing.T) {
 				},
 			}
 			mh := libp2p.NewMessagesHandlerWithTopics(args, topics, true)
-			assert.False(t, check.IfNil(mh))
+			assert.NotNil(t, mh)
 			time.Sleep(time.Millisecond * 5)
 			assert.True(t, wasPublishCalled.IsSet())
 			assert.Nil(t, mh.Close())
@@ -309,7 +298,7 @@ func TestMessagesHandler_broadcastsUsingPrivateKey(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 		err := mh.BroadcastOnChannelBlockingUsingPrivateKey(providedChannel, providedTopic, providedData, providedPid, []byte("invalid sk"))
 		assert.NotNil(t, err)
 	})
@@ -327,7 +316,7 @@ func testBroadcastOnChannelBlockingEmptyData(skBytes []byte) func(t *testing.T) 
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		var err error
 		if isMultikey {
@@ -345,7 +334,7 @@ func testBroadcastOnChannelBlockingDataTooBig(skBytes []byte) func(t *testing.T)
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		providedBuff := bytes.Repeat([]byte("a"), 1<<21)
 		var err error
@@ -376,7 +365,7 @@ func testBroadcastOnChannelBlockingThrottlerCanNotProcess(skBytes []byte, testin
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		var err error
 		if isMultikey {
@@ -425,7 +414,7 @@ func testBroadcastOnChannelBlockingShouldWork(skBytes []byte, testingExportedMet
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		go func() {
 			if isMultikey {
@@ -460,7 +449,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, nil)
 		assert.True(t, errors.Is(err, p2p.ErrNilValidator))
@@ -478,7 +467,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
@@ -494,7 +483,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Equal(t, expectedError, err)
@@ -513,7 +502,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
@@ -535,7 +524,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.True(t, errors.Is(err, expectedError))
@@ -552,7 +541,7 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		tp := &mock.MessageProcessorStub{}
 		cb := mh.PubsubCallback(tp, providedTopic)
@@ -568,7 +557,7 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		tp := &mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
@@ -583,7 +572,7 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		tp := &mock.MessageProcessorStub{}
 		cb := mh.PubsubCallback(tp, providedTopic)
@@ -598,7 +587,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Nil(t, err)
@@ -615,7 +604,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Equal(t, expectedError, err)
@@ -639,7 +628,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Nil(t, err)
@@ -663,7 +652,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Nil(t, err)
@@ -695,7 +684,7 @@ func TestMessagesHandler_UnregisterAllMessageProcessors(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.UnregisterAllMessageProcessors()
 		assert.Equal(t, expectedError, err)
@@ -725,7 +714,7 @@ func TestMessagesHandler_UnregisterAllMessageProcessors(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.UnregisterAllMessageProcessors()
 		assert.Nil(t, err)
@@ -741,7 +730,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 		err := mh.SendToConnectedPeer(providedTopic, []byte(""), providedPid)
 		assert.True(t, errors.Is(err, p2p.ErrEmptyBufferToSend))
 	})
@@ -755,7 +744,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 		err := mh.SendToConnectedPeer(providedTopic, providedData, providedPid)
 		assert.Nil(t, err)
 	})
@@ -782,7 +771,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		}
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 		err := mh.SendToConnectedPeer(providedTopic, providedData, providedPeer)
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
@@ -791,7 +780,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.SendToConnectedPeer(providedTopic, providedData, providedPid)
 		assert.NotNil(t, err)
@@ -815,7 +804,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.SendToConnectedPeer(providedTopic, providedData, realPID)
 		assert.NotNil(t, err)
@@ -826,7 +815,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		args := createMockArgMessagesHandler()
 		args.PeerID = realPID
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.SendToConnectedPeer(providedTopic, providedData, realPID)
 		assert.True(t, errors.Is(err, p2p.ErrNilValidator))
@@ -851,7 +840,7 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.SendToConnectedPeer(providedTopic, providedData, realPID)
 		assert.Nil(t, err)
@@ -889,16 +878,19 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 			},
 		}
 		ch := make(chan *libp2p.SendableData)
-		args.Debugger = &mock.DebuggerStub{
+		debugger := &mock.DebuggerStub{
 			AddIncomingMessageCalled: func(topic string, size uint64, isRejected bool) {
 				assert.Equal(t, providedTopic, topic)
 				ch <- &libp2p.SendableData{}
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
-		err := mh.SendToConnectedPeer(providedTopic, providedData, realPID)
+		err := mh.SetDebugger(debugger)
+		assert.Nil(t, err)
+
+		err = mh.SendToConnectedPeer(providedTopic, providedData, realPID)
 		assert.Nil(t, err)
 		waitForChannelBlockingWithFinalCheck(t, ch, func() {
 			assert.Equal(t, uint32(2), atomic.LoadUint32(&counter))
@@ -947,7 +939,7 @@ func TestMessagesHandler_blacklistPid(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		mh.BlacklistPid(providedPid, time.Second)
 		assert.True(t, wasCalled)
@@ -967,7 +959,7 @@ func TestMessagesHandler_blacklistPid(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		mh.BlacklistPid("", time.Second)
 	})
@@ -987,7 +979,7 @@ func TestMessagesHandler_blacklistPid(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		mh.BlacklistPid(providedPid, time.Second)
 		assert.True(t, wasCalled)
@@ -1014,7 +1006,7 @@ func TestMessagesHandler_transformAndCheckMessage(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		pubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		pubSubMsg.Topic = nil // fail NewMessage
@@ -1028,7 +1020,7 @@ func TestMessagesHandler_transformAndCheckMessage(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		timeStamp := time.Now().Unix() + 1
 		timeStamp += int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds())
@@ -1042,7 +1034,7 @@ func TestMessagesHandler_transformAndCheckMessage(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		timeStamp := time.Now().Unix() - 1
 		timeStamp -= int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds())
@@ -1058,7 +1050,7 @@ func TestMessagesHandler_transformAndCheckMessage(t *testing.T) {
 		args := createMockArgMessagesHandler()
 		args.PeerID = realPID
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		timeStamp := time.Now().Unix() - 1
 		timeStamp -= int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds())
@@ -1073,7 +1065,7 @@ func TestMessagesHandler_transformAndCheckMessage(t *testing.T) {
 
 		args := createMockArgMessagesHandler()
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		pubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		msg, err := mh.TransformAndCheckMessage(pubSubMsg, realPID, providedTopic)
@@ -1111,7 +1103,7 @@ func TestMessagesHandler_CreateTopic(t *testing.T) {
 		}
 		args := createMockArgMessagesHandler()
 		mh := libp2p.NewMessagesHandlerWithTopics(args, topics, false)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.CreateTopic(providedTopic, false)
 		assert.Nil(t, err)
@@ -1126,7 +1118,7 @@ func TestMessagesHandler_CreateTopic(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		err := mh.CreateTopic(providedTopic, false)
 		assert.True(t, errors.Is(err, expectedError))
@@ -1137,7 +1129,7 @@ func TestMessagesHandler_HasTopic(t *testing.T) {
 	t.Parallel()
 
 	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-	assert.False(t, check.IfNil(mh))
+	assert.NotNil(t, mh)
 
 	assert.False(t, mh.HasTopic(providedTopic))
 }
@@ -1175,7 +1167,7 @@ func TestMessagesHandler_UnJoinAllTopics(t *testing.T) {
 	}
 	args := createMockArgMessagesHandler()
 	mh := libp2p.NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args, topics, subscriptions)
-	assert.False(t, check.IfNil(mh))
+	assert.NotNil(t, mh)
 
 	err := mh.UnJoinAllTopics()
 	assert.Equal(t, expectedError, err)
@@ -1195,14 +1187,15 @@ func TestMessagesHandler_Close(t *testing.T) {
 			return errCloseCLB
 		},
 	}
-	args.Debugger = &mock.DebuggerStub{
+	debugger := &mock.DebuggerStub{
 		CloseCalled: func() error {
 			return errCloseDebugger
 		},
 	}
 
 	mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-	assert.False(t, check.IfNil(mh))
+	assert.NotNil(t, mh)
+	_ = mh.SetDebugger(debugger)
 	err := mh.Close()
 	assert.Equal(t, errCloseDebugger, err)
 }
@@ -1214,7 +1207,7 @@ func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		assert.Nil(t, mh.ProcessReceivedMessage(nil, "pid", &mock.MessageHandlerStub{}))
 	})
@@ -1222,7 +1215,7 @@ func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		assert.Nil(t, mh.ProcessReceivedMessage(&message.Message{}, "pid", nil))
 	})
@@ -1242,7 +1235,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast)
@@ -1258,7 +1251,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		requestTopic := fmt.Sprintf("topic_%s", core.TopicRequestSuffix)
@@ -1278,11 +1271,36 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
-		assert.False(t, check.IfNil(mh))
+		assert.NotNil(t, mh)
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
 		mh.IncreaseRatingIfNeeded(msg, realPID)
 		assert.True(t, wasCalled)
 	})
+}
+
+func TestMessagesHandler_SetDebugger(t *testing.T) {
+	t.Parallel()
+
+	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+	assert.NotNil(t, mh)
+
+	err := mh.SetDebugger(nil)
+	assert.Equal(t, p2p.ErrNilDebugger, err)
+
+	err = mh.SetDebugger(&mock.DebuggerStub{})
+	assert.Nil(t, err)
+}
+
+func TestMessagesHandler_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgMessagesHandler()
+	args.Logger = nil
+	mh, _ := libp2p.NewMessagesHandler(args)
+	assert.True(t, mh.IsInterfaceNil())
+
+	mh = libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+	assert.False(t, mh.IsInterfaceNil())
 }

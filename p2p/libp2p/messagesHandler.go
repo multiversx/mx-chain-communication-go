@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/disabled"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
@@ -34,7 +35,6 @@ type ArgMessagesHandler struct {
 	Marshaller         p2p.Marshaller
 	ConnMonitor        ConnectionMonitor
 	PeersRatingHandler p2p.PeersRatingHandler
-	Debugger           p2p.Debugger
 	SyncTimer          p2p.SyncTimer
 	PeerID             core.PeerID
 	NetworkType        p2p.NetworkType
@@ -52,6 +52,7 @@ type messagesHandler struct {
 	connMonitor        ConnectionMonitor
 	peersRatingHandler p2p.PeersRatingHandler
 	debugger           p2p.Debugger
+	mutDebugger        sync.RWMutex
 	syncTimer          p2p.SyncTimer
 	peerID             core.PeerID
 	networkType        p2p.NetworkType
@@ -81,7 +82,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
 		peersRatingHandler: args.PeersRatingHandler,
-		debugger:           args.Debugger,
+		debugger:           disabled.NewP2PDebugger(),
 		syncTimer:          args.SyncTimer,
 		peerID:             args.PeerID,
 		processors:         make(map[string]TopicProcessor),
@@ -122,9 +123,6 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	}
 	if check.IfNil(args.PeersRatingHandler) {
 		return p2p.ErrNilPeersRatingHandler
-	}
-	if check.IfNil(args.Debugger) {
-		return p2p.ErrNilDebugger
 	}
 	if check.IfNil(args.SyncTimer) {
 		return p2p.ErrNilSyncTimer
@@ -443,6 +441,9 @@ func (handler *messagesHandler) validateMessageByTimestamp(msg p2p.MessageP2P) e
 }
 
 func (handler *messagesHandler) processDebugMessage(topic string, fromConnectedPeer core.PeerID, size uint64, isRejected bool) {
+	handler.mutDebugger.RLock()
+	defer handler.mutDebugger.RUnlock()
+
 	if fromConnectedPeer == handler.peerID {
 		handler.debugger.AddOutgoingMessage(topic, size, isRejected)
 	} else {
@@ -508,7 +509,9 @@ func (handler *messagesHandler) SendToConnectedPeer(topic string, buff []byte, p
 	}
 
 	err = handler.directSender.Send(topic, buffToSend, peerID)
+	handler.mutDebugger.RLock()
 	handler.debugger.AddOutgoingMessage(topic, uint64(len(buffToSend)), err != nil)
+	handler.mutDebugger.RUnlock()
 
 	return err
 }
@@ -575,7 +578,9 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 			}
 		}
 
+		handler.mutDebugger.RLock()
 		handler.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
+		handler.mutDebugger.RUnlock()
 
 		if messageOk {
 			handler.increaseRatingIfNeeded(msg, fromConnectedPeer)
@@ -690,6 +695,19 @@ func (handler *messagesHandler) UnJoinAllTopics() error {
 	return errFound
 }
 
+// SetDebugger sets the debugger
+func (handler *messagesHandler) SetDebugger(debugger p2p.Debugger) error {
+	if check.IfNil(debugger) {
+		return p2p.ErrNilDebugger
+	}
+
+	handler.mutDebugger.Lock()
+	handler.debugger = debugger
+	handler.mutDebugger.Unlock()
+
+	return nil
+}
+
 // Close closes the messages handler
 func (handler *messagesHandler) Close() error {
 	handler.cancelFunc()
@@ -705,7 +723,9 @@ func (handler *messagesHandler) Close() error {
 	}
 
 	handler.log.Debug("closing messages handler's debugger...")
+	handler.mutDebugger.Lock()
 	errDebugger := handler.debugger.Close()
+	handler.mutDebugger.Unlock()
 	if errDebugger != nil {
 		err = errDebugger
 		handler.log.Warn("messagesHandler.Close",

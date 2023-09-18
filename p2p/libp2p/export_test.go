@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/disabled"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/whyrusleeping/timecache"
@@ -240,7 +241,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
 		peersRatingHandler: args.PeersRatingHandler,
-		debugger:           args.Debugger,
+		debugger:           disabled.NewP2PDebugger(),
 		syncTimer:          args.SyncTimer,
 		peerID:             args.PeerID,
 		processors:         make(map[string]TopicProcessor),

@@ -39,7 +39,6 @@ func createMessenger() p2p.Messenger {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
-		Debugger:              &mock.DebuggerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)

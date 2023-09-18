@@ -99,7 +99,6 @@ type ArgsNetworkMessenger struct {
 	P2pKeyGenerator       commonCrypto.KeyGenerator
 	NetworkType           p2p.NetworkType
 	Logger                p2p.Logger
-	Debugger              p2p.Debugger
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -131,9 +130,6 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	}
 	if check.IfNil(args.Logger) {
 		return nil, fmt.Errorf("%w %s", p2p.ErrNilLogger, baseErrorSuffix)
-	}
-	if check.IfNil(args.Debugger) {
-		return nil, fmt.Errorf("%w %s", p2p.ErrNilDebugger, baseErrorSuffix)
 	}
 
 	setupExternalP2PLoggers()
@@ -385,7 +381,6 @@ func addComponentsToNode(
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
-		Debugger:           args.Debugger,
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,
