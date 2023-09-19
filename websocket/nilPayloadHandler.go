@@ -8,7 +8,7 @@ func NewNilPayloadHandler() PayloadHandler {
 }
 
 // ProcessPayload will do nothing
-func (n nilPayloadHandler) ProcessPayload(_ []byte, _ string) error {
+func (n nilPayloadHandler) ProcessPayload(_ []byte, _ string, _ string) error {
 	return nil
 }
 
