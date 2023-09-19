@@ -24,8 +24,9 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 	wg.Add(1)
 
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string) error {
+		ProcessPayloadCalled: func(payload []byte, topic string, version string) error {
 			require.Equal(t, []byte("test"), payload)
+			require.Equal(t, "1.0", version)
 			wg.Done()
 			return nil
 		},
@@ -68,7 +69,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	require.Nil(t, err)
 
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, _ string) error {
+		ProcessPayloadCalled: func(payload []byte, _ string, _ string) error {
 			require.Equal(t, []byte("test"), payload)
 			wg1.Done()
 			return nil
@@ -107,7 +108,7 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	numMessagesReceived := 0
 	payloadHandler := &testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, _ string) error {
+		ProcessPayloadCalled: func(payload []byte, _ string, _ string) error {
 			receivedMessages = append(receivedMessages, string(payload))
 			numMessagesReceived++
 			if numMessagesReceived == 200 {
@@ -177,7 +178,7 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 	const thirtyMB = 30 * 1024 * 1024
 	myBigMessage := generateLargeByteArray(thirtyMB)
 	payloadHandler := &testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string) error {
+		ProcessPayloadCalled: func(payload []byte, topic string, version string) error {
 			defer wg.Done()
 			require.Equal(t, myBigMessage, payload)
 			require.Equal(t, outport.TopicSaveBlock, topic)
@@ -215,7 +216,7 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 	}
 
 	payloadHandler := &testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string) error {
+		ProcessPayloadCalled: func(payload []byte, topic string, version string) error {
 			delete(myMap, string(payload))
 			fmt.Println("received message", "payload", string(payload))
 			wg.Done()

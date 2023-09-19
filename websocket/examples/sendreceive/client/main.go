@@ -44,8 +44,8 @@ func main() {
 	}()
 
 	err = wsClient.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string) error {
-			log.Info("received", "topic", topic, "payload", string(payload))
+		ProcessPayloadCalled: func(payload []byte, topic string, version string) error {
+			log.Info("received", "topic", topic, "payload", string(payload), "version", version)
 			return nil
 		},
 	})
