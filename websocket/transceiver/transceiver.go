@@ -21,6 +21,7 @@ type ArgsTransceiver struct {
 	AckTimeoutInSec    int
 	BlockingAckOnError bool
 	WithAcknowledge    bool
+	PayloadVersion     string
 }
 
 type wsTransceiver struct {
@@ -36,6 +37,7 @@ type wsTransceiver struct {
 	counter            uint64
 	blockingAckOnError bool
 	withAcknowledge    bool
+	payloadVersion     string
 }
 
 // NewTransceiver will create a new instance of transceiver
@@ -54,6 +56,7 @@ func NewTransceiver(args ArgsTransceiver) (*wsTransceiver, error) {
 		payloadHandler:     webSocket.NewNilPayloadHandler(),
 		payloadParser:      args.PayloadConverter,
 		withAcknowledge:    args.WithAcknowledge,
+		payloadVersion:     args.PayloadVersion,
 		mapAck:             make(map[uint64]chan struct{}),
 	}, nil
 }
@@ -212,6 +215,7 @@ func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket
 		Type:            data.PayloadMessage,
 		Payload:         payload,
 		Topic:           topic,
+		Version:         wt.payloadVersion,
 	}
 	newPayload, err := wt.payloadParser.ConstructPayload(wsMessage)
 	if err != nil {
