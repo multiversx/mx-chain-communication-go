@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -39,9 +40,10 @@ type server struct {
 	httpServer                 webSocket.HttpServerHandler
 	transceiversAndConn        transceiversAndConnHandler
 	payloadHandler             webSocket.PayloadHandler
+	ct                         uint32
 }
 
-//NewWebSocketServer will create a new instance of server
+// NewWebSocketServer will create a new instance of server
 func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 	if err := checkArgs(args); err != nil {
 		return nil, err
@@ -155,13 +157,24 @@ func (s *server) Send(payload []byte, topic string) error {
 	if noClients && !s.dropMessagesIfNoConnection {
 		return data.ErrNoClientsConnected
 	}
+	if len(transceiversAndCon) < 3 {
+		return errors.New("not enough clients")
+	}
+
+	ct := 0
 
 	for _, tuple := range transceiversAndCon {
-		err := tuple.transceiver.Send(payload, topic, tuple.conn)
-		if err != nil {
-			s.log.Debug("s.Send() cannot send message", "id", tuple.conn.GetID(), "error", err.Error())
+		if (ct < 2 && topic == "FinalizedBlock") || topic == "SaveBlock" || s.ct < 8 {
+			s.log.Info("sending data", "ct", ct, "s.ct", s.ct)
+			err := tuple.transceiver.Send(payload, topic, tuple.conn)
+			if err != nil {
+				s.log.Debug("s.Send() cannot send message", "id", tuple.conn.GetID(), "error", err.Error())
+			}
 		}
+		ct++
 	}
+
+	s.ct++
 
 	return nil
 }
