@@ -25,7 +25,7 @@ type ArgsWebSocketClient struct {
 	URL                        string
 	PayloadConverter           websocket.PayloadConverter
 	Log                        core.Logger
-	PayloadVersion             string
+	PayloadVersion             uint32
 }
 
 type client struct {

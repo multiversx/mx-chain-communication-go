@@ -26,7 +26,7 @@ type ArgsWebSocketServer struct {
 	URL                        string
 	PayloadConverter           webSocket.PayloadConverter
 	Log                        core.Logger
-	PayloadVersion             string
+	PayloadVersion             uint32
 }
 
 type server struct {
@@ -40,7 +40,7 @@ type server struct {
 	httpServer                 webSocket.HttpServerHandler
 	transceiversAndConn        transceiversAndConnHandler
 	payloadHandler             webSocket.PayloadHandler
-	payloadVersion             string
+	payloadVersion             uint32
 }
 
 //NewWebSocketServer will create a new instance of server

@@ -2,7 +2,7 @@ package testscommon
 
 // PayloadHandlerStub -
 type PayloadHandlerStub struct {
-	ProcessPayloadCalled func(payload []byte, topic string, version string) error
+	ProcessPayloadCalled func(payload []byte, topic string, version uint32) error
 	CloseCalled          func() error
 }
 
@@ -12,7 +12,7 @@ func (ph *PayloadHandlerStub) IsInterfaceNil() bool {
 }
 
 // ProcessPayload -
-func (ph *PayloadHandlerStub) ProcessPayload(payload []byte, topic string, version string) error {
+func (ph *PayloadHandlerStub) ProcessPayload(payload []byte, topic string, version uint32) error {
 	if ph.ProcessPayloadCalled != nil {
 		return ph.ProcessPayloadCalled(payload, topic, version)
 	}

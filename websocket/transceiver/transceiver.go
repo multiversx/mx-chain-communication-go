@@ -21,7 +21,7 @@ type ArgsTransceiver struct {
 	AckTimeoutInSec    int
 	BlockingAckOnError bool
 	WithAcknowledge    bool
-	PayloadVersion     string
+	PayloadVersion     uint32
 }
 
 type wsTransceiver struct {
@@ -37,7 +37,7 @@ type wsTransceiver struct {
 	counter            uint64
 	blockingAckOnError bool
 	withAcknowledge    bool
-	payloadVersion     string
+	payloadVersion     uint32
 }
 
 // NewTransceiver will create a new instance of transceiver

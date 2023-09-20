@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,8 +45,8 @@ func main() {
 	}()
 
 	err = wsClient.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, topic string, version string) error {
-			log.Info("received", "topic", topic, "payload", string(payload), "version", version)
+		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
+			log.Info("received", "topic", topic, "payload", string(payload), "version", fmt.Sprint(version))
 			return nil
 		},
 	})

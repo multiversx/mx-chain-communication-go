@@ -9,7 +9,7 @@ import (
 
 // PayloadHandler defines what a payload handler should be able to do
 type PayloadHandler interface {
-	ProcessPayload(payload []byte, topic string, version string) error
+	ProcessPayload(payload []byte, topic string, version uint32) error
 	Close() error
 	IsInterfaceNil() bool
 }

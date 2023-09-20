@@ -28,7 +28,7 @@ func createClient(url string, log core.Logger) (hostFactory.FullDuplexHost, erro
 		Log:                        log,
 		DropMessagesIfNoConnection: false,
 		AckTimeoutInSeconds:        retryDurationInSeconds,
-		PayloadVersion:             "1.0",
+		PayloadVersion:             1,
 	})
 }
 
@@ -41,7 +41,7 @@ func createServer(url string, log core.Logger) (hostFactory.FullDuplexHost, erro
 		Log:                        log,
 		DropMessagesIfNoConnection: false,
 		AckTimeoutInSeconds:        retryDurationInSeconds,
-		PayloadVersion:             "1.0",
+		PayloadVersion:             1,
 	})
 }
 
