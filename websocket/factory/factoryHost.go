@@ -43,6 +43,7 @@ func createWebSocketClient(args ArgsWebSocketHost) (FullDuplexHost, error) {
 		BlockingAckOnError:         args.WebSocketConfig.BlockingAckOnError,
 		DropMessagesIfNoConnection: args.WebSocketConfig.DropMessagesIfNoConnection,
 		AckTimeoutInSeconds:        args.WebSocketConfig.AcknowledgeTimeoutInSec,
+		PayloadVersion:             args.WebSocketConfig.Version,
 	})
 }
 
@@ -61,6 +62,7 @@ func createWebSocketServer(args ArgsWebSocketHost) (FullDuplexHost, error) {
 		BlockingAckOnError:         args.WebSocketConfig.BlockingAckOnError,
 		DropMessagesIfNoConnection: args.WebSocketConfig.DropMessagesIfNoConnection,
 		AckTimeoutInSeconds:        args.WebSocketConfig.AcknowledgeTimeoutInSec,
+		PayloadVersion:             args.WebSocketConfig.Version,
 	})
 	if err != nil {
 		return nil, err

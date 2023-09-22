@@ -25,6 +25,7 @@ type ArgsWebSocketClient struct {
 	URL                        string
 	PayloadConverter           websocket.PayloadConverter
 	Log                        core.Logger
+	PayloadVersion             uint32
 }
 
 type client struct {
@@ -51,6 +52,7 @@ func NewWebSocketClient(args ArgsWebSocketClient) (*client, error) {
 		AckTimeoutInSec:    args.AckTimeoutInSeconds,
 		BlockingAckOnError: args.BlockingAckOnError,
 		WithAcknowledge:    args.WithAcknowledge,
+		PayloadVersion:     args.PayloadVersion,
 	}
 	wsTransceiver, err := transceiver.NewTransceiver(argsTransceiver)
 	if err != nil {

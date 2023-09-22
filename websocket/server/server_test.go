@@ -21,6 +21,7 @@ func createArgs() ArgsWebSocketServer {
 		URL:                    "url",
 		PayloadConverter:       payloadConverter,
 		Log:                    &testscommon.LoggerMock{},
+		PayloadVersion:         1,
 	}
 }
 

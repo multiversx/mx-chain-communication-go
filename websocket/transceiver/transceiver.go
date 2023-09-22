@@ -21,6 +21,7 @@ type ArgsTransceiver struct {
 	AckTimeoutInSec    int
 	BlockingAckOnError bool
 	WithAcknowledge    bool
+	PayloadVersion     uint32
 }
 
 type wsTransceiver struct {
@@ -36,6 +37,7 @@ type wsTransceiver struct {
 	counter            uint64
 	blockingAckOnError bool
 	withAcknowledge    bool
+	payloadVersion     uint32
 }
 
 // NewTransceiver will create a new instance of transceiver
@@ -54,6 +56,7 @@ func NewTransceiver(args ArgsTransceiver) (*wsTransceiver, error) {
 		payloadHandler:     webSocket.NewNilPayloadHandler(),
 		payloadParser:      args.PayloadConverter,
 		withAcknowledge:    args.WithAcknowledge,
+		payloadVersion:     args.PayloadVersion,
 		mapAck:             make(map[uint64]chan struct{}),
 	}, nil
 }
@@ -140,7 +143,7 @@ func (wt *wsTransceiver) verifyPayloadAndSendAckIfNeeded(connection webSocket.WS
 		return
 	}
 
-	err = wt.payloadHandler.ProcessPayload(wsMessage.Payload, wsMessage.Topic)
+	err = wt.payloadHandler.ProcessPayload(wsMessage.Payload, wsMessage.Topic, wsMessage.Version)
 	if err != nil && wt.blockingAckOnError {
 		wt.log.Warn("wt.payloadHandler.ProcessPayload: cannot handle payload", "error", err)
 		return
@@ -212,6 +215,7 @@ func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket
 		Type:            data.PayloadMessage,
 		Payload:         payload,
 		Topic:           topic,
+		Version:         wt.payloadVersion,
 	}
 	newPayload, err := wt.payloadParser.ConstructPayload(wsMessage)
 	if err != nil {

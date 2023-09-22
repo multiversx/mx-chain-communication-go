@@ -14,5 +14,6 @@ message WsMessage {
   int32       Type            = 3 [(gogoproto.jsontag) = "type,omitempty"];
   bytes       Payload         = 4 [(gogoproto.jsontag) = "payload,omitempty"];
   string      Topic           = 5 [(gogoproto.jsontag) = "topic,omitempty"];
+  uint32      Version         = 6 [(gogoproto.jsontag) = "version,omitempty"];
 }
 

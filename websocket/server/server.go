@@ -26,6 +26,7 @@ type ArgsWebSocketServer struct {
 	URL                        string
 	PayloadConverter           webSocket.PayloadConverter
 	Log                        core.Logger
+	PayloadVersion             uint32
 }
 
 type server struct {
@@ -39,6 +40,7 @@ type server struct {
 	httpServer                 webSocket.HttpServerHandler
 	transceiversAndConn        transceiversAndConnHandler
 	payloadHandler             webSocket.PayloadHandler
+	payloadVersion             uint32
 }
 
 //NewWebSocketServer will create a new instance of server
@@ -57,6 +59,7 @@ func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 		withAcknowledge:            args.WithAcknowledge,
 		dropMessagesIfNoConnection: args.DropMessagesIfNoConnection,
 		ackTimeoutInSec:            args.AckTimeoutInSeconds,
+		payloadVersion:             args.PayloadVersion,
 	}
 
 	wsServer.initializeServer(args.URL, data.WSRoute)
@@ -88,6 +91,7 @@ func (s *server) connectionHandler(connection webSocket.WSConClient) {
 		AckTimeoutInSec:    s.ackTimeoutInSec,
 		BlockingAckOnError: s.blockingAckOnError,
 		WithAcknowledge:    s.withAcknowledge,
+		PayloadVersion:     s.payloadVersion,
 	})
 	if err != nil {
 		s.log.Warn("s.connectionHandler cannot create transceiver", "error", err)
