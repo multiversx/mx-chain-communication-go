@@ -69,7 +69,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	require.Nil(t, err)
 
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, _ string, _ uint32) error {
+		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
 			require.Equal(t, []byte("test"), payload)
 			wg1.Done()
 			return nil
@@ -108,7 +108,7 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	numMessagesReceived := 0
 	payloadHandler := &testscommon.PayloadHandlerStub{
-		ProcessPayloadCalled: func(payload []byte, _ string, _ uint32) error {
+		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
 			receivedMessages = append(receivedMessages, string(payload))
 			numMessagesReceived++
 			if numMessagesReceived == 200 {
