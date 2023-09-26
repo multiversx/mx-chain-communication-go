@@ -18,7 +18,6 @@ import (
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
-	"github.com/multiversx/mx-chain-communication-go/p2p/debug"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/connectionMonitor"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
 	discoveryFactory "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/discovery/factory"
@@ -374,11 +373,6 @@ func addComponentsToNode(
 		return err
 	}
 
-	p2pDebugger, err := debug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()), p2pNode.log)
-	if err != nil {
-		return err
-	}
-
 	argsMessageHandler := ArgMessagesHandler{
 		PubSub:             pubSub,
 		DirectSender:       ds,
@@ -387,7 +381,6 @@ func addComponentsToNode(
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
-		Debugger:           p2pDebugger,
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,

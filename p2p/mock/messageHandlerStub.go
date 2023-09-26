@@ -19,6 +19,7 @@ type MessageHandlerStub struct {
 	SendToConnectedPeerCalled               func(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopicsCalled                   func() error
 	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	SetDebuggerCalled                       func(debugger p2p.Debugger) error
 	CloseCalled                             func() error
 }
 
@@ -110,6 +111,14 @@ func (stub *MessageHandlerStub) UnJoinAllTopics() error {
 func (stub *MessageHandlerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	if stub.ProcessReceivedMessageCalled != nil {
 		return stub.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
+	}
+	return nil
+}
+
+// SetDebugger -
+func (stub *MessageHandlerStub) SetDebugger(debugger p2p.Debugger) error {
+	if stub.SetDebuggerCalled != nil {
+		return stub.SetDebuggerCalled(debugger)
 	}
 	return nil
 }
