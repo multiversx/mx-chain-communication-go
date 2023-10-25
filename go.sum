@@ -373,8 +373,8 @@ github.com/multiversx/mx-chain-crypto-go v1.2.9-0.20231025072739-25b21500d880 h1
 github.com/multiversx/mx-chain-crypto-go v1.2.9-0.20231025072739-25b21500d880/go.mod h1:1TgAz8rRhrG8ka9IzEi+jBOAu49AWQkDlLXzbMhNKCY=
 github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231025072404-d54164fbae96 h1:6rG9/MtlWapWkN30HfXPzX2oJc1CjLnbW1NGne2pwLo=
 github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231025072404-d54164fbae96/go.mod h1:996BTzWMAf0RxqE+Sqv7kB4OEnV9J6pJQ/ShKmlHxQM=
-github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231025084514-9b7d17ca5f36 h1:ZQ8hqhc3KdUieWqKBIjV6XxK+L7ry4Co0WIhMNGyBk4=
-github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231025084514-9b7d17ca5f36/go.mod h1:MCisUuatSUvx2pheJbyS8Ei8o4RgwZqFa3uuq0EPYXA=
+github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231025090935-00f58ef02c2f h1:z06h1nIHBnEu81YR5vTlVVJA2FbEyfNM6kTCRPd/ZQk=
+github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231025090935-00f58ef02c2f/go.mod h1:MCisUuatSUvx2pheJbyS8Ei8o4RgwZqFa3uuq0EPYXA=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
