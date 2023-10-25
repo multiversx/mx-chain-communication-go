@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/multiversx/mx-chain-storage-go/types"
+
 // CacherStub -
 type CacherStub struct {
 	ClearCalled             func()
@@ -16,13 +18,7 @@ type CacherStub struct {
 	RegisterHandlerCalled   func(func(key []byte, value interface{}))
 	UnRegisterHandlerCalled func(id string)
 	CloseCalled             func() error
-}
-
-// Clear -
-func (cacher *CacherStub) Clear() {
-	if cacher.ClearCalled != nil {
-		cacher.ClearCalled()
-	}
+	GetRemovalStatusCalled  func(key []byte) types.RemovalStatus
 }
 
 // Put -
@@ -123,9 +119,20 @@ func (cacher *CacherStub) UnRegisterHandler(id string) {
 	}
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (cacher *CacherStub) IsInterfaceNil() bool {
-	return cacher == nil
+// GetRemovalStatus -
+func (cacher *CacherStub) GetRemovalStatus(key []byte) types.RemovalStatus {
+	if cacher.GetRemovalStatusCalled != nil {
+		return cacher.GetRemovalStatusCalled(key)
+	}
+
+	return types.UnknownRemovalStatus
+}
+
+// Clear -
+func (cacher *CacherStub) Clear() {
+	if cacher.ClearCalled != nil {
+		cacher.ClearCalled()
+	}
 }
 
 // Close -
@@ -135,4 +142,9 @@ func (cacher *CacherStub) Close() error {
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cacher *CacherStub) IsInterfaceNil() bool {
+	return cacher == nil
 }

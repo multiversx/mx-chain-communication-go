@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreMocks "github.com/multiversx/mx-chain-core-go/data/mock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -343,7 +342,7 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 
 		providedPid1, providedPid2, providedPid3 := core.PeerID("provided pid 1"), core.PeerID("provided pid 2"), core.PeerID("provided pid 3")
 		args := createMockArgs()
-		args.TopRatedCache = coreMocks.NewCacherMock()
+		args.TopRatedCache = mock.NewCacherMock()
 		args.Logger = &testscommon.LoggerStub{
 			GetLevelCalled: func() logger.LogLevel {
 				return logger.LogTrace // coverage
@@ -363,8 +362,8 @@ func TestPeersRatingHandler_MultiplePIDsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs()
-	args.TopRatedCache = coreMocks.NewCacherMock()
-	args.BadRatedCache = coreMocks.NewCacherMock()
+	args.TopRatedCache = mock.NewCacherMock()
+	args.BadRatedCache = mock.NewCacherMock()
 
 	prh, _ := NewPeersRatingHandler(args)
 	assert.NotNil(t, prh)
