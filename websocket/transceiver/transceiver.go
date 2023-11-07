@@ -1,6 +1,7 @@
 package transceiver
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -102,12 +103,19 @@ func (wt *wsTransceiver) Listen(connection webSocket.WSConClient) (closed bool) 
 			continue
 		}
 
-		_, isConnectionClosed := err.(*websocket.CloseError)
+		var closeError *websocket.CloseError
+		isConnectionClosed := errors.As(err, &closeError)
 		if !strings.Contains(err.Error(), data.ClosedConnectionMessage) && !isConnectionClosed {
 			wt.log.Warn("wt.Listen()-> connection problem", "error", err.Error())
 		}
 		if isConnectionClosed {
 			wt.log.Info("received connection close")
+			return true
+		}
+
+		shouldReopen := strings.Contains(err.Error(), data.ResetByPeerConnectionMessage) || strings.Contains(err.Error(), data.BrokenPipeMessage)
+		if shouldReopen {
+			wt.log.Info("wt.Listen connection problem: will try to reconnect", "error", err.Error())
 			return true
 		}
 

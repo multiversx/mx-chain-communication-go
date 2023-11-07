@@ -280,3 +280,30 @@ func TestWsTransceiver_SendMessageWaitAcKTimeout(t *testing.T) {
 	err := webSocketTransceiver.Send([]byte("message"), outport.TopicSaveBlock, conn)
 	require.Equal(t, data.ErrAckTimeout, err)
 }
+
+func TestWsTransceiver_ListenReturnsTrue(t *testing.T) {
+	args := createArgs()
+	args.AckTimeoutInSec = 2
+	args.WithAcknowledge = true
+
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	count := 0
+	conn := &testscommon.WebsocketConnectionStub{
+		ReadMessageCalled: func() (messageType int, payload []byte, err error) {
+			if count == 2 {
+				return 0, nil, errors.New(data.BrokenPipeMessage)
+			}
+			count++
+
+			time.Sleep(100 * time.Millisecond)
+			return 0, nil, err
+		},
+	}
+
+	closed := webSocketTransceiver.Listen(conn)
+	require.True(t, closed)
+}
