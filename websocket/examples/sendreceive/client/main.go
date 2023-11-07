@@ -20,6 +20,7 @@ var (
 )
 
 func main() {
+	_ = logger.SetLogLevel("*:DEBUG")
 	args := factoryHost.ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
 			URL:                        url,

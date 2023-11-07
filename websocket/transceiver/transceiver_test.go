@@ -295,7 +295,7 @@ func TestWsTransceiver_ListenReturnsTrue(t *testing.T) {
 	conn := &testscommon.WebsocketConnectionStub{
 		ReadMessageCalled: func() (messageType int, payload []byte, err error) {
 			if count == 2 {
-				return 0, nil, errors.New(data.BrokenPipeMessage)
+				return 0, nil, errors.New("test error")
 			}
 			count++
 
