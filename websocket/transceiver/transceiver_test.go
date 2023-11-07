@@ -151,7 +151,10 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	}
 
 	go func() {
-		webSocketsReceiver.Listen(conn)
+		closed := true
+		for closed {
+			closed = webSocketsReceiver.Listen(conn)
+		}
 	}()
 
 	wg.Wait()
