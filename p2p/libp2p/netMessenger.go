@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/metrics"
 	metricsFactory "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/metrics/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding/factory"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/resourceLimiter"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
@@ -178,6 +179,11 @@ func constructNode(
 		return nil, err
 	}
 
+	resourceLimiterOption, err := resourceLimiter.CreateResourceLimiterOption(args.P2pConfig.Node.ResourceLimiter)
+	if err != nil {
+		return nil, err
+	}
+
 	options := []libp2p.Option{
 		libp2p.ListenAddrStrings(addresses...),
 		libp2p.Identity(p2pPrivateKey),
@@ -186,6 +192,7 @@ func constructNode(
 		// we need to disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
+		resourceLimiterOption,
 	}
 	options = append(options, transportOptions...)
 

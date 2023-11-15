@@ -14,6 +14,7 @@ type NodeConfig struct {
 	ThresholdMinConnectedPeers      uint32
 	MinNumPeersToWaitForOnBootstrap uint32
 	Transports                      TransportConfig
+	ResourceLimiter                 ResourceLimiterConfig
 }
 
 // TransportConfig specify the supported protocols by the node
@@ -28,6 +29,13 @@ type TransportConfig struct {
 type TCPProtocolConfig struct {
 	ListenAddress    string
 	PreventPortReuse bool
+}
+
+// ResourceLimiterConfig specify the resource limiter configuration
+type ResourceLimiterConfig struct {
+	Type                   string
+	ManualSystemMemoryInMB int64
+	ManualMaximumFD        int
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
