@@ -24,6 +24,9 @@ func createDefaultConfig() config.P2PConfig {
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
+			ResourceLimiter: config.ResourceLimiterConfig{
+				Type: p2p.DefaultAutoscaleResourceLimiter,
+			},
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,

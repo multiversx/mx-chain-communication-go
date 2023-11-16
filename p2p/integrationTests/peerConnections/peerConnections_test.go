@@ -13,14 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var keyGen = signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+var log = logger.GetOrCreate("test")
 
 func createBaseArgs() libp2p.ArgsNetworkMessenger {
 	prvKey, _ := keyGen.GeneratePair()
@@ -30,6 +33,9 @@ func createBaseArgs() libp2p.ArgsNetworkMessenger {
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0", // auto-select port
+				ResourceLimiter: config.ResourceLimiterConfig{
+					Type: p2p.DefaultAutoscaleResourceLimiter,
+				},
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -46,6 +52,43 @@ func createBaseArgs() libp2p.ArgsNetworkMessenger {
 		P2pSingleSigner:       &singlesig.Secp256k1Signer{},
 		P2pKeyGenerator:       keyGen,
 		Logger:                &testscommon.LoggerStub{},
+	}
+}
+
+func createBaseArgsForTCPWithKey(key crypto.PrivateKey) libp2p.ArgsNetworkMessenger {
+	if key == nil {
+		key, _ = keyGen.GeneratePair()
+	}
+
+	return libp2p.ArgsNetworkMessenger{
+		Marshaller: &testscommon.MarshallerMock{},
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port: "0", // auto-select port
+				Transports: config.TransportConfig{
+					TCP: config.TCPProtocolConfig{
+						ListenAddress: "/ip4/0.0.0.0/tcp/%d",
+					},
+				},
+				ResourceLimiter: config.ResourceLimiterConfig{
+					Type: p2p.DefaultAutoscaleResourceLimiter,
+				},
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+		SyncTimer:             &mock.SyncTimerStub{},
+		PreferredPeersHolder:  &mock.PeersHolderStub{},
+		PeersRatingHandler:    &mock.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         key,
+		P2pSingleSigner:       &singlesig.Secp256k1Signer{},
+		P2pKeyGenerator:       keyGen,
+		Logger:                log,
 	}
 }
 
@@ -153,6 +196,71 @@ func TestPeerConnectionsOnAllSupportedProtocolsShouldExchangeData(t *testing.T) 
 	for _, mes := range messengers {
 		_ = mes.Close()
 	}
+}
+
+func TestConnectionsWithSameKeyShouldWork(t *testing.T) {
+	nodes := make([]p2p.Messenger, 0)
+	defer func() {
+		log.Info("closing nodes", "num nodes", len(nodes))
+		for _, n := range nodes {
+			_ = n.Close()
+		}
+	}()
+
+	log.Info("creating seeder (advertiser)")
+	advertiserArgs := createBaseArgsForTCPWithKey(nil)
+	advertiserArgs.P2pConfig.Node.Transports.TCP.PreventPortReuse = true
+	advertiser, err := libp2p.NewNetworkMessenger(advertiserArgs)
+	require.Nil(t, err)
+	nodes = append(nodes, advertiser)
+	_ = advertiser.Bootstrap()
+	time.Sleep(time.Second)
+
+	// hostWithRandomKey1 will be able to connect to the seeder
+	log.Info("creating host with random key 1")
+	hostWithRandomKey1Args := createBaseArgsForTCPWithKey(nil)
+	hostWithRandomKey1, err := libp2p.NewNetworkMessenger(hostWithRandomKey1Args)
+	require.Nil(t, err)
+	nodes = append(nodes, hostWithRandomKey1)
+	err = hostWithRandomKey1.ConnectToPeer(advertiser.Addresses()[0])
+	assert.Nil(t, err)
+	_ = hostWithRandomKey1.Bootstrap()
+	time.Sleep(time.Second)
+
+	commonKey, _ := keyGen.GeneratePair()
+
+	// hostWithCommonKey1 will be able to connect to the seeder
+	log.Info("creating first host with common key")
+	hostWithCommonKey1Args := createBaseArgsForTCPWithKey(commonKey)
+	hostWithCommonKey1, err := libp2p.NewNetworkMessenger(hostWithCommonKey1Args)
+	require.Nil(t, err)
+	nodes = append(nodes, hostWithCommonKey1)
+	err = hostWithCommonKey1.ConnectToPeer(advertiser.Addresses()[0])
+	assert.Nil(t, err)
+	_ = hostWithCommonKey1.Bootstrap()
+	time.Sleep(time.Second)
+
+	// hostWithCommonKey1 will be able to connect to the seeder
+	log.Info("creating second host with common key")
+	hostWithCommonKey2Args := createBaseArgsForTCPWithKey(commonKey)
+	hostWithCommonKey2, err := libp2p.NewNetworkMessenger(hostWithCommonKey2Args)
+	require.Nil(t, err)
+	nodes = append(nodes, hostWithCommonKey2)
+	err = hostWithCommonKey2.ConnectToPeer(advertiser.Addresses()[0])
+	assert.Nil(t, err)
+	_ = hostWithCommonKey2.Bootstrap()
+	time.Sleep(time.Second)
+
+	// hostWithRandomKey2 should be able to connect to the seeder
+	log.Info("creating host with random key 2")
+	hostWithRandomKey2Args := createBaseArgsForTCPWithKey(nil)
+	hostWithRandomKey2, err := libp2p.NewNetworkMessenger(hostWithRandomKey2Args)
+	require.Nil(t, err)
+	nodes = append(nodes, hostWithRandomKey2)
+	err = hostWithRandomKey2.ConnectToPeer(advertiser.Addresses()[0])
+	assert.Nil(t, err)
+	_ = hostWithRandomKey2.Bootstrap()
+	time.Sleep(time.Second)
 }
 
 func getAddressMatching(addresses []string, including string, excluding string) string {
