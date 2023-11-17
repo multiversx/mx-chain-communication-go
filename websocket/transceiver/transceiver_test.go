@@ -117,15 +117,16 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		},
 	})
 
-	count := 0
+	count := uint64(0)
 	conn := &testscommon.WebsocketConnectionStub{
 		ReadMessageCalled: func() (int, []byte, error) {
 			time.Sleep(500 * time.Millisecond)
-			if count == 2 {
-				count++
+			atomic.LoadUint64(&count)
+			if atomic.LoadUint64(&count) == 2 {
+				atomic.AddUint64(&count, 1)
 				return 0, nil, errors.New("closed")
 			}
-			count++
+			atomic.AddUint64(&count, 1)
 			preparedPayload, _ := args.PayloadConverter.ConstructPayload(&data.WsMessage{
 				Payload:         []byte("something"),
 				Topic:           outport.TopicSaveAccounts,
@@ -148,7 +149,7 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	_ = webSocketsReceiver.Close()
 	_ = conn.Close()
 
-	require.GreaterOrEqual(t, count, 2)
+	require.GreaterOrEqual(t, atomic.LoadUint64(&count), uint64(2))
 }
 
 func TestSender_AddConnectionSendAndClose(t *testing.T) {
