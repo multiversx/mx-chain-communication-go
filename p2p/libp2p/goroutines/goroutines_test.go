@@ -39,6 +39,9 @@ func createDefaultConfig() config.P2PConfig {
 				},
 			},
 			Port: "0",
+			ResourceLimiter: config.ResourceLimiterConfig{
+				Type: p2p.DefaultAutoscaleResourceLimiter,
+			},
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
