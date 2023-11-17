@@ -124,7 +124,6 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 			mutex.Lock()
 			time.Sleep(500 * time.Millisecond)
 			if count == 2 {
-				count++
 				mutex.Unlock()
 				return 0, nil, errors.New("closed")
 			}
