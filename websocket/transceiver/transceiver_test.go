@@ -118,11 +118,11 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	})
 
 	wg := &sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(1)
 
 	count := 0
 	conn := &testscommon.WebsocketConnectionStub{
-		ReadMessageCalled: func() (messageType int, payload []byte, err error) {
+		ReadMessageCalled: func() (int, []byte, error) {
 			time.Sleep(500 * time.Millisecond)
 			if count >= 1 {
 				wg.Done()
@@ -141,8 +141,8 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		CloseCalled: func() error {
 			return nil
 		},
-		WriteMessageCalled: func(messageType int, data []byte) error {
-			if count == 1 {
+		WriteMessageCalled: func(messageType int, d []byte) error {
+			if count == 1 && messageType == data.PayloadMessage {
 				count++
 				return errors.New("local error")
 			}
@@ -151,8 +151,8 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	}
 
 	go func() {
-		closed := true
-		for closed {
+		closed := false
+		for !closed {
 			closed = webSocketsReceiver.Listen(conn)
 		}
 	}()
