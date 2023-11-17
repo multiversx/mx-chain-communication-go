@@ -151,7 +151,10 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		},
 	}
 
+	secondWg := sync.WaitGroup{}
+	secondWg.Add(1)
 	go func() {
+		defer secondWg.Done()
 		closed := false
 		for !closed {
 			closed = webSocketsReceiver.Listen(conn)
@@ -161,6 +164,7 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	wg.Wait()
 	_ = webSocketsReceiver.Close()
 	_ = conn.Close()
+	secondWg.Wait()
 
 	require.GreaterOrEqual(t, count, 2)
 }
