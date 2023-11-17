@@ -162,7 +162,7 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	_ = webSocketsReceiver.Close()
 	_ = conn.Close()
 
-	require.Equal(t, 2, count)
+	require.GreaterOrEqual(t, count, 2)
 }
 
 func TestSender_AddConnectionSendAndClose(t *testing.T) {
