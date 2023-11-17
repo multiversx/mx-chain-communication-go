@@ -124,7 +124,7 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	conn := &testscommon.WebsocketConnectionStub{
 		ReadMessageCalled: func() (int, []byte, error) {
 			time.Sleep(500 * time.Millisecond)
-			if count >= 1 {
+			if count == 2 {
 				wg.Done()
 				return 0, nil, errors.New("closed")
 			}
