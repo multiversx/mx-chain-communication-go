@@ -117,16 +117,20 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		},
 	})
 
+	mutex := sync.Mutex{}
 	count := uint64(0)
 	conn := &testscommon.WebsocketConnectionStub{
 		ReadMessageCalled: func() (int, []byte, error) {
+			mutex.Lock()
 			time.Sleep(500 * time.Millisecond)
-			atomic.LoadUint64(&count)
-			if atomic.LoadUint64(&count) == 2 {
-				atomic.AddUint64(&count, 1)
+			if count == 2 {
+				count++
+				mutex.Unlock()
 				return 0, nil, errors.New("closed")
 			}
-			atomic.AddUint64(&count, 1)
+			count++
+			mutex.Unlock()
+
 			preparedPayload, _ := args.PayloadConverter.ConstructPayload(&data.WsMessage{
 				Payload:         []byte("something"),
 				Topic:           outport.TopicSaveAccounts,
@@ -149,7 +153,7 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	_ = webSocketsReceiver.Close()
 	_ = conn.Close()
 
-	require.GreaterOrEqual(t, atomic.LoadUint64(&count), uint64(2))
+	require.GreaterOrEqual(t, count, uint64(2))
 }
 
 func TestSender_AddConnectionSendAndClose(t *testing.T) {
