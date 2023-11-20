@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -52,15 +53,17 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testing.T) {
 	url := "localhost:" + getFreePort()
 
-	wg1, wg2 := &sync.WaitGroup{}, &sync.WaitGroup{}
-	wg1.Add(1)
-	wg2.Add(1)
-	serverReceivedCloseMessage := false
+	receivedClose := make(chan struct{})
+	payloadWasProcessed := atomic.Bool{}
+	payloadWasProcessed.Store(false)
+
+	serverReceivedCloseMessage := atomic.Bool{}
+	serverReceivedCloseMessage.Store(false)
 	log := &testscommon.LoggerStub{
 		InfoCalled: func(message string, args ...interface{}) {
-			if strings.Contains(message, "connection closed") {
-				serverReceivedCloseMessage = true
-				wg2.Done()
+			if strings.Contains(message, "connection closed") && payloadWasProcessed.Load() {
+				serverReceivedCloseMessage.Store(true)
+				receivedClose <- struct{}{}
 			}
 		},
 	}
@@ -71,7 +74,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
 			require.Equal(t, []byte("test"), payload)
-			wg1.Done()
+			payloadWasProcessed.Store(true)
 			return nil
 		},
 	})
@@ -89,10 +92,9 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 
 	err = wsClient.Close()
 	require.Nil(t, err)
-	wg2.Wait()
 	_ = wsServer.Close()
-	wg1.Wait()
-	require.True(t, serverReceivedCloseMessage)
+	<-receivedClose
+	require.True(t, serverReceivedCloseMessage.Load())
 }
 
 func TestStartServerStartClientCloseServer(t *testing.T) {
@@ -208,6 +210,7 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
+	mutex := sync.RWMutex{}
 	myMap := make(map[string]struct{})
 	wg := sync.WaitGroup{}
 	wg.Add(10000)
@@ -217,8 +220,16 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 
 	payloadHandler := &testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
+			mutex.Lock()
+			_, found := myMap[string(payload)]
+			if !found {
+				mutex.Unlock()
+				return nil
+			}
 			delete(myMap, string(payload))
-			fmt.Println("received message", "payload", string(payload))
+			mutex.Unlock()
+
+			fmt.Println("received message", "payload", string(payload), "topic", topic)
 			wg.Done()
 			return nil
 		},
@@ -248,7 +259,9 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 	}
 
 	wg.Wait()
+	mutex.RLock()
 	require.Len(t, myMap, 0)
+	mutex.RUnlock()
 }
 
 func generateLargeByteArray(size int) []byte {
