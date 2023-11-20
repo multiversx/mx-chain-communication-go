@@ -117,7 +117,7 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		},
 	})
 
-	mutex := sync.Mutex{}
+	mutex := sync.RWMutex{}
 	count := uint64(0)
 	conn := &testscommon.WebsocketConnectionStub{
 		ReadMessageCalled: func() (int, []byte, error) {
@@ -152,7 +152,9 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 	_ = webSocketsReceiver.Close()
 	_ = conn.Close()
 
+	mutex.RLock()
 	require.GreaterOrEqual(t, count, uint64(2))
+	mutex.RUnlock()
 }
 
 func TestSender_AddConnectionSendAndClose(t *testing.T) {

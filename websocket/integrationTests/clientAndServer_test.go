@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -53,12 +54,15 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	url := "localhost:" + getFreePort()
 
 	receivedClose := make(chan struct{})
-	payloadWasProcessed := false
-	serverReceivedCloseMessage := false
+	payloadWasProcessed := atomic.Bool{}
+	payloadWasProcessed.Store(false)
+
+	serverReceivedCloseMessage := atomic.Bool{}
+	serverReceivedCloseMessage.Store(false)
 	log := &testscommon.LoggerStub{
 		InfoCalled: func(message string, args ...interface{}) {
-			if strings.Contains(message, "connection closed") && payloadWasProcessed {
-				serverReceivedCloseMessage = true
+			if strings.Contains(message, "connection closed") && payloadWasProcessed.Load() {
+				serverReceivedCloseMessage.Store(true)
 				receivedClose <- struct{}{}
 			}
 		},
@@ -70,7 +74,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
 			require.Equal(t, []byte("test"), payload)
-			payloadWasProcessed = true
+			payloadWasProcessed.Store(true)
 			return nil
 		},
 	})
@@ -90,7 +94,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	require.Nil(t, err)
 	_ = wsServer.Close()
 	<-receivedClose
-	require.True(t, serverReceivedCloseMessage)
+	require.True(t, serverReceivedCloseMessage.Load())
 }
 
 func TestStartServerStartClientCloseServer(t *testing.T) {
@@ -206,6 +210,7 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 	wsServer, err := createServer(url, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
+	mutex := sync.RWMutex{}
 	myMap := make(map[string]struct{})
 	wg := sync.WaitGroup{}
 	wg.Add(10000)
@@ -215,8 +220,16 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 
 	payloadHandler := &testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
+			mutex.Lock()
+			_, found := myMap[string(payload)]
+			if !found {
+				mutex.Unlock()
+				return nil
+			}
 			delete(myMap, string(payload))
-			fmt.Println("received message", "payload", string(payload))
+			mutex.Unlock()
+
+			fmt.Println("received message", "payload", string(payload), "topic", topic)
 			wg.Done()
 			return nil
 		},
@@ -246,7 +259,9 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 	}
 
 	wg.Wait()
+	mutex.RLock()
 	require.Len(t, myMap, 0)
+	mutex.RUnlock()
 }
 
 func generateLargeByteArray(size int) []byte {
