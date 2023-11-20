@@ -53,10 +53,11 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	url := "localhost:" + getFreePort()
 
 	receivedClose := make(chan struct{})
+	payloadWasProcessed := false
 	serverReceivedCloseMessage := false
 	log := &testscommon.LoggerStub{
 		InfoCalled: func(message string, args ...interface{}) {
-			if strings.Contains(message, "connection closed") {
+			if strings.Contains(message, "connection closed") && payloadWasProcessed {
 				serverReceivedCloseMessage = true
 				receivedClose <- struct{}{}
 			}
@@ -69,6 +70,7 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
 		ProcessPayloadCalled: func(payload []byte, topic string, version uint32) error {
 			require.Equal(t, []byte("test"), payload)
+			payloadWasProcessed = true
 			return nil
 		},
 	})
