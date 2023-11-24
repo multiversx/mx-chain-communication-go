@@ -212,3 +212,6 @@ var ErrInvalidWebTransportAddress = errors.New("invalid WebTransport address")
 
 // ErrNoTransportsDefined signals that no transports were defined
 var ErrNoTransportsDefined = errors.New("no transports defined")
+
+// ErrUnknownResourceLimiterType signals that an unknown resource limiter type was provided
+var ErrUnknownResourceLimiterType = errors.New("unknown resource limiter type")

@@ -16,10 +16,11 @@ import (
 var (
 	marshaller, _ = factory.NewMarshalizer("json")
 	log           = logger.GetOrCreate("client")
-	url           = "localhost:12345"
+	url           = ":12345"
 )
 
 func main() {
+	_ = logger.SetLogLevel("*:DEBUG")
 	args := factoryHost.ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
 			URL:                        url,

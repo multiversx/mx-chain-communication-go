@@ -1,6 +1,7 @@
 package transceiver
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -91,10 +92,7 @@ func (wt *wsTransceiver) SetPayloadHandler(handler webSocket.PayloadHandler) err
 }
 
 // Listen will listen for messages from the provided connection
-func (wt *wsTransceiver) Listen(connection webSocket.WSConClient) (closed bool) {
-	timer := time.NewTimer(wt.retryDuration)
-	defer timer.Stop()
-
+func (wt *wsTransceiver) Listen(connection webSocket.WSConClient) bool {
 	for {
 		_, message, err := connection.ReadMessage()
 		if err == nil {
@@ -102,21 +100,20 @@ func (wt *wsTransceiver) Listen(connection webSocket.WSConClient) (closed bool) 
 			continue
 		}
 
-		_, isConnectionClosed := err.(*websocket.CloseError)
+		var closeError *websocket.CloseError
+		isConnectionClosed := errors.As(err, &closeError)
 		if !strings.Contains(err.Error(), data.ClosedConnectionMessage) && !isConnectionClosed {
 			wt.log.Warn("wt.Listen()-> connection problem", "error", err.Error())
 		}
 		if isConnectionClosed {
 			wt.log.Info("received connection close")
-			return true
 		}
-
-		timer.Reset(wt.retryDuration)
 
 		select {
 		case <-wt.safeCloser.ChanClose():
-			return
-		case <-timer.C:
+			return false
+		default:
+			return true
 		}
 	}
 }
