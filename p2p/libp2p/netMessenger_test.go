@@ -111,13 +111,20 @@ func createTestTCPTransportConfig() config.TransportConfig {
 	}
 }
 
+func createTestResourceLimiterConfig() config.ResourceLimiterConfig {
+	return config.ResourceLimiterConfig{
+		Type: p2p.DefaultAutoscaleResourceLimiter,
+	}
+}
+
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -282,6 +289,17 @@ func TestNewNetworkMessenger_NilChecksShouldErr(t *testing.T) {
 
 		assert.True(t, check.IfNil(messenger))
 		assert.True(t, errors.Is(err, p2p.ErrNilLogger))
+	})
+	t.Run("invalid resource limiter type should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pConfig.Node.ResourceLimiter.Type = "unknownResourceLimiter"
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.Nil(t, messenger)
+		assert.ErrorIs(t, err, p2p.ErrUnknownResourceLimiterType)
+		assert.Contains(t, err.Error(), arg.P2pConfig.Node.ResourceLimiter.Type)
 	})
 	t.Run("invalid transport should error", func(t *testing.T) {
 		t.Parallel()
@@ -1103,8 +1121,9 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1178,8 +1197,9 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1418,8 +1438,9 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1487,8 +1508,9 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1564,8 +1586,9 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1630,8 +1653,9 @@ func TestNetworkMessenger_UnJoinAllTopicsShouldWork(t *testing.T) {
 		Marshaller: &testscommon.ProtoMarshallerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:       "0",
-				Transports: createTestTCPTransportConfig(),
+				Port:            "0",
+				Transports:      createTestTCPTransportConfig(),
+				ResourceLimiter: createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1844,6 +1868,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
 				Transports:                 createTestTCPTransportConfig(),
+				ResourceLimiter:            createTestResourceLimiterConfig(),
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,

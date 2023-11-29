@@ -119,7 +119,7 @@ func (c *client) start() {
 			closed := c.transceiver.Listen(c.wsConn)
 			if closed {
 				err := c.wsConn.Close()
-				c.log.LogIfError(err, "received close from server: initialized close()", "close error", err)
+				c.log.Debug("try to close the connection", "close error", err)
 			}
 
 			timer.Reset(c.retryDuration)

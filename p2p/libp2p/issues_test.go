@@ -23,6 +23,9 @@ func createMessenger() p2p.Messenger {
 			Node: config.NodeConfig{
 				Port:       "0",
 				Transports: createTestTCPTransportConfig(),
+				ResourceLimiter: config.ResourceLimiterConfig{
+					Type: p2p.DefaultAutoscaleResourceLimiter,
+				},
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,

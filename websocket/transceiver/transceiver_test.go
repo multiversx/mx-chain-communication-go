@@ -117,18 +117,19 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		},
 	})
 
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-
-	count := 0
+	mutex := sync.RWMutex{}
+	count := uint64(0)
 	conn := &testscommon.WebsocketConnectionStub{
-		ReadMessageCalled: func() (messageType int, payload []byte, err error) {
+		ReadMessageCalled: func() (int, []byte, error) {
+			mutex.Lock()
 			time.Sleep(500 * time.Millisecond)
-			if count >= 1 {
-				wg.Done()
+			if count == 2 {
+				mutex.Unlock()
 				return 0, nil, errors.New("closed")
 			}
 			count++
+			mutex.Unlock()
+
 			preparedPayload, _ := args.PayloadConverter.ConstructPayload(&data.WsMessage{
 				Payload:         []byte("something"),
 				Topic:           outport.TopicSaveAccounts,
@@ -141,24 +142,19 @@ func TestReceiver_ListenAndSendAck(t *testing.T) {
 		CloseCalled: func() error {
 			return nil
 		},
-		WriteMessageCalled: func(messageType int, data []byte) error {
-			if count == 1 {
-				count++
-				return errors.New("local error")
-			}
+		WriteMessageCalled: func(messageType int, d []byte) error {
 			return nil
 		},
 	}
 
-	go func() {
-		webSocketsReceiver.Listen(conn)
-	}()
+	_ = webSocketsReceiver.Listen(conn)
 
-	wg.Wait()
 	_ = webSocketsReceiver.Close()
 	_ = conn.Close()
 
-	require.Equal(t, 2, count)
+	mutex.RLock()
+	require.GreaterOrEqual(t, count, uint64(2))
+	mutex.RUnlock()
 }
 
 func TestSender_AddConnectionSendAndClose(t *testing.T) {
@@ -279,4 +275,31 @@ func TestWsTransceiver_SendMessageWaitAcKTimeout(t *testing.T) {
 
 	err := webSocketTransceiver.Send([]byte("message"), outport.TopicSaveBlock, conn)
 	require.Equal(t, data.ErrAckTimeout, err)
+}
+
+func TestWsTransceiver_ListenReturnsTrue(t *testing.T) {
+	args := createArgs()
+	args.AckTimeoutInSec = 2
+	args.WithAcknowledge = true
+
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	count := 0
+	conn := &testscommon.WebsocketConnectionStub{
+		ReadMessageCalled: func() (messageType int, payload []byte, err error) {
+			if count == 2 {
+				return 0, nil, errors.New("test error")
+			}
+			count++
+
+			time.Sleep(100 * time.Millisecond)
+			return 0, nil, err
+		},
+	}
+
+	closed := webSocketTransceiver.Listen(conn)
+	require.True(t, closed)
 }

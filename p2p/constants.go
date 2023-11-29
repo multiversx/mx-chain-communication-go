@@ -28,6 +28,15 @@ const (
 	// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
 	// do not follow this protocol
 	WrongP2PMessageBlacklistDuration = time.Second * 7200
+
+	// DefaultAutoscaleResourceLimiter defines the default resource limiter that scales with the physical resources available
+	DefaultAutoscaleResourceLimiter = "default autoscale"
+
+	// InfiniteResourceLimiter defines the infinite resource limiter that has maximum values on all fields
+	InfiniteResourceLimiter = "infinite"
+
+	// DefaultWithScaleResourceLimiter defines the default resource limiter that scales with the provided values
+	DefaultWithScaleResourceLimiter = "default with manual scale"
 )
 
 // BroadcastMethod defines the broadcast method of the message
