@@ -2,8 +2,6 @@ package mock
 
 import (
 	"sync"
-
-	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 // CacherMock -
@@ -145,11 +143,6 @@ func (cacher *CacherMock) RegisterHandler(handler func(key []byte, value interfa
 
 // UnRegisterHandler -
 func (cacher *CacherMock) UnRegisterHandler(string) {
-}
-
-// GetRemovalStatus -
-func (cacher *CacherMock) GetRemovalStatus(_ []byte) types.RemovalStatus {
-	return types.UnknownRemovalStatus
 }
 
 // Close -

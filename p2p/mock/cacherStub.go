@@ -1,7 +1,5 @@
 package mock
 
-import "github.com/multiversx/mx-chain-storage-go/types"
-
 // CacherStub -
 type CacherStub struct {
 	ClearCalled             func()
@@ -18,7 +16,6 @@ type CacherStub struct {
 	RegisterHandlerCalled   func(func(key []byte, value interface{}))
 	UnRegisterHandlerCalled func(id string)
 	CloseCalled             func() error
-	GetRemovalStatusCalled  func(key []byte) types.RemovalStatus
 }
 
 // Put -
@@ -117,15 +114,6 @@ func (cacher *CacherStub) UnRegisterHandler(id string) {
 	if cacher.UnRegisterHandlerCalled != nil {
 		cacher.UnRegisterHandlerCalled(id)
 	}
-}
-
-// GetRemovalStatus -
-func (cacher *CacherStub) GetRemovalStatus(key []byte) types.RemovalStatus {
-	if cacher.GetRemovalStatusCalled != nil {
-		return cacher.GetRemovalStatusCalled(key)
-	}
-
-	return types.UnknownRemovalStatus
 }
 
 // Clear -
