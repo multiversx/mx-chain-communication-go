@@ -673,7 +673,7 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	for i := 0; i < numBroadcasts; i++ {
 		go func() {
 			err := messenger.BroadcastOnChannelBlocking("test", "test", msg)
-			if err == p2p.ErrTooManyGoroutines {
+			if errors.Is(err, p2p.ErrTooManyGoroutines) {
 				atomic.AddUint32(&numErrors, 1)
 				wg.Done()
 			}
@@ -2369,12 +2369,12 @@ func TestNetworkMessenger_HasCompatibleProtocolID(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	assert.True(t, messenger1.HasCompatibleProtocolID(messenger2.ID()))
-	assert.True(t, messenger2.HasCompatibleProtocolID(messenger1.ID()))
+	assert.True(t, messenger1.HasCompatibleProtocolID(messenger2.Addresses()[0]))
+	assert.True(t, messenger2.HasCompatibleProtocolID(messenger1.Addresses()[0]))
 
-	assert.False(t, messenger1.HasCompatibleProtocolID(messenger3.ID()))
-	assert.False(t, messenger3.HasCompatibleProtocolID(messenger1.ID()))
+	assert.False(t, messenger1.HasCompatibleProtocolID(messenger3.Addresses()[0]))
+	assert.False(t, messenger3.HasCompatibleProtocolID(messenger1.Addresses()[0]))
 
-	assert.False(t, messenger2.HasCompatibleProtocolID(messenger3.ID()))
-	assert.False(t, messenger3.HasCompatibleProtocolID(messenger2.ID()))
+	assert.False(t, messenger2.HasCompatibleProtocolID(messenger3.Addresses()[0]))
+	assert.False(t, messenger3.HasCompatibleProtocolID(messenger2.Addresses()[0]))
 }

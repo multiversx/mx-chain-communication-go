@@ -25,7 +25,7 @@ type ConnectionsHandlerStub struct {
 	ThresholdMinConnectedPeersCalled    func() int
 	SetThresholdMinConnectedPeersCalled func(minConnectedPeers int) error
 	SetPeerDenialEvaluatorCalled        func(handler p2p.PeerDenialEvaluator) error
-	HasCompatibleProtocolIDCalled       func(pid core.PeerID) bool
+	HasCompatibleProtocolIDCalled       func(address string) bool
 	CloseCalled                         func() error
 }
 
@@ -157,9 +157,9 @@ func (stub *ConnectionsHandlerStub) SetPeerDenialEvaluator(handler p2p.PeerDenia
 }
 
 // HasCompatibleProtocolID -
-func (stub *ConnectionsHandlerStub) HasCompatibleProtocolID(pid core.PeerID) bool {
+func (stub *ConnectionsHandlerStub) HasCompatibleProtocolID(address string) bool {
 	if stub.HasCompatibleProtocolIDCalled != nil {
-		return stub.HasCompatibleProtocolIDCalled(pid)
+		return stub.HasCompatibleProtocolIDCalled(address)
 	}
 
 	return false

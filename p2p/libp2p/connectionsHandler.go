@@ -133,12 +133,19 @@ func (handler *connectionsHandler) Peers() []core.PeerID {
 	return peers
 }
 
-// HasCompatibleProtocolID returns true if the provided peer ID has at least one protocol in common with the current node
-func (handler *connectionsHandler) HasCompatibleProtocolID(pid core.PeerID) bool {
-	protocols, err := handler.p2pHost.Peerstore().GetProtocols(peer.ID(pid))
+// HasCompatibleProtocolID returns true if the provided address has at least one protocol in common with the current node
+func (handler *connectionsHandler) HasCompatibleProtocolID(address string) bool {
+	addrInfo, err := handler.p2pHost.AddressToPeerInfo(address)
+	if err != nil {
+		handler.log.Trace("connectionsHandler.AddressToPeerInfo error getting address info",
+			"address", address, "error", err.Error())
+		return false
+	}
+
+	protocols, err := handler.p2pHost.Peerstore().GetProtocols(addrInfo.ID)
 	if err != nil {
 		handler.log.Trace("connectionsHandler.HasCompatibleProtocolID error getting protocols",
-			"pid", pid.Pretty(), "error", err.Error())
+			"pid", addrInfo.ID.String(), "error", err.Error())
 		return false
 	}
 
