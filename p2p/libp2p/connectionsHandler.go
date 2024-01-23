@@ -141,6 +141,10 @@ func (handler *connectionsHandler) differentProtocolIdHandler(s network.Stream) 
 
 	handler.mutDifferentProtocolIdPeersMap.Lock()
 	defer handler.mutDifferentProtocolIdPeersMap.Unlock()
+	_, ok = handler.differentProtocolIdPeersMap[connectionString]
+	if ok {
+		return
+	}
 
 	handler.differentProtocolIdPeersMap[connectionString] = struct{}{}
 }
