@@ -413,6 +413,7 @@ func addComponentsToNode(
 		ConnectionsMetric:    connectionsMetric,
 		NetworkType:          p2pNode.networkType,
 		Logger:               p2pNode.log,
+		ProtocolID:           args.P2pConfig.KadDhtPeerDiscovery.ProtocolID,
 	}
 	p2pNode.ConnectionsHandler, err = NewConnectionsHandler(argsConnectionsHandler)
 	if err != nil {

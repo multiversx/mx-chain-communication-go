@@ -2323,3 +2323,58 @@ func TestParseTransportOptions(t *testing.T) {
 		})
 	})
 }
+
+func TestNetworkMessenger_HasCompatibleProtocolID(t *testing.T) {
+	arg1 := createMockNetworkArgs()
+	arg1.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
+		Enabled:                          true,
+		Type:                             "optimized",
+		RefreshIntervalInSec:             1,
+		RoutingTableRefreshIntervalInSec: 1,
+		ProtocolID:                       "/erd/kad/1.1.0",
+		InitialPeerList:                  nil,
+		BucketSize:                       100,
+	}
+	messenger1, _ := libp2p.NewNetworkMessenger(arg1)
+
+	arg2 := createMockNetworkArgs()
+	arg2.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery // copy by value
+	messenger2, _ := libp2p.NewNetworkMessenger(arg2)
+
+	arg3 := createMockNetworkArgs()
+	arg3.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery // copy by value
+	arg3.P2pConfig.KadDhtPeerDiscovery.ProtocolID = "/erd/kad/1.2.0"        // another protocol ID
+	messenger3, _ := libp2p.NewNetworkMessenger(arg3)
+
+	_ = messenger2.CreateTopic("test", true)
+	_ = messenger3.CreateTopic("test", true)
+
+	defer closeMessengers(messenger1, messenger2, messenger3)
+
+	// connect all peers
+	_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
+	_ = messenger1.ConnectToPeer(messenger3.Addresses()[0])
+	_ = messenger2.ConnectToPeer(messenger3.Addresses()[0])
+
+	time.Sleep(time.Second)
+
+	err := messenger1.Bootstrap()
+	assert.Nil(t, err)
+
+	err = messenger2.Bootstrap()
+	assert.Nil(t, err)
+
+	err = messenger3.Bootstrap()
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	assert.True(t, messenger1.HasCompatibleProtocolID(messenger2.ID()))
+	assert.True(t, messenger2.HasCompatibleProtocolID(messenger1.ID()))
+
+	assert.False(t, messenger1.HasCompatibleProtocolID(messenger3.ID()))
+	assert.False(t, messenger3.HasCompatibleProtocolID(messenger1.ID()))
+
+	assert.False(t, messenger2.HasCompatibleProtocolID(messenger3.ID()))
+	assert.False(t, messenger3.HasCompatibleProtocolID(messenger2.ID()))
+}

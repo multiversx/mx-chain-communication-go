@@ -72,6 +72,7 @@ type ConnectionsHandler interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
+	HasCompatibleProtocolID(pid core.PeerID) bool
 	IsInterfaceNil() bool
 }
 
