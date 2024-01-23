@@ -10,6 +10,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -30,23 +31,26 @@ type ArgConnectionsHandler struct {
 	ConnectionsMetric    ConnectionsMetric
 	NetworkType          p2p.NetworkType
 	Logger               p2p.Logger
+	ProtocolID           protocol.ID
 }
 
 type connectionsHandler struct {
-	ctx                  context.Context
-	cancelFunc           context.CancelFunc
-	p2pHost              ConnectableHost
-	peersOnChannel       PeersOnChannel
-	mutPeerResolver      sync.RWMutex
-	peerShardResolver    p2p.PeerShardResolver
-	sharder              p2p.Sharder
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	connMonitor          ConnectionMonitor
-	peerDiscoverer       p2p.PeerDiscoverer
-	peerID               core.PeerID
-	connectionsMetric    ConnectionsMetric
-	networkType          p2p.NetworkType
-	log                  p2p.Logger
+	ctx                            context.Context
+	cancelFunc                     context.CancelFunc
+	p2pHost                        ConnectableHost
+	peersOnChannel                 PeersOnChannel
+	mutPeerResolver                sync.RWMutex
+	peerShardResolver              p2p.PeerShardResolver
+	sharder                        p2p.Sharder
+	preferredPeersHolder           p2p.PreferredPeersHolderHandler
+	connMonitor                    ConnectionMonitor
+	peerDiscoverer                 p2p.PeerDiscoverer
+	peerID                         core.PeerID
+	connectionsMetric              ConnectionsMetric
+	networkType                    p2p.NetworkType
+	log                            p2p.Logger
+	differentProtocolIdPeersMap    map[string]struct{}
+	mutDifferentProtocolIdPeersMap sync.RWMutex
 }
 
 // NewConnectionsHandler creates a new connections manager
@@ -58,22 +62,30 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &connectionsHandler{
-		ctx:                  ctx,
-		cancelFunc:           cancel,
-		p2pHost:              args.P2pHost,
-		peersOnChannel:       args.PeersOnChannel,
-		peerShardResolver:    args.PeerShardResolver,
-		sharder:              args.Sharder,
-		preferredPeersHolder: args.PreferredPeersHolder,
-		connMonitor:          args.ConnMonitor,
-		peerDiscoverer:       args.PeerDiscoverer,
-		peerID:               args.PeerID,
-		connectionsMetric:    args.ConnectionsMetric,
-		log:                  args.Logger,
-		networkType:          args.NetworkType,
+		ctx:                         ctx,
+		cancelFunc:                  cancel,
+		p2pHost:                     args.P2pHost,
+		peersOnChannel:              args.PeersOnChannel,
+		peerShardResolver:           args.PeerShardResolver,
+		sharder:                     args.Sharder,
+		preferredPeersHolder:        args.PreferredPeersHolder,
+		connMonitor:                 args.ConnMonitor,
+		peerDiscoverer:              args.PeerDiscoverer,
+		peerID:                      args.PeerID,
+		connectionsMetric:           args.ConnectionsMetric,
+		log:                         args.Logger,
+		networkType:                 args.NetworkType,
+		differentProtocolIdPeersMap: make(map[string]struct{}),
 	}
 
 	go handler.printLogs()
+
+	handler.p2pHost.SetStreamHandlerMatch(
+		args.ProtocolID,
+		func(id protocol.ID) bool {
+			return !strings.Contains(string(id), string(args.ProtocolID))
+		},
+		handler.differentProtocolIdHandler)
 
 	return handler, nil
 }
@@ -108,6 +120,29 @@ func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
 	}
 
 	return nil
+}
+
+// TODO:
+//   - activate this only for seeder
+//   - add 2 new exported methods, both for seeder:
+//     1. ResetPeersOnDifferentProtocol?
+//     2. GetPeersOnDifferentProtocol?
+func (handler *connectionsHandler) differentProtocolIdHandler(s network.Stream) {
+	connectionString := s.Conn().RemoteMultiaddr().String() + "/p2p/" + s.Conn().RemotePeer().String()
+
+	handler.mutDifferentProtocolIdPeersMap.RLock()
+	_, ok := handler.differentProtocolIdPeersMap[connectionString]
+	if ok {
+		handler.mutDifferentProtocolIdPeersMap.RUnlock()
+		return
+	}
+
+	handler.mutDifferentProtocolIdPeersMap.RUnlock()
+
+	handler.mutDifferentProtocolIdPeersMap.Lock()
+	defer handler.mutDifferentProtocolIdPeersMap.Unlock()
+
+	handler.differentProtocolIdPeersMap[connectionString] = struct{}{}
 }
 
 // Bootstrap will start the peer discovery mechanism
