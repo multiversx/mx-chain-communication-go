@@ -2325,6 +2325,10 @@ func TestParseTransportOptions(t *testing.T) {
 }
 
 func TestNetworkMessenger_HasCompatibleProtocolID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("completely different protocols", func(t *testing.T) {
 		arg1 := createMockNetworkArgs()
 		arg1.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
