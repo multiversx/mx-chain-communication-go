@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
@@ -702,5 +703,94 @@ func TestConnectionsHandler_Close(t *testing.T) {
 		assert.False(t, check.IfNil(ch))
 		err := ch.Close()
 		assert.Equal(t, expectedErr, err)
+	})
+}
+
+func TestPeersOnChannel_HasCompatibleProtocolID(t *testing.T) {
+	t.Parallel()
+
+	pidString := "16Uiu2HAkwSencHzCkH9G7bHNSt1pM1VLC8fAkRjXSqwgyK9RupmA"
+	testAddress := "/ip4/127.0.0.1/tcp/10000/p2p/" + pidString
+	t.Run("AddressToPeerInfo errors should return false", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.P2pHost = &mock.ConnectableHostStub{
+			AddressToPeerInfoCalled: func(address string) (*peer.AddrInfo, error) {
+				return nil, expectedErr
+			},
+			PeerstoreCalled: func() peerstore.Peerstore {
+				return &mock.PeerstoreStub{
+					GetProtocolsCalled: func(id peer.ID) ([]protocol.ID, error) {
+						assert.Fail(t, "should have not called GetProtocols")
+						return nil, expectedErr
+					},
+				}
+			},
+		}
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
+		assert.False(t, ch.HasCompatibleProtocolID("invalid address"))
+	})
+	t.Run("GetProtocols errors should return false", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.P2pHost = &mock.ConnectableHostStub{
+			PeerstoreCalled: func() peerstore.Peerstore {
+				return &mock.PeerstoreStub{
+					GetProtocolsCalled: func(id peer.ID) ([]protocol.ID, error) {
+						assert.Equal(t, pidString, id.String())
+						return nil, expectedErr
+					},
+				}
+			},
+		}
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
+		assert.False(t, ch.HasCompatibleProtocolID(testAddress))
+	})
+	t.Run("GetProtocols returns a non matching protocol ID", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.ProtocolID = "protocol ID 1"
+		args.P2pHost = &mock.ConnectableHostStub{
+			PeerstoreCalled: func() peerstore.Peerstore {
+				return &mock.PeerstoreStub{
+					GetProtocolsCalled: func(id peer.ID) ([]protocol.ID, error) {
+						assert.Equal(t, pidString, id.String())
+
+						return []protocol.ID{
+							"protocol ID 2" + libp2p.KadProtocol,
+							"protocol ID 3" + libp2p.KadProtocol,
+						}, nil
+					},
+				}
+			},
+		}
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
+		assert.False(t, ch.HasCompatibleProtocolID(testAddress))
+	})
+	t.Run("GetProtocols returns a matching protocol ID", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgConnectionsHandler()
+		args.ProtocolID = "protocol ID 1"
+		args.P2pHost = &mock.ConnectableHostStub{
+			PeerstoreCalled: func() peerstore.Peerstore {
+				return &mock.PeerstoreStub{
+					GetProtocolsCalled: func(id peer.ID) ([]protocol.ID, error) {
+						assert.Equal(t, pidString, id.String())
+
+						return []protocol.ID{
+							"protocol ID 2" + libp2p.KadProtocol,
+							"protocol ID 1" + libp2p.KadProtocol,
+							"protocol ID 3" + libp2p.KadProtocol,
+						}, nil
+					},
+				}
+			},
+		}
+		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
+		assert.True(t, ch.HasCompatibleProtocolID(testAddress))
 	})
 }
