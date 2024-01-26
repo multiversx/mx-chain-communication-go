@@ -49,7 +49,7 @@ func (netMes *networkMessenger) SetLoadBalancer(outgoingCLB ChannelLoadBalancer)
 
 // SetPeerDiscoverer -
 func (handler *connectionsHandler) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer) {
-	handler.peerDiscoverer = discoverer
+	handler.peerDiscoverers = []p2p.PeerDiscoverer{discoverer}
 }
 
 // SetPeerDiscoverer -
@@ -302,6 +302,13 @@ func NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args ArgMessagesHandl
 // NewConnectionsHandlerWithNoRoutine -
 func NewConnectionsHandlerWithNoRoutine(args ArgConnectionsHandler) *connectionsHandler {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	protocolIDs := make(map[string]struct{})
+	for i := 0; i < len(args.ProtocolIDs); i++ {
+		// this suffix is done automatically in dht.go L280 (v1proto := cfg.ProtocolPrefix + kad1)
+		protocolIDs[args.ProtocolIDs[i]+kadProtocol] = struct{}{}
+	}
+
 	return &connectionsHandler{
 		ctx:                  ctx,
 		cancelFunc:           cancel,
@@ -311,11 +318,11 @@ func NewConnectionsHandlerWithNoRoutine(args ArgConnectionsHandler) *connections
 		sharder:              args.Sharder,
 		preferredPeersHolder: args.PreferredPeersHolder,
 		connMonitor:          args.ConnMonitor,
-		peerDiscoverer:       args.PeerDiscoverer,
+		peerDiscoverers:      args.PeerDiscoverers,
 		peerID:               args.PeerID,
 		connectionsMetric:    args.ConnectionsMetric,
 		log:                  args.Logger,
-		protocolID:           args.ProtocolID,
+		protocolIDs:          protocolIDs,
 	}
 }
 

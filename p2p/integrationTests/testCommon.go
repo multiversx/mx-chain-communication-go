@@ -39,7 +39,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			Enabled:                          true,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             2,
-			ProtocolID:                       "/erd/kad/1.0.0",
+			ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 			InitialPeerList:                  initialPeerList,
 			BucketSize:                       100,
 			RoutingTableRefreshIntervalInSec: 100,
@@ -197,13 +197,13 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 }
 
 // CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
-func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID string) p2p.Messenger {
+func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID []string) p2p.Messenger {
 	initialAddresses := make([]string, 0)
 	if len(initialAddr) > 0 {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	p2pCfg := createP2PConfig(initialAddresses)
-	p2pCfg.KadDhtPeerDiscovery.ProtocolID = protocolID
+	p2pCfg.KadDhtPeerDiscovery.ProtocolIDs = protocolID
 
 	return CreateMessengerFromConfig(p2pCfg)
 }

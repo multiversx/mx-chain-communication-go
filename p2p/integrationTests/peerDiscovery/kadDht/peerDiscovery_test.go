@@ -13,7 +13,7 @@ import (
 
 var durationTopicAnnounceTime = 2 * time.Second
 
-func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
+func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndTwoNetworks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -21,14 +21,18 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 	numOfPeers := 20
 
 	//Step 1. Create advertiser
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	advertiser := integrationTests.CreateMessengerWithKadDhtAndProtocolID("", []string{"/erd/kad/1.1.0", "mvx"})
 	_ = advertiser.Bootstrap()
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
-		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
+		protocolIDs := []string{"/erd/kad/1.1.0"}
+		if i < numOfPeers/2 {
+			protocolIDs = []string{"/erd/kad/1.1.0", "mvx"}
+		}
+		peers[i] = integrationTests.CreateMessengerWithKadDhtAndProtocolID(integrationTests.GetConnectableAddress(advertiser), protocolIDs)
 
 		_ = peers[i].Bootstrap()
 	}
@@ -140,15 +144,15 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 
 	peer1 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
 		integrationTests.GetConnectableAddress(advertiser),
-		protocolID1,
+		[]string{protocolID1},
 	)
 	peer2 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
 		integrationTests.GetConnectableAddress(advertiser),
-		protocolID1,
+		[]string{protocolID1},
 	)
 	peer3 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
 		integrationTests.GetConnectableAddress(advertiser),
-		protocolID2,
+		[]string{protocolID2},
 	)
 
 	peers := []p2p.Messenger{peer1, peer2, peer3}
