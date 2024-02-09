@@ -86,7 +86,6 @@ type Messenger interface {
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
-	AddPeerTopicNotifier(notifier PeerTopicNotifier) error
 	IsInterfaceNil() bool
 }
 
@@ -254,12 +253,6 @@ type PeersRatingHandler interface {
 // PeersRatingMonitor represent an entity able to provide peers ratings
 type PeersRatingMonitor interface {
 	GetConnectedPeersRatings(connectionsHandler ConnectionsHandler) (string, error)
-	IsInterfaceNil() bool
-}
-
-// PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
-type PeerTopicNotifier interface {
-	NewPeerFound(pid core.PeerID, topic string)
 	IsInterfaceNil() bool
 }
 
