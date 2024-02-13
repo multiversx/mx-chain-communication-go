@@ -31,7 +31,7 @@ func createMockArgConnectionsHandler() libp2p.ArgConnectionsHandler {
 		Sharder:              &mock.SharderStub{},
 		PreferredPeersHolder: &mock.PeersHolderStub{},
 		ConnMonitor:          &mock.ConnectionMonitorStub{},
-		PeerDiscoverer:       &mock.PeerDiscovererStub{},
+		PeerDiscoverers:      []p2p.PeerDiscoverer{&mock.PeerDiscovererStub{}},
 		PeerID:               providedPid,
 		ConnectionsMetric:    &mock.ConnectionsMetricStub{},
 		Logger:               &testscommon.LoggerStub{},
@@ -99,7 +99,7 @@ func TestNewConnectionsHandler(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgConnectionsHandler()
-		args.PeerDiscoverer = nil
+		args.PeerDiscoverers = []p2p.PeerDiscoverer{nil}
 		ch, err := libp2p.NewConnectionsHandler(args)
 		assert.Equal(t, p2p.ErrNilPeerDiscoverer, err)
 		assert.True(t, check.IfNil(ch))
@@ -140,9 +140,11 @@ func TestConnectionsHandler_Bootstrap(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgConnectionsHandler()
-		args.PeerDiscoverer = &mock.PeerDiscovererStub{
-			BootstrapCalled: func() error {
-				return expectedErr
+		args.PeerDiscoverers = []p2p.PeerDiscoverer{
+			&mock.PeerDiscovererStub{
+				BootstrapCalled: func() error {
+					return expectedErr
+				},
 			},
 		}
 		ch := libp2p.NewConnectionsHandlerWithNoRoutine(args)
@@ -752,7 +754,7 @@ func TestPeersOnChannel_HasCompatibleProtocolID(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgConnectionsHandler()
-		args.ProtocolID = "protocol ID 1"
+		args.ProtocolIDs = []string{"protocol ID 1"}
 		args.P2pHost = &mock.ConnectableHostStub{
 			PeerstoreCalled: func() peerstore.Peerstore {
 				return &mock.PeerstoreStub{
@@ -774,7 +776,7 @@ func TestPeersOnChannel_HasCompatibleProtocolID(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgConnectionsHandler()
-		args.ProtocolID = "protocol ID 1"
+		args.ProtocolIDs = []string{"protocol ID 1"}
 		args.P2pHost = &mock.ConnectableHostStub{
 			PeerstoreCalled: func() peerstore.Peerstore {
 				return &mock.PeerstoreStub{
