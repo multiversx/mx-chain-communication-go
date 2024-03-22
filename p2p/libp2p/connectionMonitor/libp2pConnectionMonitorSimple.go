@@ -21,7 +21,7 @@ const (
 
 type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
-	reconnecter                p2p.Reconnecter
+	reconnecters               []p2p.Reconnecter
 	thresholdMinConnectedPeers int
 	sharder                    Sharder
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
@@ -35,7 +35,7 @@ type libp2pConnectionMonitorSimple struct {
 
 // ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
 type ArgsConnectionMonitorSimple struct {
-	Reconnecter                p2p.Reconnecter
+	Reconnecters               []p2p.Reconnecter
 	ThresholdMinConnectedPeers uint32
 	Sharder                    Sharder
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
@@ -56,7 +56,7 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	cm := &libp2pConnectionMonitorSimple{
-		reconnecter:                args.Reconnecter,
+		reconnecters:               args.Reconnecters,
 		chDoReconnect:              make(chan struct{}),
 		thresholdMinConnectedPeers: int(args.ThresholdMinConnectedPeers),
 		sharder:                    args.Sharder,
@@ -76,9 +76,12 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 }
 
 func checkArgs(args ArgsConnectionMonitorSimple) error {
-	if check.IfNil(args.Reconnecter) {
-		return p2p.ErrNilReconnecter
+	for _, reconnecter := range args.Reconnecters {
+		if check.IfNil(reconnecter) {
+			return p2p.ErrNilReconnecter
+		}
 	}
+
 	if check.IfNil(args.Sharder) {
 		return p2p.ErrNilSharder
 	}
@@ -179,7 +182,7 @@ func (lcms *libp2pConnectionMonitorSimple) processLoop(ctx context.Context) {
 			}
 
 			lcms.log.Debug("reconnecting to network...")
-			lcms.reconnecter.ReconnectToNetwork(ctx)
+			lcms.reconnectToNetwork(ctx)
 			timerBetweenReconnectAttempts.Reset(durationBetweenReconnectAttempts)
 			canReconnect.SetValue(false)
 		case <-timerBetweenReconnectAttempts.C:
@@ -187,6 +190,12 @@ func (lcms *libp2pConnectionMonitorSimple) processLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func (lcms *libp2pConnectionMonitorSimple) reconnectToNetwork(ctx context.Context) {
+	for _, reconnecter := range lcms.reconnecters {
+		reconnecter.ReconnectToNetwork(ctx)
 	}
 }
 

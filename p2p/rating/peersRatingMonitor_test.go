@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreMocks "github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,8 +49,8 @@ func TestNewPeersRatingMonitor(t *testing.T) {
 		t.Parallel()
 
 		args := ArgPeersRatingMonitor{
-			TopRatedCache: coreMocks.NewCacherMock(),
-			BadRatedCache: coreMocks.NewCacherMock(),
+			TopRatedCache: mock.NewCacherMock(),
+			BadRatedCache: mock.NewCacherMock(),
 		}
 
 		monitor, err := NewPeersRatingMonitor(args)
@@ -67,8 +66,8 @@ func TestPeersRatingMonitor_GetConnectedPeersRatings(t *testing.T) {
 		t.Parallel()
 
 		args := ArgPeersRatingMonitor{
-			TopRatedCache: coreMocks.NewCacherMock(),
-			BadRatedCache: coreMocks.NewCacherMock(),
+			TopRatedCache: mock.NewCacherMock(),
+			BadRatedCache: mock.NewCacherMock(),
 		}
 		monitor, err := NewPeersRatingMonitor(args)
 		assert.Nil(t, err)
@@ -81,8 +80,8 @@ func TestPeersRatingMonitor_GetConnectedPeersRatings(t *testing.T) {
 		t.Parallel()
 
 		args := ArgPeersRatingMonitor{
-			TopRatedCache: coreMocks.NewCacherMock(),
-			BadRatedCache: coreMocks.NewCacherMock(),
+			TopRatedCache: mock.NewCacherMock(),
+			BadRatedCache: mock.NewCacherMock(),
 		}
 		topPid1 := core.PeerID("top_pid1") // won't be returned as connection
 		args.TopRatedCache.Put(topPid1.Bytes(), int32(100), 32)
@@ -133,8 +132,8 @@ func TestPeersRatingMonitor_IsInterfaceNil(t *testing.T) {
 	assert.True(t, monitor.IsInterfaceNil())
 
 	monitor, _ = NewPeersRatingMonitor(ArgPeersRatingMonitor{
-		TopRatedCache: coreMocks.NewCacherMock(),
-		BadRatedCache: coreMocks.NewCacherMock(),
+		TopRatedCache: mock.NewCacherMock(),
+		BadRatedCache: mock.NewCacherMock(),
 	})
 	assert.False(t, monitor.IsInterfaceNil())
 }
