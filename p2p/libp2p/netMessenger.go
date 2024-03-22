@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -81,8 +79,6 @@ type networkMessenger struct {
 	p2pHost                 ConnectableHost
 	port                    int
 	printConnectionsWatcher p2p.ConnectionsWatcher
-	mutPeerTopicNotifiers   sync.RWMutex
-	peerTopicNotifiers      []p2p.PeerTopicNotifier
 	networkType             p2p.NetworkType
 	log                     p2p.Logger
 }
@@ -221,7 +217,6 @@ func constructNode(
 		p2pHost:                 NewConnectableHost(h),
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
-		peerTopicNotifiers:      make([]p2p.PeerTopicNotifier, 0),
 		networkType:             args.NetworkType,
 		log:                     args.Logger,
 	}
@@ -443,22 +438,9 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
-	optsPS = append(optsPS,
-		pubsub.WithPeerFilter(netMes.newPeerFound),
-		pubsub.WithMaxMessageSize(pubSubMaxMessageSize),
-	)
+	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
 
 	return pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
-}
-
-func (netMes *networkMessenger) newPeerFound(pid peer.ID, topic string) bool {
-	netMes.mutPeerTopicNotifiers.RLock()
-	defer netMes.mutPeerTopicNotifiers.RUnlock()
-	for _, notifier := range netMes.peerTopicNotifiers {
-		notifier.NewPeerFound(core.PeerID(pid), topic)
-	}
-
-	return true
 }
 
 func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (p2p.Sharder, error) {
@@ -613,21 +595,6 @@ func (netMes *networkMessenger) ID() core.PeerID {
 // Port returns the port that this network messenger is using
 func (netMes *networkMessenger) Port() int {
 	return netMes.port
-}
-
-// AddPeerTopicNotifier will add a new peer topic notifier
-func (netMes *networkMessenger) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) error {
-	if check.IfNil(notifier) {
-		return p2p.ErrNilPeerTopicNotifier
-	}
-
-	netMes.mutPeerTopicNotifiers.Lock()
-	netMes.peerTopicNotifiers = append(netMes.peerTopicNotifiers, notifier)
-	netMes.mutPeerTopicNotifiers.Unlock()
-
-	netMes.log.Debug("networkMessenger.AddPeerTopicNotifier", "type", fmt.Sprintf("%T", notifier))
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
