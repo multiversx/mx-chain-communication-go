@@ -24,6 +24,7 @@ var SequenceNumberSize = sequenceNumberSize
 
 const CurrentTopicMessageVersion = currentTopicMessageVersion
 const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval
+const KadProtocol = kadProtocol
 
 // SetHost -
 func (handler *connectionsHandler) SetHost(newHost ConnectableHost) {
@@ -314,6 +315,7 @@ func NewConnectionsHandlerWithNoRoutine(args ArgConnectionsHandler) *connections
 		peerID:               args.PeerID,
 		connectionsMetric:    args.ConnectionsMetric,
 		log:                  args.Logger,
+		protocolID:           args.ProtocolID,
 	}
 }
 

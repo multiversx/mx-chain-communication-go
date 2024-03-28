@@ -72,6 +72,7 @@ type ConnectionsHandler interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
+	HasCompatibleProtocolID(address string) bool
 	IsInterfaceNil() bool
 }
 

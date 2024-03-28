@@ -391,6 +391,7 @@ func addComponentsToNode(
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,
+		NetworkType:        p2pNode.networkType,
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {
@@ -412,6 +413,7 @@ func addComponentsToNode(
 		ConnectionsMetric:    connectionsMetric,
 		NetworkType:          p2pNode.networkType,
 		Logger:               p2pNode.log,
+		ProtocolID:           args.P2pConfig.KadDhtPeerDiscovery.ProtocolID,
 	}
 	p2pNode.ConnectionsHandler, err = NewConnectionsHandler(argsConnectionsHandler)
 	if err != nil {
