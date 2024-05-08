@@ -15,8 +15,8 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/multiformats/go-multiaddr v0.9.0
 	github.com/multiversx/mx-chain-core-go v1.2.20-0.20240507090904-fb3dbed69fd0
-	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231206065052-38843c1f1479
-	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
+	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508065100-8a7f82bfdcd4
+	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508062638-b5e409988931
 	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240507133659-ea37d8e8e129
 	github.com/stretchr/testify v1.8.4
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
