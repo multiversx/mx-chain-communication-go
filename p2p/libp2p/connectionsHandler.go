@@ -16,6 +16,7 @@ import (
 )
 
 const timeBetweenPeerPrints = time.Second * 20
+const kadProtocol = "/kad/1.0.0"
 
 // ArgConnectionsHandler is the DTO struct used to create a new instance of connections handler
 type ArgConnectionsHandler struct {
@@ -30,6 +31,7 @@ type ArgConnectionsHandler struct {
 	ConnectionsMetric    ConnectionsMetric
 	NetworkType          p2p.NetworkType
 	Logger               p2p.Logger
+	ProtocolID           string
 }
 
 type connectionsHandler struct {
@@ -47,6 +49,7 @@ type connectionsHandler struct {
 	connectionsMetric    ConnectionsMetric
 	networkType          p2p.NetworkType
 	log                  p2p.Logger
+	protocolID           string
 }
 
 // NewConnectionsHandler creates a new connections manager
@@ -71,6 +74,7 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 		connectionsMetric:    args.ConnectionsMetric,
 		log:                  args.Logger,
 		networkType:          args.NetworkType,
+		protocolID:           args.ProtocolID,
 	}
 
 	go handler.printLogs()
@@ -127,6 +131,32 @@ func (handler *connectionsHandler) Peers() []core.PeerID {
 		peers = append(peers, core.PeerID(p))
 	}
 	return peers
+}
+
+// HasCompatibleProtocolID returns true if the provided address has at least one protocol in common with the current node
+func (handler *connectionsHandler) HasCompatibleProtocolID(address string) bool {
+	addrInfo, err := handler.p2pHost.AddressToPeerInfo(address)
+	if err != nil {
+		handler.log.Trace("connectionsHandler.AddressToPeerInfo error getting address info",
+			"address", address, "error", err.Error())
+		return false
+	}
+
+	protocols, err := handler.p2pHost.Peerstore().GetProtocols(addrInfo.ID)
+	if err != nil {
+		handler.log.Trace("connectionsHandler.HasCompatibleProtocolID error getting protocols",
+			"pid", addrInfo.ID.String(), "error", err.Error())
+		return false
+	}
+
+	for i := 0; i < len(protocols); i++ {
+		// this suffix is done automatically in dht.go L280 (v1proto := cfg.ProtocolPrefix + kad1)
+		if handler.protocolID+kadProtocol == string(protocols[i]) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Addresses returns all addresses found in peerstore

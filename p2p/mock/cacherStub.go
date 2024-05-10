@@ -18,13 +18,6 @@ type CacherStub struct {
 	CloseCalled             func() error
 }
 
-// Clear -
-func (cacher *CacherStub) Clear() {
-	if cacher.ClearCalled != nil {
-		cacher.ClearCalled()
-	}
-}
-
 // Put -
 func (cacher *CacherStub) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 	if cacher.PutCalled != nil {
@@ -123,9 +116,11 @@ func (cacher *CacherStub) UnRegisterHandler(id string) {
 	}
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (cacher *CacherStub) IsInterfaceNil() bool {
-	return cacher == nil
+// Clear -
+func (cacher *CacherStub) Clear() {
+	if cacher.ClearCalled != nil {
+		cacher.ClearCalled()
+	}
 }
 
 // Close -
@@ -135,4 +130,9 @@ func (cacher *CacherStub) Close() error {
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cacher *CacherStub) IsInterfaceNil() bool {
+	return cacher == nil
 }
