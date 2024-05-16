@@ -328,7 +328,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 		Enabled:                          true,
 		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
-		ProtocolID:                       "/erd/kad/1.0.0",
+		ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
@@ -346,7 +346,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 		Enabled:                          true,
 		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
-		ProtocolID:                       "/erd/kad/1.0.0",
+		ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
@@ -368,7 +368,7 @@ func TestNewNetworkMessenger_WithListenAddrWithIp4AndTcpShouldWork(t *testing.T)
 		Enabled:                          true,
 		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
-		ProtocolID:                       "/erd/kad/1.0.0",
+		ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
@@ -1874,7 +1874,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Enabled:                          true,
 				Type:                             "optimized",
 				RefreshIntervalInSec:             10,
-				ProtocolID:                       "erd/kad/1.0.0",
+				ProtocolIDs:                      []string{"erd/kad/1.0.0"},
 				InitialPeerList:                  []string{"/ip4/35.214.140.83/tcp/10000/p2p/16Uiu2HAm6hPymvkZyFgbvWaVBKhEoPjmXhkV32r9JaFvQ7Rk8ynU"},
 				BucketSize:                       10,
 				RoutingTableRefreshIntervalInSec: 5,
@@ -2047,122 +2047,6 @@ func createP2PPrivKeyAndPid() ([]byte, peer.ID) {
 	return p2pPrivKeyBytes, pid
 }
 
-func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	waitForPubSubTime := time.Second * 3
-
-	t.Run("nil topic notifier should error", func(t *testing.T) {
-		messenger, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-		defer closeMessengers(messenger)
-
-		err := messenger.AddPeerTopicNotifier(nil)
-		assert.Equal(t, p2p.ErrNilPeerTopicNotifier, err)
-	})
-	t.Run("2 peers on different topics should not notify", func(t *testing.T) {
-		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-		defer closeMessengers(messenger1, messenger2)
-
-		peerTopicNotifier := &mock.PeerTopicNotifierStub{
-			NewPeerFoundCalled: func(pid core.PeerID, topic string) {
-				assert.Fail(t, fmt.Sprintf("should have not notified: topic %s, pid %s", topic, pid.Pretty()))
-			},
-		}
-
-		err := messenger1.AddPeerTopicNotifier(peerTopicNotifier)
-		assert.Nil(t, err)
-		err = messenger2.AddPeerTopicNotifier(peerTopicNotifier)
-		assert.Nil(t, err)
-
-		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
-		time.Sleep(waitForPubSubTime) // wait a bit for pubsub
-
-		_ = messenger1.CreateTopic("topic1", true)
-		_ = messenger1.CreateTopic("topic2", true)
-
-		time.Sleep(waitForPubSubTime) // wait a bit for pubsub
-	})
-	t.Run("2 peers on same topic should notify", func(t *testing.T) {
-		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-		defer closeMessengers(messenger1, messenger2)
-
-		mut := sync.RWMutex{}
-		peersOnTopicsFound := make(map[core.PeerID]map[string]int)
-
-		peerTopicNotifier := &mock.PeerTopicNotifierStub{
-			NewPeerFoundCalled: func(pid core.PeerID, topic string) {
-				mut.Lock()
-				topics := peersOnTopicsFound[pid]
-				if topics == nil {
-					topics = make(map[string]int)
-					peersOnTopicsFound[pid] = topics
-				}
-
-				// warning: pubsub v0.8.1 might call multiple times the handler defined in pubsub.WithPeerFilter call for a new peer found
-				peersOnTopicsFound[pid][topic]++
-				mut.Unlock()
-			},
-		}
-
-		err := messenger1.AddPeerTopicNotifier(peerTopicNotifier)
-		assert.Nil(t, err)
-		err = messenger2.AddPeerTopicNotifier(peerTopicNotifier)
-		assert.Nil(t, err)
-
-		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
-		log.Info("netMes1 connected to netMes2, waiting on pubsub")
-		time.Sleep(waitForPubSubTime)
-
-		mut.RLock()
-		assert.Equal(t, 0, len(peersOnTopicsFound))
-		mut.RUnlock()
-
-		log.Info("creating topic1 on netMes1 and netMes2 an then waiting on pubsub")
-		_ = messenger1.CreateTopic("topic1", true)
-		_ = messenger2.CreateTopic("topic1", true)
-		time.Sleep(waitForPubSubTime)
-
-		mut.RLock()
-		assert.Equal(t, 2, len(peersOnTopicsFound))
-		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic1"] >= 1)
-		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic1"] >= 1)
-		mut.RUnlock()
-
-		log.Info("creating topic2 on netMes1 and netMes2 an then waiting on pubsub")
-		_ = messenger1.CreateTopic("topic2", true)
-		_ = messenger2.CreateTopic("topic2", true)
-		time.Sleep(waitForPubSubTime)
-
-		mut.RLock()
-		assert.Equal(t, 2, len(peersOnTopicsFound))
-		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic1"] >= 1)
-		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic1"] >= 1)
-		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic2"] >= 1)
-		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic2"] >= 1)
-		mut.RUnlock()
-
-		log.Info("disconnecting netMes2 from netMes1...")
-		_ = messenger2.Disconnect(messenger1.ID())
-		time.Sleep(waitForPubSubTime)
-
-		log.Info("reconnecting netMes2 to netMes1...")
-		_ = messenger2.ConnectToPeer(messenger1.Addresses()[0])
-		time.Sleep(waitForPubSubTime)
-
-		mut.RLock()
-		assert.Equal(t, 2, len(peersOnTopicsFound))
-		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic1"] >= 2)
-		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic1"] >= 2)
-		assert.True(t, peersOnTopicsFound[messenger1.ID()]["topic2"] >= 2)
-		assert.True(t, peersOnTopicsFound[messenger2.ID()]["topic2"] >= 2)
-		mut.RUnlock()
-	})
-}
-
 func TestParseTransportOptions(t *testing.T) {
 	t.Parallel()
 
@@ -2325,56 +2209,116 @@ func TestParseTransportOptions(t *testing.T) {
 }
 
 func TestNetworkMessenger_HasCompatibleProtocolID(t *testing.T) {
-	arg1 := createMockNetworkArgs()
-	arg1.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
-		Enabled:                          true,
-		Type:                             "optimized",
-		RefreshIntervalInSec:             1,
-		RoutingTableRefreshIntervalInSec: 1,
-		ProtocolID:                       "/erd/kad/1.1.0",
-		InitialPeerList:                  nil,
-		BucketSize:                       100,
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
-	messenger1, _ := libp2p.NewNetworkMessenger(arg1)
 
-	arg2 := createMockNetworkArgs()
-	arg2.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery // copy by value
-	messenger2, _ := libp2p.NewNetworkMessenger(arg2)
+	t.Run("completely different protocols", func(t *testing.T) {
+		arg1 := createMockNetworkArgs()
+		arg1.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			Type:                             "optimized",
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 1,
+			ProtocolIDs:                      []string{"/erd/kad/1.1.0"},
+			InitialPeerList:                  nil,
+			BucketSize:                       100,
+		}
+		messenger1, _ := libp2p.NewNetworkMessenger(arg1)
 
-	arg3 := createMockNetworkArgs()
-	arg3.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery // copy by value
-	arg3.P2pConfig.KadDhtPeerDiscovery.ProtocolID = "/erd/kad/1.2.0"        // another protocol ID
-	messenger3, _ := libp2p.NewNetworkMessenger(arg3)
+		arg2 := createMockNetworkArgs()
+		arg2.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery // copy by value
+		messenger2, _ := libp2p.NewNetworkMessenger(arg2)
 
-	_ = messenger2.CreateTopic("test", true)
-	_ = messenger3.CreateTopic("test", true)
+		arg3 := createMockNetworkArgs()
+		arg3.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery     // copy by value
+		arg3.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs = []string{"/erd/kad/1.2.0"} // another protocol ID
+		messenger3, _ := libp2p.NewNetworkMessenger(arg3)
 
-	defer closeMessengers(messenger1, messenger2, messenger3)
+		_ = messenger2.CreateTopic("test", true)
+		_ = messenger3.CreateTopic("test", true)
 
-	// connect all peers
-	_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
-	_ = messenger1.ConnectToPeer(messenger3.Addresses()[0])
-	_ = messenger2.ConnectToPeer(messenger3.Addresses()[0])
+		defer closeMessengers(messenger1, messenger2, messenger3)
 
-	time.Sleep(time.Second)
+		// connect all peers
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
+		_ = messenger1.ConnectToPeer(messenger3.Addresses()[0])
+		_ = messenger2.ConnectToPeer(messenger3.Addresses()[0])
 
-	err := messenger1.Bootstrap()
-	assert.Nil(t, err)
+		time.Sleep(time.Second)
 
-	err = messenger2.Bootstrap()
-	assert.Nil(t, err)
+		err := messenger1.Bootstrap()
+		assert.Nil(t, err)
 
-	err = messenger3.Bootstrap()
-	assert.Nil(t, err)
+		err = messenger2.Bootstrap()
+		assert.Nil(t, err)
 
-	time.Sleep(time.Second)
+		err = messenger3.Bootstrap()
+		assert.Nil(t, err)
 
-	assert.True(t, messenger1.HasCompatibleProtocolID(messenger2.Addresses()[0]))
-	assert.True(t, messenger2.HasCompatibleProtocolID(messenger1.Addresses()[0]))
+		time.Sleep(time.Second)
 
-	assert.False(t, messenger1.HasCompatibleProtocolID(messenger3.Addresses()[0]))
-	assert.False(t, messenger3.HasCompatibleProtocolID(messenger1.Addresses()[0]))
+		assert.True(t, messenger1.HasCompatibleProtocolID(messenger2.Addresses()[0]))
+		assert.True(t, messenger2.HasCompatibleProtocolID(messenger1.Addresses()[0]))
 
-	assert.False(t, messenger2.HasCompatibleProtocolID(messenger3.Addresses()[0]))
-	assert.False(t, messenger3.HasCompatibleProtocolID(messenger2.Addresses()[0]))
+		assert.False(t, messenger1.HasCompatibleProtocolID(messenger3.Addresses()[0]))
+		assert.False(t, messenger3.HasCompatibleProtocolID(messenger1.Addresses()[0]))
+
+		assert.False(t, messenger2.HasCompatibleProtocolID(messenger3.Addresses()[0]))
+		assert.False(t, messenger3.HasCompatibleProtocolID(messenger2.Addresses()[0]))
+	})
+	t.Run("one common protocol", func(t *testing.T) {
+		arg1 := createMockNetworkArgs()
+		arg1.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			Type:                             "optimized",
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 1,
+			ProtocolIDs:                      []string{"/erd/kad/1.1.0", "mvx1"},
+			InitialPeerList:                  nil,
+			BucketSize:                       100,
+		}
+		messenger1, _ := libp2p.NewNetworkMessenger(arg1)
+
+		arg2 := createMockNetworkArgs()
+		arg2.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery // copy by value
+		messenger2, _ := libp2p.NewNetworkMessenger(arg2)
+
+		arg3 := createMockNetworkArgs()
+		arg3.P2pConfig.KadDhtPeerDiscovery = arg1.P2pConfig.KadDhtPeerDiscovery             // copy by value
+		arg3.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs = []string{"/erd/kad/1.2.0", "mvx1"} // another protocol ID
+		messenger3, _ := libp2p.NewNetworkMessenger(arg3)
+
+		_ = messenger2.CreateTopic("test", true)
+		_ = messenger3.CreateTopic("test", true)
+
+		defer closeMessengers(messenger1, messenger2, messenger3)
+
+		// connect all peers
+		_ = messenger1.ConnectToPeer(messenger2.Addresses()[0])
+		_ = messenger1.ConnectToPeer(messenger3.Addresses()[0])
+		_ = messenger2.ConnectToPeer(messenger3.Addresses()[0])
+
+		time.Sleep(time.Second)
+
+		err := messenger1.Bootstrap()
+		assert.Nil(t, err)
+
+		err = messenger2.Bootstrap()
+		assert.Nil(t, err)
+
+		err = messenger3.Bootstrap()
+		assert.Nil(t, err)
+
+		time.Sleep(time.Second)
+
+		assert.True(t, messenger1.HasCompatibleProtocolID(messenger2.Addresses()[0]))
+		assert.True(t, messenger2.HasCompatibleProtocolID(messenger1.Addresses()[0]))
+
+		assert.True(t, messenger1.HasCompatibleProtocolID(messenger3.Addresses()[0]))
+		assert.True(t, messenger3.HasCompatibleProtocolID(messenger1.Addresses()[0]))
+
+		assert.True(t, messenger2.HasCompatibleProtocolID(messenger3.Addresses()[0]))
+		assert.True(t, messenger3.HasCompatibleProtocolID(messenger2.Addresses()[0]))
+	})
 }

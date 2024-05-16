@@ -26,29 +26,44 @@ type ArgsPeerDiscoverer struct {
 	Logger             p2p.Logger
 }
 
-// NewPeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
+// NewPeerDiscoverers generates an array of implementations of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
-func NewPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
+func NewPeerDiscoverers(args ArgsPeerDiscoverer) ([]p2p.PeerDiscoverer, error) {
 	if check.IfNil(args.Logger) {
 		return nil, p2p.ErrNilLogger
 	}
 
 	if args.P2pConfig.KadDhtPeerDiscovery.Enabled {
-		return createKadDhtPeerDiscoverer(args)
+		if len(args.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs) == 0 {
+			return nil, fmt.Errorf("%w: KadDhtPeerDiscovery.Enabled is enabled but no protocol ID was provided", p2p.ErrInvalidConfig)
+		}
+
+		protocolIDs := args.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs
+		instances := make([]p2p.PeerDiscoverer, 0, len(protocolIDs))
+		for i := 0; i < len(protocolIDs); i++ {
+			instance, err := createKadDhtPeerDiscoverer(args, protocolIDs[i])
+			if err != nil {
+				return nil, err
+			}
+
+			instances = append(instances, instance)
+		}
+
+		return instances, nil
 	}
 
 	args.Logger.Debug("using nil discoverer")
-	return discovery.NewNilDiscoverer(), nil
+	return []p2p.PeerDiscoverer{discovery.NewNilDiscoverer()}, nil
 }
 
-func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
+func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer, protocolID string) (p2p.PeerDiscoverer, error) {
 	arg := discovery.ArgKadDht{
 		Context:                     args.Context,
 		Host:                        args.Host,
 		KddSharder:                  args.Sharder,
 		PeersRefreshInterval:        time.Second * time.Duration(args.P2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 		SeedersReconnectionInterval: defaultSeedersReconnectionInterval,
-		ProtocolID:                  args.P2pConfig.KadDhtPeerDiscovery.ProtocolID,
+		ProtocolID:                  protocolID,
 		InitialPeersList:            args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList,
 		BucketSize:                  args.P2pConfig.KadDhtPeerDiscovery.BucketSize,
 		RoutingTableRefresh:         time.Second * time.Duration(args.P2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
