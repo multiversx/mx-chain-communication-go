@@ -48,7 +48,7 @@ const (
 	maxRetriesIfBindError           = 10
 
 	baseErrorSuffix      = "when creating a new network messenger"
-	pubSubMaxMessageSize = 1 << 21 // 2 MB
+	pubSubMaxMessageSize = 1 << 24 // 2 MB
 )
 
 type messageSigningConfig bool
