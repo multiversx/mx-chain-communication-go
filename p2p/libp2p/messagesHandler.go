@@ -22,7 +22,7 @@ import (
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 // 64kB
-var maxSendBuffSize = (1 << 21) - messageHeader
+var maxSendBuffSize = (1 << 24) - messageHeader
 
 const durationBetweenSends = time.Microsecond * 10
 
