@@ -35,8 +35,8 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			ResourceLimiter: config.ResourceLimiterConfig{
 				Type: p2p.DefaultAutoscaleResourceLimiter,
 				Ipv4ConnLimit: []config.ConnLimitConfig{{
-					BitMask:   0,
-					ConnCount: math.MaxInt,
+					PrefixLength: 0,
+					ConnCount:    math.MaxInt,
 				}},
 			},
 		},

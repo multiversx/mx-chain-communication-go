@@ -22,7 +22,7 @@ func CreateResourceLimiterOption(cfg config.ResourceLimiterConfig) (libp2p.Optio
 		libp2p.SetDefaultServiceLimits(&limits)
 		resourceManager, err := rcmgr.NewResourceManager(
 			rcmgr.NewFixedLimiter(limits.AutoScale()),
-			rcmgr.WithLimitPeersPerCIDR(ipv4ConnLimit, ipv6ConnLimit),
+			rcmgr.WithLimitPerSubnet(ipv4ConnLimit, ipv6ConnLimit),
 		)
 		if err != nil {
 			return nil, err
@@ -32,7 +32,7 @@ func CreateResourceLimiterOption(cfg config.ResourceLimiterConfig) (libp2p.Optio
 	case p2p.InfiniteResourceLimiter:
 		resourceManager, err := rcmgr.NewResourceManager(
 			rcmgr.NewFixedLimiter(rcmgr.InfiniteLimits),
-			rcmgr.WithLimitPeersPerCIDR(ipv4ConnLimit, ipv6ConnLimit),
+			rcmgr.WithLimitPerSubnet(ipv4ConnLimit, ipv6ConnLimit),
 		)
 		if err != nil {
 			return nil, err
@@ -44,7 +44,7 @@ func CreateResourceLimiterOption(cfg config.ResourceLimiterConfig) (libp2p.Optio
 		memoryInBytes := oneMegabyteInBytes * cfg.ManualSystemMemoryInMB
 		resourceManager, err := rcmgr.NewResourceManager(
 			rcmgr.NewFixedLimiter(limits.Scale(memoryInBytes, cfg.ManualMaximumFD)),
-			rcmgr.WithLimitPeersPerCIDR(ipv4ConnLimit, ipv6ConnLimit),
+			rcmgr.WithLimitPerSubnet(ipv4ConnLimit, ipv6ConnLimit),
 		)
 		if err != nil {
 			return nil, err
@@ -56,17 +56,17 @@ func CreateResourceLimiterOption(cfg config.ResourceLimiterConfig) (libp2p.Optio
 	}
 }
 
-func parseConnLimit(cfgConnLimit []config.ConnLimitConfig) []rcmgr.ConnLimitPerCIDR {
+func parseConnLimit(cfgConnLimit []config.ConnLimitConfig) []rcmgr.ConnLimitPerSubnet {
 	// if config not provided, return nil so default values will be used
 	if len(cfgConnLimit) == 0 {
 		return nil
 	}
 
-	libp2pConnLimit := make([]rcmgr.ConnLimitPerCIDR, 0, len(cfgConnLimit))
+	libp2pConnLimit := make([]rcmgr.ConnLimitPerSubnet, 0, len(cfgConnLimit))
 	for _, connLimit := range cfgConnLimit {
-		libp2pConnLimit = append(libp2pConnLimit, rcmgr.ConnLimitPerCIDR{
-			BitMask:   connLimit.BitMask,
-			ConnCount: connLimit.ConnCount,
+		libp2pConnLimit = append(libp2pConnLimit, rcmgr.ConnLimitPerSubnet{
+			PrefixLength: connLimit.PrefixLength,
+			ConnCount:    connLimit.ConnCount,
 		})
 	}
 
