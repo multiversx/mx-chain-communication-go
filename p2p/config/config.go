@@ -36,6 +36,14 @@ type ResourceLimiterConfig struct {
 	Type                   string
 	ManualSystemMemoryInMB int64
 	ManualMaximumFD        int
+	Ipv4ConnLimit          []ConnLimitConfig
+	Ipv6ConnLimit          []ConnLimitConfig
+}
+
+// ConnLimitConfig specifies the limit that will be set for an ip on libp2p connection limiter
+type ConnLimitConfig struct {
+	BitMask   int
+	ConnCount int
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
