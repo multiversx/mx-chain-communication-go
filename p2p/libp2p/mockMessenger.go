@@ -24,7 +24,7 @@ func genIPv4Peer(mockNet mocknet.Mocknet) (host.Host, error) {
 	if err != nil {
 		return nil, err
 	}
-	a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/4242"))
+	a, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4242")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create test multiaddr: %s", err)
 	}
