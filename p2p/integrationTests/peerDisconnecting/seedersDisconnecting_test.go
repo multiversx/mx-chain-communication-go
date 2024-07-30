@@ -88,7 +88,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 	integrationTests.WaitForBootstrapAndShowConnected(append(seeders, peers...), integrationTests.P2pBootstrapDelay)
 
 	// Step 4. Disconnect the seeders
-	log.Info("--- Disconnecting seeders: %v ---\n", seeders)
+	log.Info("--- Disconnecting seeders ---\n")
 	disconnectSeedersFromPeers(seeders, peers, netw)
 
 	for i := 0; i < 2; i++ {
