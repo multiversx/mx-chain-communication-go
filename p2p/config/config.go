@@ -43,7 +43,7 @@ type KadDhtPeerDiscoveryConfig struct {
 	Enabled                          bool
 	Type                             string
 	RefreshIntervalInSec             uint32
-	ProtocolID                       string
+	ProtocolIDs                      []string
 	InitialPeerList                  []string
 	BucketSize                       uint32
 	RoutingTableRefreshIntervalInSec uint32
