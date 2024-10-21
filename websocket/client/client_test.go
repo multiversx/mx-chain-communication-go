@@ -19,7 +19,7 @@ func createArgs() ArgsWebSocketClient {
 		RetryDurationInSeconds: 1,
 		BlockingAckOnError:     false,
 		WithAcknowledge:        false,
-		URL:                    "url",
+		URL:                    "ws://localhost:12354",
 		PayloadConverter:       payloadConverter,
 		Log:                    &testscommon.LoggerMock{},
 		PayloadVersion:         1,

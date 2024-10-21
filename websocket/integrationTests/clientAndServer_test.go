@@ -16,8 +16,9 @@ import (
 )
 
 func TestStartServerAddClientAndSendData(t *testing.T) {
-	url := "localhost:" + getFreePort()
-	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	port := getFreePort()
+	serverURL := "localhost:" + port
+	wsServer, err := createServer(serverURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	wg := &sync.WaitGroup{}
@@ -33,7 +34,8 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 		},
 	})
 
-	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	clientURL := "ws://localhost:" + port
+	wsClient, err := createClient(clientURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	for {
@@ -51,7 +53,7 @@ func TestStartServerAddClientAndSendData(t *testing.T) {
 }
 
 func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testing.T) {
-	url := "localhost:" + getFreePort()
+	port := getFreePort()
 
 	receivedClose := make(chan struct{})
 	payloadWasProcessed := atomic.Bool{}
@@ -68,7 +70,8 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 		},
 	}
 
-	wsServer, err := createServer(url, log)
+	serverURL := "localhost:" + port
+	wsServer, err := createServer(serverURL, log)
 	require.Nil(t, err)
 
 	_ = wsServer.SetPayloadHandler(&testscommon.PayloadHandlerStub{
@@ -79,7 +82,8 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 		},
 	})
 
-	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	clientURL := "ws://localhost:" + port
+	wsClient, err := createClient(clientURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 	time.Sleep(time.Second)
 
@@ -98,8 +102,9 @@ func TestStartServerAddClientAndCloseClientAndServerShouldReceiveClose(t *testin
 }
 
 func TestStartServerStartClientCloseServer(t *testing.T) {
-	url := "localhost:" + getFreePort()
-	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	port := getFreePort()
+	serverURL := "localhost:" + port
+	wsServer, err := createServer(serverURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	var sentMessages []string
@@ -121,7 +126,8 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 	}
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 
-	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	clientURL := "ws://localhost:" + port
+	wsClient, err := createClient(clientURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	for idx := 0; idx < 100; idx++ {
@@ -142,7 +148,7 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 	// start the server again
-	wsServer, err = createServer(url, &testscommon.LoggerMock{})
+	wsServer, err = createServer(serverURL, &testscommon.LoggerMock{})
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 	require.Nil(t, err)
 
@@ -170,8 +176,9 @@ func TestStartServerStartClientCloseServer(t *testing.T) {
 }
 
 func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
-	url := "localhost:" + getFreePort()
-	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	port := getFreePort()
+	serverURL := "localhost:" + port
+	wsServer, err := createServer(serverURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	wg := &sync.WaitGroup{}
@@ -189,7 +196,8 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 	}
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 
-	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	clientURL := "ws://localhost:" + port
+	wsClient, err := createClient(clientURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	for {
@@ -206,8 +214,9 @@ func TestStartServerStartClientAndSendABigMessage(t *testing.T) {
 }
 
 func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
-	url := "localhost:" + getFreePort()
-	wsServer, err := createServer(url, &testscommon.LoggerMock{})
+	port := getFreePort()
+	serverURL := "localhost:" + port
+	wsServer, err := createServer(serverURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	mutex := sync.RWMutex{}
@@ -236,7 +245,8 @@ func TestStartServerStartClientAndSendMultipleGoRoutines(t *testing.T) {
 	}
 	_ = wsServer.SetPayloadHandler(payloadHandler)
 
-	wsClient, err := createClient(url, &testscommon.LoggerMock{})
+	clientURL := "ws://localhost:" + port
+	wsClient, err := createClient(clientURL, &testscommon.LoggerMock{})
 	require.Nil(t, err)
 
 	//send message to server multiple go routines

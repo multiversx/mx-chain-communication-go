@@ -59,7 +59,12 @@ func NewWebSocketClient(args ArgsWebSocketClient) (*client, error) {
 		return nil, err
 	}
 
-	wsUrl := url.URL{Scheme: "ws", Host: args.URL, Path: data.WSRoute}
+	wsUrl, err := url.Parse(args.URL)
+	if err != nil || (wsUrl.Scheme != "ws" && wsUrl.Scheme != "wss") {
+		return nil, fmt.Errorf("invalid WebSocket URL: %v", err)
+	}
+
+	wsUrl.Path = data.WSRoute
 
 	wsClient := &client{
 		url:                        wsUrl.String(),
