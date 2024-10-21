@@ -27,6 +27,7 @@ func TestCreateClient(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
+	args.WebSocketConfig.URL = "ws://localhost:1234"
 	webSocketsClient, err := CreateWebSocketHost(args)
 	require.Nil(t, err)
 	require.Equal(t, "*client.client", fmt.Sprintf("%T", webSocketsClient))
