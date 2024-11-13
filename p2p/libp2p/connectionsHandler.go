@@ -26,12 +26,12 @@ type ArgConnectionsHandler struct {
 	Sharder              p2p.Sharder
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	ConnMonitor          ConnectionMonitor
-	PeerDiscoverer       p2p.PeerDiscoverer
+	PeerDiscoverers      []p2p.PeerDiscoverer
 	PeerID               core.PeerID
 	ConnectionsMetric    ConnectionsMetric
 	NetworkType          p2p.NetworkType
 	Logger               p2p.Logger
-	ProtocolID           string
+	ProtocolIDs          []string
 }
 
 type connectionsHandler struct {
@@ -44,12 +44,12 @@ type connectionsHandler struct {
 	sharder              p2p.Sharder
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
 	connMonitor          ConnectionMonitor
-	peerDiscoverer       p2p.PeerDiscoverer
+	peerDiscoverers      []p2p.PeerDiscoverer
 	peerID               core.PeerID
 	connectionsMetric    ConnectionsMetric
 	networkType          p2p.NetworkType
 	log                  p2p.Logger
-	protocolID           string
+	protocolIDs          map[string]struct{}
 }
 
 // NewConnectionsHandler creates a new connections manager
@@ -57,6 +57,12 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 	err := checkArgConnectionsHandler(args)
 	if err != nil {
 		return nil, err
+	}
+
+	protocolIDs := make(map[string]struct{})
+	for i := 0; i < len(args.ProtocolIDs); i++ {
+		// this suffix is done automatically in dht.go L280 (v1proto := cfg.ProtocolPrefix + kad1)
+		protocolIDs[args.ProtocolIDs[i]+kadProtocol] = struct{}{}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -69,12 +75,12 @@ func NewConnectionsHandler(args ArgConnectionsHandler) (*connectionsHandler, err
 		sharder:              args.Sharder,
 		preferredPeersHolder: args.PreferredPeersHolder,
 		connMonitor:          args.ConnMonitor,
-		peerDiscoverer:       args.PeerDiscoverer,
+		peerDiscoverers:      args.PeerDiscoverers,
 		peerID:               args.PeerID,
 		connectionsMetric:    args.ConnectionsMetric,
 		log:                  args.Logger,
 		networkType:          args.NetworkType,
-		protocolID:           args.ProtocolID,
+		protocolIDs:          protocolIDs,
 	}
 
 	go handler.printLogs()
@@ -101,9 +107,13 @@ func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
 	if check.IfNil(args.ConnMonitor) {
 		return p2p.ErrNilConnectionMonitor
 	}
-	if check.IfNil(args.PeerDiscoverer) {
-		return p2p.ErrNilPeerDiscoverer
+
+	for _, discoverer := range args.PeerDiscoverers {
+		if check.IfNil(discoverer) {
+			return p2p.ErrNilPeerDiscoverer
+		}
 	}
+
 	if check.IfNil(args.ConnectionsMetric) {
 		return p2p.ErrNilConnectionsMetric
 	}
@@ -116,11 +126,18 @@ func checkArgConnectionsHandler(args ArgConnectionsHandler) error {
 
 // Bootstrap will start the peer discovery mechanism
 func (handler *connectionsHandler) Bootstrap() error {
-	err := handler.peerDiscoverer.Bootstrap()
-	if err == nil {
+	var lastError error
+	for _, discoverer := range handler.peerDiscoverers {
+		err := discoverer.Bootstrap()
+		if err != nil {
+			lastError = err
+		}
+	}
+
+	if lastError == nil {
 		handler.log.Info("started the network discovery process...")
 	}
-	return err
+	return lastError
 }
 
 // Peers returns the list of all known peers ID (including self)
@@ -150,8 +167,8 @@ func (handler *connectionsHandler) HasCompatibleProtocolID(address string) bool 
 	}
 
 	for i := 0; i < len(protocols); i++ {
-		// this suffix is done automatically in dht.go L280 (v1proto := cfg.ProtocolPrefix + kad1)
-		if handler.protocolID+kadProtocol == string(protocols[i]) {
+		_, found := handler.protocolIDs[string(protocols[i])]
+		if found {
 			return true
 		}
 	}

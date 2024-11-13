@@ -20,7 +20,7 @@ const delayDisconnected = time.Millisecond * 100
 
 func createMockArgsConnectionMonitorSimple() connectionMonitor.ArgsConnectionMonitorSimple {
 	return connectionMonitor.ArgsConnectionMonitorSimple{
-		Reconnecter:                &mock.ReconnecterStub{},
+		Reconnecters:               []p2p.Reconnecter{&mock.ReconnecterStub{}},
 		ThresholdMinConnectedPeers: 3,
 		Sharder:                    &mock.KadSharderStub{},
 		PreferredPeersHolder:       &mock.PeersHolderStub{},
@@ -37,7 +37,7 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsConnectionMonitorSimple()
-		args.Reconnecter = nil
+		args.Reconnecters = []p2p.Reconnecter{nil}
 		lcms, err := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilReconnecter, err)
@@ -128,7 +128,7 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 	}
 
 	args := createMockArgsConnectionMonitorSimple()
-	args.Reconnecter = rs
+	args.Reconnecters = []p2p.Reconnecter{rs}
 	lcms, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 
 	go func() {

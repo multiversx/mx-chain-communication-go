@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -81,8 +79,6 @@ type networkMessenger struct {
 	p2pHost                 ConnectableHost
 	port                    int
 	printConnectionsWatcher p2p.ConnectionsWatcher
-	mutPeerTopicNotifiers   sync.RWMutex
-	peerTopicNotifiers      []p2p.PeerTopicNotifier
 	networkType             p2p.NetworkType
 	log                     p2p.Logger
 }
@@ -221,7 +217,6 @@ func constructNode(
 		p2pHost:                 NewConnectableHost(h),
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
-		peerTopicNotifiers:      make([]p2p.PeerTopicNotifier, 0),
 		networkType:             args.NetworkType,
 		log:                     args.Logger,
 	}
@@ -355,12 +350,12 @@ func addComponentsToNode(
 		return err
 	}
 
-	peerDiscoverer, err := p2pNode.createDiscoverer(args.P2pConfig, sharder)
+	peerDiscoverers, err := p2pNode.createDiscoverers(args.P2pConfig, sharder)
 	if err != nil {
 		return err
 	}
 
-	connMonitor, err := p2pNode.createConnectionMonitor(args.P2pConfig, sharder, preferredPeersHolder, peerDiscoverer)
+	connMonitor, err := p2pNode.createConnectionMonitor(args.P2pConfig, sharder, preferredPeersHolder, peerDiscoverers)
 	if err != nil {
 		return err
 	}
@@ -408,12 +403,12 @@ func addComponentsToNode(
 		Sharder:              sharder,
 		PreferredPeersHolder: preferredPeersHolder,
 		ConnMonitor:          connMonitor,
-		PeerDiscoverer:       peerDiscoverer,
+		PeerDiscoverers:      peerDiscoverers,
 		PeerID:               p2pNode.ID(),
 		ConnectionsMetric:    connectionsMetric,
 		NetworkType:          p2pNode.networkType,
 		Logger:               p2pNode.log,
-		ProtocolID:           args.P2pConfig.KadDhtPeerDiscovery.ProtocolID,
+		ProtocolIDs:          args.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs,
 	}
 	p2pNode.ConnectionsHandler, err = NewConnectionsHandler(argsConnectionsHandler)
 	if err != nil {
@@ -443,22 +438,9 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
-	optsPS = append(optsPS,
-		pubsub.WithPeerFilter(netMes.newPeerFound),
-		pubsub.WithMaxMessageSize(pubSubMaxMessageSize),
-	)
+	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
 
 	return pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
-}
-
-func (netMes *networkMessenger) newPeerFound(pid peer.ID, topic string) bool {
-	netMes.mutPeerTopicNotifiers.RLock()
-	defer netMes.mutPeerTopicNotifiers.RUnlock()
-	for _, notifier := range netMes.peerTopicNotifiers {
-		notifier.NewPeerFound(core.PeerID(pid), topic)
-	}
-
-	return true
 }
 
 func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (p2p.Sharder, error) {
@@ -473,7 +455,7 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (
 	return factory.NewSharder(args)
 }
 
-func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sharder p2p.Sharder) (p2p.PeerDiscoverer, error) {
+func (netMes *networkMessenger) createDiscoverers(p2pConfig config.P2PConfig, sharder p2p.Sharder) ([]p2p.PeerDiscoverer, error) {
 	args := discoveryFactory.ArgsPeerDiscoverer{
 		Context:            netMes.ctx,
 		Host:               netMes.p2pHost,
@@ -484,18 +466,23 @@ func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig, sha
 		Logger:             netMes.log,
 	}
 
-	return discoveryFactory.NewPeerDiscoverer(args)
+	return discoveryFactory.NewPeerDiscoverers(args)
 }
 
 func (netMes *networkMessenger) createConnectionMonitor(
 	p2pConfig config.P2PConfig,
 	sharderInstance p2p.Sharder,
 	preferredPeersHolder p2p.PreferredPeersHolderHandler,
-	peerDiscoverer p2p.PeerDiscoverer,
+	peerDiscoverers []p2p.PeerDiscoverer,
 ) (ConnectionMonitor, error) {
-	reconnecter, ok := peerDiscoverer.(p2p.Reconnecter)
-	if !ok {
-		return nil, fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
+	reconnecters := make([]p2p.Reconnecter, 0, len(peerDiscoverers))
+	for _, discoverer := range peerDiscoverers {
+		reconnecter, ok := discoverer.(p2p.Reconnecter)
+		if !ok {
+			return nil, fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
+		}
+
+		reconnecters = append(reconnecters, reconnecter)
 	}
 
 	sharder, ok := sharderInstance.(connectionMonitor.Sharder)
@@ -504,7 +491,7 @@ func (netMes *networkMessenger) createConnectionMonitor(
 	}
 
 	args := connectionMonitor.ArgsConnectionMonitorSimple{
-		Reconnecter:                reconnecter,
+		Reconnecters:               reconnecters,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		Sharder:                    sharder,
 		PreferredPeersHolder:       preferredPeersHolder,
@@ -608,21 +595,6 @@ func (netMes *networkMessenger) ID() core.PeerID {
 // Port returns the port that this network messenger is using
 func (netMes *networkMessenger) Port() int {
 	return netMes.port
-}
-
-// AddPeerTopicNotifier will add a new peer topic notifier
-func (netMes *networkMessenger) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) error {
-	if check.IfNil(notifier) {
-		return p2p.ErrNilPeerTopicNotifier
-	}
-
-	netMes.mutPeerTopicNotifiers.Lock()
-	netMes.peerTopicNotifiers = append(netMes.peerTopicNotifiers, notifier)
-	netMes.mutPeerTopicNotifiers.Unlock()
-
-	netMes.log.Debug("networkMessenger.AddPeerTopicNotifier", "type", fmt.Sprintf("%T", notifier))
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
