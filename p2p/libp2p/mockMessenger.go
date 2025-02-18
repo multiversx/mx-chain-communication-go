@@ -75,9 +75,7 @@ func NewMockMessenger(
 		return nil, p2p.ErrNilMockNet
 	}
 
-	h, err := genIPv4Peer(mockNet)
-	// TODO: use mockNet.GenPeer() instead (and remove genIPV4Peer function) when the saving of ipv6 mocked addresses in peerstore is fixed
-	//h, err := mockNet.GenPeer()
+	h, err := mockNet.GenPeer()
 	if err != nil {
 		return nil, err
 	}
