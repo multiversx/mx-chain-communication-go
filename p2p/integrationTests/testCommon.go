@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -33,6 +34,10 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			},
 			ResourceLimiter: config.ResourceLimiterConfig{
 				Type: p2p.DefaultAutoscaleResourceLimiter,
+				Ipv4ConnLimit: []config.ConnLimitConfig{{
+					PrefixLength: 0,
+					ConnCount:    math.MaxInt,
+				}},
 			},
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
