@@ -7,20 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-communication-go/p2p"
-	"github.com/multiversx/mx-chain-communication-go/p2p/integrationTests"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/integrationTests"
 )
 
 var durationTest = 30 * time.Second
 
 type messageProcessorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P, source p2p.MessageHandler) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P, source p2p.MessageHandler) ([]byte, error)
 }
 
 // ProcessReceivedMessage -
-func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, source p2p.MessageHandler) error {
+func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	return mps.ProcessReceivedMessageCalled(message, source)
 }
 
@@ -36,17 +37,17 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 
 	numOfPeers := 20
 
-	//Step 1. Create advertiser
+	// Step 1. Create advertiser
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 
-	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
+	// Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		node := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 		peers[i] = node
 	}
 
-	//cleanup function that closes all messengers
+	// cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < numOfPeers; i++ {
 			if peers[i] != nil {
@@ -61,7 +62,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 
 	chanStop := make(chan struct{})
 
-	//Step 3. Register pubsub validators
+	// Step 3. Register pubsub validators
 	mutMapMessages := sync.Mutex{}
 	mapMessages := make(map[int]map[string]struct{})
 	testTopic := "test"
@@ -76,7 +77,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 		}
 
 		err = peers[idx].RegisterMessageProcessor(testTopic, "test", &messageProcessorStub{
-			ProcessReceivedMessageCalled: func(message p2p.MessageP2P, source p2p.MessageHandler) error {
+			ProcessReceivedMessageCalled: func(message p2p.MessageP2P, source p2p.MessageHandler) ([]byte, error) {
 				time.Sleep(time.Second)
 
 				mutMapMessages.Lock()
@@ -90,7 +91,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 				}
 
 				mapMessages[idx][msgId] = struct{}{}
-				return nil
+				return nil, nil
 			},
 		})
 		if err != nil {
@@ -98,7 +99,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 		}
 	}
 
-	//Step 4. Call bootstrap on all peers
+	// Step 4. Call bootstrap on all peers
 	err := advertiser.Bootstrap()
 	if err != nil {
 		fmt.Println("Bootstrap failed:", err.Error())
@@ -111,7 +112,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
-	//Step 5. Continuously send messages from one peer
+	// Step 5. Continuously send messages from one peer
 	for timeStart := time.Now(); timeStart.Add(durationTest).Unix() > time.Now().Unix(); {
 		peers[0].Broadcast(testTopic, []byte("test buff"))
 		select {
@@ -139,8 +140,8 @@ func TestBroadcastMessageComesFormTheConnectedPeers(t *testing.T) {
 		integrationTests.ClosePeers(peers)
 	}()
 
-	//node 0 is connected only to 1 and 3 (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//a broadcast message from 6 should be received on node 0 only through peers 1 and 3
+	// node 0 is connected only to 1 and 3 (check integrationTests.CreateFixedNetworkOf7Peers function)
+	// a broadcast message from 6 should be received on node 0 only through peers 1 and 3
 
 	interceptors, err := createTopicsAndMockInterceptors(peers, topic)
 	assert.Nil(t, err)

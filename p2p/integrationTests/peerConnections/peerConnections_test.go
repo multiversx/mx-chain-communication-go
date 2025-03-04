@@ -7,11 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-communication-go/p2p"
-	"github.com/multiversx/mx-chain-communication-go/p2p/config"
-	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
-	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
-	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
@@ -20,6 +15,12 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 )
 
 var keyGen = signing.NewKeyGenerator(secp256k1.NewSecp256k1())
@@ -284,7 +285,7 @@ func getAddressMatching(addresses []string, including string, excluding string) 
 
 func createInterceptor(hostName string, dataMap map[string]map[string]int, mut *sync.Mutex) p2p.MessageProcessor {
 	return &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			mut.Lock()
 			numMessagesMap := dataMap[hostName]
 			if numMessagesMap == nil {
@@ -295,7 +296,7 @@ func createInterceptor(hostName string, dataMap map[string]map[string]int, mut *
 			numMessagesMap[string(message.Data())]++
 			mut.Unlock()
 
-			return nil
+			return nil, nil
 		},
 	}
 }

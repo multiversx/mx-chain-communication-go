@@ -8,12 +8,13 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiversx/mx-chain-communication-go/p2p"
-	"github.com/multiversx/mx-chain-communication-go/p2p/config"
-	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/disabled"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/whyrusleeping/timecache"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/disabled"
 )
 
 var MaxSendBuffSize = maxSendBuffSize
@@ -248,6 +249,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		processors:         make(map[string]TopicProcessor),
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
+		equivalentMessages: make(map[string]types.Cacher),
 		log:                args.Logger,
 	}
 

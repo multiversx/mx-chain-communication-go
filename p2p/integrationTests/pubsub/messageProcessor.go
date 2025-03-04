@@ -3,8 +3,9 @@ package peerDisconnecting
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 type messageProcessor struct {
@@ -19,13 +20,13 @@ func newMessageProcessor() *messageProcessor {
 }
 
 // ProcessReceivedMessage -
-func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
+func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
 
 	mp.messages[fromConnectedPeer] = append(mp.messages[fromConnectedPeer], message)
 
-	return nil
+	return nil, nil
 }
 
 // Messages -
