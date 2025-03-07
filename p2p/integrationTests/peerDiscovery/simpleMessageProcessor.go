@@ -20,7 +20,7 @@ func (smp *SimpleMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P
 	smp.message = message.Data()
 	smp.mutMessage.Unlock()
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 // GetLastMessage returns the last message received

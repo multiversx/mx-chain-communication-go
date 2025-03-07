@@ -35,7 +35,7 @@ func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ co
 		mp.chanDone <- struct{}{}
 	}
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 // WasDataReceived -

@@ -32,7 +32,7 @@ const testMaxSize = 1 << 21
 
 var blankMessageHandler = &mock.MessageHandlerStub{
 	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-		return nil, nil
+		return []byte{}, nil
 	},
 }
 
@@ -402,7 +402,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
 		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			wasCalled = true
-			return nil, nil
+			return []byte{}, nil
 		},
 	})
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -775,7 +775,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			receivedMsg = message
 			chanDone <- true
-			return nil, nil
+			return []byte{}, nil
 		},
 	})
 

@@ -378,7 +378,12 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 
 func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []byte, topic string) bool {
 	if len(messageId) > 0 {
-		_, ok := handler.equivalentMessages[topic].Get(messageId)
+		_, ok := handler.equivalentMessages[topic]
+		if !ok {
+			return true
+		}
+
+		_, ok = handler.equivalentMessages[topic].Get(messageId)
 		if ok {
 			return false
 		}
@@ -570,10 +575,10 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 // ProcessReceivedMessage handles received direct messages
 func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	if check.IfNil(message) {
-		return nil, nil
+		return []byte{}, nil
 	}
 	if check.IfNil(source) {
-		return nil, nil
+		return []byte{}, nil
 	}
 
 	topic := message.Topic()
@@ -619,7 +624,7 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		}
 	}(message)
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {

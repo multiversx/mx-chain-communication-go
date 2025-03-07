@@ -30,7 +30,7 @@ func (processor *MessageProcessorMock) ProcessReceivedMessage(message p2p.Messag
 	fmt.Printf("got message from %s\n", message.Peer().Pretty())
 	processor.messages[message.Peer()]++
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 // GetMessages -

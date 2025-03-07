@@ -26,7 +26,7 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 
 	mp.messages[fromConnectedPeer] = append(mp.messages[fromConnectedPeer], message)
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 // Messages -

@@ -91,7 +91,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 				}
 
 				mapMessages[idx][msgId] = struct{}{}
-				return nil, nil
+				return []byte{}, nil
 			},
 		})
 		if err != nil {

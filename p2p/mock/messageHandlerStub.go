@@ -113,7 +113,7 @@ func (stub *MessageHandlerStub) ProcessReceivedMessage(message p2p.MessageP2P, f
 	if stub.ProcessReceivedMessageCalled != nil {
 		return stub.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
 	}
-	return nil, nil
+	return []byte{}, nil
 }
 
 // SetDebugger -

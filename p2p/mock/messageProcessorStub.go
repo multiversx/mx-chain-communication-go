@@ -17,7 +17,7 @@ func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return mps.ProcessMessageCalled(message, fromConnectedPeer, source)
 	}
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
