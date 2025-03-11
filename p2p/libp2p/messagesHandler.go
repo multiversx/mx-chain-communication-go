@@ -12,11 +12,14 @@ import (
 	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-storage-go/lrucache"
+	"github.com/multiversx/mx-chain-storage-go/types"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/disabled"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -25,6 +28,7 @@ var messageHeader = 64 * 1024 // 64kB
 var maxSendBuffSize = (1 << 21) - messageHeader
 
 const durationBetweenSends = time.Microsecond * 10
+const equivalentMessagesCacheSize = 1000
 
 // ArgMessagesHandler is the DTO struct used to create a new instance of messages handler
 type ArgMessagesHandler struct {
@@ -58,10 +62,11 @@ type messagesHandler struct {
 	networkType        p2p.NetworkType
 	log                p2p.Logger
 
-	mutTopics     sync.RWMutex
-	processors    map[string]TopicProcessor
-	topics        map[string]PubSubTopic
-	subscriptions map[string]PubSubSubscription
+	mutTopics          sync.RWMutex
+	processors         map[string]TopicProcessor
+	topics             map[string]PubSubTopic
+	subscriptions      map[string]PubSubSubscription
+	equivalentMessages map[string]types.Cacher
 }
 
 // NewMessagesHandler creates a new instance of messages handler
@@ -88,6 +93,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		processors:         make(map[string]TopicProcessor),
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
+		equivalentMessages: make(map[string]types.Cacher),
 		networkType:        args.NetworkType,
 		log:                args.Logger,
 	}
@@ -316,6 +322,12 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 		if err != nil {
 			return err
 		}
+
+		cache, err := lrucache.NewCache(equivalentMessagesCacheSize)
+		if err != nil {
+			return err
+		}
+		handler.equivalentMessages[topic] = cache
 	}
 
 	err := topicProcs.AddTopicProcessor(identifier, msgProcessor)
@@ -337,8 +349,9 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 
 		identifiers, msgProcessors := topicProcs.GetList()
 		messageOk := true
+		var msgId []byte
 		for index, msgProc := range msgProcessors {
-			err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
+			msgId, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
 				handler.log.Trace("p2p validator",
 					"network", handler.networkType,
@@ -352,10 +365,33 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 				messageOk = false
 			}
 		}
+
 		handler.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
+
+		if messageOk {
+			messageOk = handler.isEquivalentMessageFirstBroadcast(msgId, topic)
+		}
 
 		return messageOk
 	}
+}
+
+func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []byte, topic string) bool {
+	if len(messageId) > 0 {
+		_, ok := handler.equivalentMessages[topic]
+		if !ok {
+			return true
+		}
+
+		_, ok = handler.equivalentMessages[topic].Get(messageId)
+		if ok {
+			return false
+		}
+
+		handler.equivalentMessages[topic].Put(messageId, struct{}{}, 0)
+	}
+
+	return true
 }
 
 func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
@@ -532,22 +568,23 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 		return err
 	}
 
-	return handler.ProcessReceivedMessage(msg, handler.peerID, handler)
+	_, err = handler.ProcessReceivedMessage(msg, handler.peerID, handler)
+	return err
 }
 
 // ProcessReceivedMessage handles received direct messages
-func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	if check.IfNil(message) {
-		return nil
+		return []byte{}, nil
 	}
 	if check.IfNil(source) {
-		return nil
+		return []byte{}, nil
 	}
 
 	topic := message.Topic()
 	err := handler.checkMessage(message, fromConnectedPeer, topic)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	handler.mutTopics.RLock()
@@ -555,7 +592,7 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	handler.mutTopics.RUnlock()
 
 	if check.IfNil(topicProcs) {
-		return fmt.Errorf("%w on HandleDirectMessageReceived for topic %s", p2p.ErrNilValidator, topic)
+		return nil, fmt.Errorf("%w on HandleDirectMessageReceived for topic %s", p2p.ErrNilValidator, topic)
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
@@ -564,7 +601,7 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		// a separate sequence counter for direct sender
 		messageOk := true
 		for index, msgProc := range msgProcessors {
-			errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, source)
+			_, errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, source)
 			if errProcess != nil {
 				handler.log.Trace("p2p validator",
 					"error", errProcess.Error(),
@@ -587,7 +624,7 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		}
 	}(message)
 
-	return nil
+	return []byte{}, nil
 }
 
 func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {

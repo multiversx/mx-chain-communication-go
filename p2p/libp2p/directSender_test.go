@@ -16,22 +16,23 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/stretchr/testify/assert"
 )
 
 const timeout = time.Second * 5
 const testMaxSize = 1 << 21
 
 var blankMessageHandler = &mock.MessageHandlerStub{
-	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
-		return nil
+	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+		return []byte{}, nil
 	},
 }
 
@@ -399,9 +400,9 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			wasCalled = true
-			return nil
+			return []byte{}, nil
 		},
 	})
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -438,8 +439,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
-			return checkErr
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+			return nil, checkErr
 		},
 	})
 
@@ -771,10 +772,10 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			receivedMsg = message
 			chanDone <- true
-			return nil
+			return []byte{}, nil
 		},
 	})
 

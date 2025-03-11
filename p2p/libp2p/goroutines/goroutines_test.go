@@ -9,11 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-communication-go/p2p"
-	"github.com/multiversx/mx-chain-communication-go/p2p/config"
-	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
-	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
-	"github.com/multiversx/mx-chain-communication-go/testscommon"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
@@ -21,6 +16,12 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
 )
 
 const testTopic = "test"
@@ -66,12 +67,12 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 
 	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 				if !bytes.Equal(matchData, message.Data()) {
-					return nil
+					return nil, nil
 				}
 				if !checkSigSize(len(message.Signature())) {
-					return nil
+					return nil, nil
 				}
 
 				// do not print the message.Data() or matchData as the test TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork
@@ -79,7 +80,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 
 				wg.Done()
 
-				return nil
+				return nil, nil
 			},
 		})
 }
