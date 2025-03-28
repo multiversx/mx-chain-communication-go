@@ -14,7 +14,7 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.6.3
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/multiformats/go-multiaddr v0.9.0
-	github.com/multiversx/mx-chain-core-go v1.2.21
+	github.com/multiversx/mx-chain-core-go v1.3.0
 	github.com/multiversx/mx-chain-crypto-go v1.2.12
 	github.com/multiversx/mx-chain-logger-go v1.0.15
 	github.com/multiversx/mx-chain-storage-go v1.0.16
