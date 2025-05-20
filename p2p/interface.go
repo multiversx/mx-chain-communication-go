@@ -11,11 +11,17 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+// BroadcastChecker offers the ShouldBroadcast method to determine if a message should be broadcasted
+type BroadcastChecker interface {
+	ShouldBroadcast() bool
+	IsInterfaceNil() bool
+}
+
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID, source MessageHandler) error
+	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID, source MessageHandler) ([]byte, error)
 	IsInterfaceNil() bool
 }
 

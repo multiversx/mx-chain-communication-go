@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 // MessageProcesssor -
@@ -25,7 +26,7 @@ func NewMessageProcessor(chanDone chan struct{}, requiredVal []byte) *MessagePro
 }
 
 // ProcessReceivedMessage -
-func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	if bytes.Equal(mp.RequiredValue, message.Data()) {
 		mp.mutDataReceived.Lock()
 		mp.wasDataReceived = true
@@ -34,7 +35,7 @@ func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ co
 		mp.chanDone <- struct{}{}
 	}
 
-	return nil
+	return []byte{}, nil
 }
 
 // WasDataReceived -

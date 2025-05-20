@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/mock"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/assert"
 )
 
 func createMessenger() p2p.Messenger {
@@ -90,7 +91,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 
 	_ = mes2.CreateTopic(topic, false)
 	_ = mes2.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
 			}
@@ -99,7 +100,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 				smallPacketReceived.Store(true)
 			}
 
-			return nil
+			return nil, nil
 		},
 	})
 
