@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 // MessageHandlerStub -
@@ -18,7 +19,7 @@ type MessageHandlerStub struct {
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeerCalled               func(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopicsCalled                   func() error
-	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetDebuggerCalled                       func(debugger p2p.Debugger) error
 	CloseCalled                             func() error
 }
@@ -108,11 +109,11 @@ func (stub *MessageHandlerStub) UnJoinAllTopics() error {
 }
 
 // ProcessReceivedMessage -
-func (stub *MessageHandlerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (stub *MessageHandlerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	if stub.ProcessReceivedMessageCalled != nil {
 		return stub.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
 	}
-	return nil
+	return []byte{}, nil
 }
 
 // SetDebugger -
