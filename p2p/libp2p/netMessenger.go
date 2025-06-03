@@ -331,7 +331,7 @@ func addComponentsToNode(
 	peersRatingHandler := args.PeersRatingHandler
 	marshaller := args.Marshaller
 
-	pubSub, err := p2pNode.createPubSub(messageSigning)
+	pubSub, err := p2pNode.createPubSub(messageSigning, args.P2pConfig.Gossip)
 	if err != nil {
 		return err
 	}
@@ -431,7 +431,10 @@ func (netMes *networkMessenger) validateSeeders(seeders []string) error {
 	return nil
 }
 
-func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig) (PubSub, error) {
+func (netMes *networkMessenger) createPubSub(
+	messageSigning messageSigningConfig,
+	gossipConfig config.GossipConfig,
+) (PubSub, error) {
 	optsPS := make([]pubsub.Option, 0)
 	if messageSigning == withoutMessageSigning {
 		netMes.log.Warn("signature verification is turned off in network messenger instance. NOT recommended in production environment")
@@ -439,6 +442,20 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}
 
 	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
+	gossipSubParams := pubsub.DefaultGossipSubParams()
+	if gossipSubParams.D != gossipConfig.OptimalPeersNum ||
+		gossipSubParams.Dhi != gossipConfig.MaximumPeersNum ||
+		gossipSubParams.Dlo != gossipConfig.MinimumPeersNum {
+		netMes.log.Warn("node is not running with the default gossip parameters",
+			"D", gossipConfig.OptimalPeersNum,
+			"Dhi", gossipConfig.MaximumPeersNum,
+			"Dlo", gossipConfig.MinimumPeersNum)
+	}
+	gossipSubParams.D = gossipConfig.OptimalPeersNum
+	gossipSubParams.Dhi = gossipConfig.MaximumPeersNum
+	gossipSubParams.Dlo = gossipConfig.MinimumPeersNum
+
+	optsPS = append(optsPS, pubsub.WithGossipSubParams(gossipSubParams))
 
 	return pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
 }

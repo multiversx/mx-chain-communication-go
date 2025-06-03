@@ -133,6 +133,11 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
 			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
+			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
@@ -1132,6 +1137,11 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
 			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
+			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
@@ -1207,6 +1217,11 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 			},
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
+			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
@@ -1449,6 +1464,11 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
 			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
+			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
@@ -1518,6 +1538,11 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 			},
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
+			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
@@ -1597,6 +1622,11 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
 			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
+			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
@@ -1663,6 +1693,11 @@ func TestNetworkMessenger_UnJoinAllTopicsShouldWork(t *testing.T) {
 			},
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
+			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
@@ -1888,6 +1923,11 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				MaxCrossShardObservers:  0,
 				MaxSeeders:              0,
 				Type:                    "NilListSharder",
+			},
+			Gossip: config.GossipConfig{
+				OptimalPeersNum: 6,
+				MinimumPeersNum: 5,
+				MaximumPeersNum: 12,
 			},
 		},
 		SyncTimer:            &mock.SyncTimerStub{},

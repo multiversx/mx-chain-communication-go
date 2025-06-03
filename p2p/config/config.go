@@ -5,6 +5,14 @@ type P2PConfig struct {
 	Node                NodeConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 	Sharding            ShardingConfig
+	Gossip              GossipConfig
+}
+
+// GossipConfig holds the configuration for the gossip peering
+type GossipConfig struct {
+	OptimalPeersNum int
+	MinimumPeersNum int
+	MaximumPeersNum int
 }
 
 // NodeConfig will hold basic p2p settings
