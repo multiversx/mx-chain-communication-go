@@ -45,9 +45,7 @@ func createBaseArgs() libp2p.ArgsNetworkMessenger {
 				Type: p2p.NilListSharder,
 			},
 			Gossip: config.GossipConfig{
-				OptimalPeersNum: 6,
-				MinimumPeersNum: 5,
-				MaximumPeersNum: 12,
+				UseDefaultConfig: true,
 			},
 		},
 		SyncTimer:             &mock.SyncTimerStub{},
@@ -87,9 +85,7 @@ func createBaseArgsForTCPWithKey(key crypto.PrivateKey) libp2p.ArgsNetworkMessen
 				Type: p2p.NilListSharder,
 			},
 			Gossip: config.GossipConfig{
-				OptimalPeersNum: 6,
-				MinimumPeersNum: 5,
-				MaximumPeersNum: 12,
+				UseDefaultConfig: true,
 			},
 		},
 		SyncTimer:             &mock.SyncTimerStub{},

@@ -443,17 +443,16 @@ func (netMes *networkMessenger) createPubSub(
 
 	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
 	gossipSubParams := pubsub.DefaultGossipSubParams()
-	if gossipSubParams.D != gossipConfig.OptimalPeersNum ||
-		gossipSubParams.Dhi != gossipConfig.MaximumPeersNum ||
-		gossipSubParams.Dlo != gossipConfig.MinimumPeersNum {
+	if !gossipConfig.UseDefaultConfig {
 		netMes.log.Warn("node is not running with the default gossip parameters",
 			"D", gossipConfig.OptimalPeersNum,
 			"Dhi", gossipConfig.MaximumPeersNum,
 			"Dlo", gossipConfig.MinimumPeersNum)
+
+		gossipSubParams.D = gossipConfig.OptimalPeersNum
+		gossipSubParams.Dhi = gossipConfig.MaximumPeersNum
+		gossipSubParams.Dlo = gossipConfig.MinimumPeersNum
 	}
-	gossipSubParams.D = gossipConfig.OptimalPeersNum
-	gossipSubParams.Dhi = gossipConfig.MaximumPeersNum
-	gossipSubParams.Dlo = gossipConfig.MinimumPeersNum
 
 	optsPS = append(optsPS, pubsub.WithGossipSubParams(gossipSubParams))
 

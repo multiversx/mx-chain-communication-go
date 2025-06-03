@@ -54,9 +54,7 @@ func createDefaultConfig() config.P2PConfig {
 			BucketSize:                       100,
 		},
 		Gossip: config.GossipConfig{
-			OptimalPeersNum: 6,
-			MinimumPeersNum: 5,
-			MaximumPeersNum: 12,
+			UseDefaultConfig: true,
 		},
 	}
 }

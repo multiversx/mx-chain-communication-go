@@ -10,9 +10,10 @@ type P2PConfig struct {
 
 // GossipConfig holds the configuration for the gossip peering
 type GossipConfig struct {
-	OptimalPeersNum int
-	MinimumPeersNum int
-	MaximumPeersNum int
+	UseDefaultConfig bool
+	OptimalPeersNum  int
+	MinimumPeersNum  int
+	MaximumPeersNum  int
 }
 
 // NodeConfig will hold basic p2p settings

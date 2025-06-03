@@ -48,9 +48,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			Type: p2p.NilListSharder,
 		},
 		Gossip: config.GossipConfig{
-			OptimalPeersNum: 6,
-			MinimumPeersNum: 5,
-			MaximumPeersNum: 12,
+			UseDefaultConfig: true,
 		},
 	}
 }
@@ -187,9 +185,7 @@ func createP2PConfigWithNoDiscovery() config.P2PConfig {
 			Type: p2p.NilListSharder,
 		},
 		Gossip: config.GossipConfig{
-			OptimalPeersNum: 6,
-			MinimumPeersNum: 5,
-			MaximumPeersNum: 12,
+			UseDefaultConfig: true,
 		},
 	}
 }

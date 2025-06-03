@@ -35,9 +35,7 @@ func createMessenger() p2p.Messenger {
 				Type: p2p.NilListSharder,
 			},
 			Gossip: config.GossipConfig{
-				OptimalPeersNum: 6,
-				MinimumPeersNum: 5,
-				MaximumPeersNum: 12,
+				UseDefaultConfig: true,
 			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
