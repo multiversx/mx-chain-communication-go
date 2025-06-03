@@ -34,6 +34,9 @@ func createMessenger() p2p.Messenger {
 			Sharding: config.ShardingConfig{
 				Type: p2p.NilListSharder,
 			},
+			Gossip: config.GossipConfig{
+				UseDefaultConfig: true,
+			},
 		},
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &mock.PeersHolderStub{},
