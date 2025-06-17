@@ -426,11 +426,6 @@ func addComponentsToNode(
 	return nil
 }
 
-func (netMes *networkMessenger) createMessagesHandler() error {
-
-	return nil
-}
-
 func (netMes *networkMessenger) validateSeeders(seeders []string) error {
 	selfID := netMes.p2pHost.ID().String()
 	for _, seeder := range seeders {
