@@ -5,6 +5,7 @@ type P2PConfig struct {
 	Node                NodeConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 	Sharding            ShardingConfig
+	SubNetworks         SubNetworksConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -58,4 +59,23 @@ type ShardingConfig struct {
 	MaxCrossShardObservers  uint32
 	MaxSeeders              uint32
 	Type                    string
+}
+
+// SubNetworksConfig holds an array of subnetworks configs
+// all subnetworks will use the same host
+type SubNetworksConfig struct {
+	Networks []SubNetworkConfig
+}
+
+// SubNetworkConfig holds a subnetwork config
+type SubNetworkConfig struct {
+	Name   string
+	PubSub PubSubConfig
+}
+
+// PubSubConfig holds the configuration for PubSub
+type PubSubConfig struct {
+	OptimalPeersNum int
+	MinimumPeersNum int
+	MaximumPeersNum int
 }

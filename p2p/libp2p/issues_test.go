@@ -43,6 +43,7 @@ func createMessenger() p2p.Messenger {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
@@ -89,8 +90,8 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	smallPacketReceived := &atomic.Value{}
 	smallPacketReceived.Store(false)
 
-	_ = mes2.CreateTopic(topic, false)
-	_ = mes2.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{
+	_ = mes2.CreateTopic("main", topic, false)
+	_ = mes2.RegisterMessageProcessor("main", topic, "identifier", &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)

@@ -53,6 +53,7 @@ func createBaseArgs() libp2p.ArgsNetworkMessenger {
 		P2pSingleSigner:       &singlesig.Secp256k1Signer{},
 		P2pKeyGenerator:       keyGen,
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 }
 
@@ -90,6 +91,7 @@ func createBaseArgsForTCPWithKey(key crypto.PrivateKey) libp2p.ArgsNetworkMessen
 		P2pSingleSigner:       &singlesig.Secp256k1Signer{},
 		P2pKeyGenerator:       keyGen,
 		Logger:                log,
+		NetworkType:           "main",
 	}
 }
 

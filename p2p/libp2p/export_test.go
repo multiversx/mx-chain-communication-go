@@ -91,18 +91,6 @@ func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
 	return netMes.ConnectionsHandler.(*connectionsHandler).MapHistogram(input)
 }
 
-// PubsubHasTopic -
-func (handler *messagesHandler) PubsubHasTopic(expectedTopic string) bool {
-	topics := handler.pubSub.GetTopics()
-
-	for _, topic := range topics {
-		if topic == expectedTopic {
-			return true
-		}
-	}
-	return false
-}
-
 // Disconnect -
 func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
 	return netMes.p2pHost.Network().ClosePeer(peer.ID(pid))
@@ -236,7 +224,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 	handler := &messagesHandler{
 		ctx:                ctx,
 		cancelFunc:         cancel,
-		pubSub:             args.PubSub,
+		pubSubs:            args.PubSubs,
 		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
 		outgoingCLB:        args.OutgoingCLB,
@@ -247,6 +235,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		syncTimer:          args.SyncTimer,
 		peerID:             args.PeerID,
 		processors:         make(map[string]TopicProcessor),
+		networkTopics:      make(map[string]p2p.NetworkType),
 		topics:             make(map[string]PubSubTopic),
 		subscriptions:      make(map[string]PubSubSubscription),
 		equivalentMessages: make(map[string]types.Cacher),
@@ -288,6 +277,9 @@ func NewMessagesHandlerWithTopics(args ArgMessagesHandler, topics map[string]Pub
 func NewMessagesHandlerWithNoRoutineAndProcessors(args ArgMessagesHandler, processors map[string]TopicProcessor) *messagesHandler {
 	handler := NewMessagesHandlerWithNoRoutine(args)
 	handler.processors = processors
+	for topic := range processors {
+		handler.networkTopics[topic] = "main"
+	}
 
 	return handler
 }
