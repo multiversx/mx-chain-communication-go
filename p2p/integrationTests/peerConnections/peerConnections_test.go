@@ -163,7 +163,7 @@ func TestPeerConnectionsOnAllSupportedProtocolsShouldExchangeData(t *testing.T) 
 	// create a common topic on all messengers
 	commonTopic := "test"
 	for _, mes := range messengers {
-		err = mes.CreateTopic(commonTopic, true)
+		err = mes.CreateTopic("main", commonTopic, true)
 		require.Nil(t, err)
 	}
 
@@ -172,7 +172,7 @@ func TestPeerConnectionsOnAllSupportedProtocolsShouldExchangeData(t *testing.T) 
 	messages := make(map[string]map[string]int)
 
 	for _, mes := range messengers {
-		err = mes.RegisterMessageProcessor(commonTopic, "", createInterceptor(mes.ID().Pretty(), messages, &mutMessages))
+		err = mes.RegisterMessageProcessor("main", commonTopic, "", createInterceptor(mes.ID().Pretty(), messages, &mutMessages))
 		require.Nil(t, err)
 	}
 
