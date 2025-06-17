@@ -76,7 +76,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 			continue
 		}
 
-		err = peers[idx].RegisterMessageProcessor("main", testTopic, "test", &messageProcessorStub{
+		err = peers[idx].RegisterMessageProcessor(testTopic, "test", &messageProcessorStub{
 			ProcessReceivedMessageCalled: func(message p2p.MessageP2P, source p2p.MessageHandler) ([]byte, error) {
 				time.Sleep(time.Second)
 
@@ -178,7 +178,7 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string) ([]*me
 		}
 
 		interceptors[idx] = newMessageProcessor()
-		err = p.RegisterMessageProcessor("main", topic, "test", interceptors[idx])
+		err = p.RegisterMessageProcessor(topic, "test", interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}

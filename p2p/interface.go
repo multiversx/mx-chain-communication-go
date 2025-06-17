@@ -45,9 +45,9 @@ type MessageHandler interface {
 
 	CreateTopic(networkType NetworkType, name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	RegisterMessageProcessor(networkType NetworkType, topic string, identifier string, handler MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
 	UnregisterAllMessageProcessors() error
-	UnregisterMessageProcessor(networkType NetworkType, topic string, identifier string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)

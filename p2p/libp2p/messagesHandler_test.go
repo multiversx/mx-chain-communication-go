@@ -40,7 +40,11 @@ var (
 func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 	return libp2p.ArgMessagesHandler{
 		PubSubs: map[p2p.NetworkType]libp2p.PubSub{
-			"main": &mock.PubSubStub{},
+			"main": &mock.PubSubStub{
+				JoinCalled: func(topic string, opts ...pubsub.TopicOpt) (*pubsub.Topic, error) {
+					return &pubsub.Topic{}, nil
+				},
+			},
 		},
 		DirectSender: &mock.DirectSenderStub{},
 		Throttler:    &mock.ThrottlerStub{},
@@ -465,7 +469,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, nil)
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, nil)
 		assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 	})
 	t.Run("new topic - should work", func(t *testing.T) {
@@ -485,7 +489,8 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		mh.AddTopicNetwork("main", providedTopic)
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
 	})
@@ -503,7 +508,8 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		mh.AddTopicNetwork("main", providedTopic)
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Equal(t, expectedError, err)
 	})
 	t.Run("known topic - should work", func(t *testing.T) {
@@ -524,7 +530,8 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		mh.AddTopicNetwork("main", providedTopic)
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 	})
 	t.Run("known topic - add topic processors fails", func(t *testing.T) {
@@ -548,7 +555,8 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		mh.AddTopicNetwork("main", providedTopic)
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.True(t, errors.Is(err, expectedError))
 	})
 }
@@ -611,7 +619,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
 		assert.NotNil(t, mh)
 
-		err := mh.UnregisterMessageProcessor("main", providedTopic, providedIdentifier)
+		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Nil(t, err)
 	})
 	t.Run("remove topic processor returns error", func(t *testing.T) {
@@ -628,7 +636,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.UnregisterMessageProcessor("main", providedTopic, providedIdentifier)
+		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Equal(t, expectedError, err)
 	})
 	t.Run("empty identifiers should work", func(t *testing.T) {
@@ -654,7 +662,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.UnregisterMessageProcessor("main", providedTopic, providedIdentifier)
+		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
 	})
@@ -680,7 +688,7 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.UnregisterMessageProcessor("main", providedTopic, providedIdentifier)
+		err := mh.UnregisterMessageProcessor(providedTopic, providedIdentifier)
 		assert.Nil(t, err)
 	})
 }

@@ -10,9 +10,9 @@ import (
 type MessageHandlerStub struct {
 	CreateTopicCalled                       func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error
 	HasTopicCalled                          func(name string) bool
-	RegisterMessageProcessorCalled          func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled          func(topic string, identifier string, handler p2p.MessageProcessor) error
 	UnregisterAllMessageProcessorsCalled    func() error
-	UnregisterMessageProcessorCalled        func(networkType p2p.NetworkType, topic string, identifier string) error
+	UnregisterMessageProcessorCalled        func(topic string, identifier string) error
 	BroadcastCalled                         func(topic string, buff []byte)
 	BroadcastOnChannelCalled                func(channel string, topic string, buff []byte)
 	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
@@ -41,9 +41,9 @@ func (stub *MessageHandlerStub) HasTopic(name string) bool {
 }
 
 // RegisterMessageProcessor -
-func (stub *MessageHandlerStub) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
+func (stub *MessageHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if stub.RegisterMessageProcessorCalled != nil {
-		return stub.RegisterMessageProcessorCalled(networkType, topic, identifier, handler)
+		return stub.RegisterMessageProcessorCalled(topic, identifier, handler)
 	}
 	return nil
 }
@@ -57,9 +57,9 @@ func (stub *MessageHandlerStub) UnregisterAllMessageProcessors() error {
 }
 
 // UnregisterMessageProcessor -
-func (stub *MessageHandlerStub) UnregisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string) error {
+func (stub *MessageHandlerStub) UnregisterMessageProcessor(topic string, identifier string) error {
 	if stub.UnregisterMessageProcessorCalled != nil {
-		return stub.UnregisterMessageProcessorCalled(networkType, topic, identifier)
+		return stub.UnregisterMessageProcessorCalled(topic, identifier)
 	}
 	return nil
 }

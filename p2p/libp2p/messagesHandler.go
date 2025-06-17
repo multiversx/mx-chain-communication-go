@@ -315,7 +315,7 @@ func (handler *messagesHandler) checkSendableData(buff []byte) error {
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers
 // on a topic. Each handler should be associated with a new identifier on the same topic. Using same identifier on different
 // topics is allowed. The order of handler calling on a particular topic is not deterministic.
-func (handler *messagesHandler) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, msgProcessor p2p.MessageProcessor) error {
+func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifier string, msgProcessor p2p.MessageProcessor) error {
 	if check.IfNil(msgProcessor) {
 		return fmt.Errorf("%w when calling messagesHandler.RegisterMessageProcessor for topic %s",
 			p2p.ErrNilValidator, topic)
@@ -329,9 +329,10 @@ func (handler *messagesHandler) RegisterMessageProcessor(networkType p2p.Network
 		topicProcs = newTopicProcessors()
 		handler.processors[topic] = topicProcs
 
-		pubSub, found := handler.pubSubs[networkType]
+		network := handler.getNetworkTypeForTopic(topic)
+		pubSub, found := handler.pubSubs[network]
 		if !found {
-			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, networkType)
+			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, network)
 		}
 
 		err := pubSub.RegisterTopicValidator(topic, handler.pubsubCallback(topicProcs, topic))
@@ -511,7 +512,7 @@ func (handler *messagesHandler) processDebugMessage(topic string, fromConnectedP
 }
 
 // UnregisterMessageProcessor unregisters a message processes on a topic
-func (handler *messagesHandler) UnregisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string) error {
+func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identifier string) error {
 	handler.mutTopics.Lock()
 	defer handler.mutTopics.Unlock()
 
@@ -529,9 +530,10 @@ func (handler *messagesHandler) UnregisterMessageProcessor(networkType p2p.Netwo
 	if len(identifiers) == 0 {
 		handler.processors[topic] = nil
 
-		pubSub, found := handler.pubSubs[networkType]
+		network := handler.getNetworkTypeForTopic(topic)
+		pubSub, found := handler.pubSubs[network]
 		if !found {
-			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, networkType)
+			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, network)
 		}
 
 		return pubSub.UnregisterTopicValidator(topic)

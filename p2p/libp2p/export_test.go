@@ -147,6 +147,14 @@ func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifie
 	netMes.MessageHandler.(*messagesHandler).DirectSender().signer = signer
 }
 
+// AddTopicNetwork -
+func (handler *messagesHandler) AddTopicNetwork(network p2p.NetworkType, topic string) {
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
+
+	handler.networkTopics[topic] = network
+}
+
 // Chans -
 func (oplb *outgoingChannelLoadBalancer) Chans() []chan *SendableData {
 	return oplb.chans

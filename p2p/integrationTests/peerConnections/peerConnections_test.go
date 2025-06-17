@@ -172,7 +172,7 @@ func TestPeerConnectionsOnAllSupportedProtocolsShouldExchangeData(t *testing.T) 
 	messages := make(map[string]map[string]int)
 
 	for _, mes := range messengers {
-		err = mes.RegisterMessageProcessor("main", commonTopic, "", createInterceptor(mes.ID().Pretty(), messages, &mutMessages))
+		err = mes.RegisterMessageProcessor(commonTopic, "", createInterceptor(mes.ID().Pretty(), messages, &mutMessages))
 		require.Nil(t, err)
 	}
 
