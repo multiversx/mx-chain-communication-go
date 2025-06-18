@@ -21,8 +21,8 @@ func newNetworkTopicsHolder(log p2p.Logger, mainNetwork p2p.NetworkType) *networ
 	}
 }
 
-// AddTopicOnNetwork saves a new topic for a specific network
-func (holder *networkTopicsHolder) AddTopicOnNetwork(networkType p2p.NetworkType, topic string) {
+// AddTopicOnNetworkIfNeeded saves a new topic for a specific network
+func (holder *networkTopicsHolder) AddTopicOnNetworkIfNeeded(networkType p2p.NetworkType, topic string) {
 	holder.mut.Lock()
 	defer holder.mut.Unlock()
 

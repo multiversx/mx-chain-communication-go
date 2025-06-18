@@ -169,13 +169,12 @@ func DefaultSendChannel() string {
 
 // NewPeersOnChannel -
 func NewPeersOnChannel(
-	pubSubs map[p2p.NetworkType]PubSub,
-	networkTopicsHolder NetworkTopicsHolder,
+	pubSubsHolder PubSubsHolder,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 	logger p2p.Logger,
 ) (*peersOnChannel, error) {
-	return newPeersOnChannel(pubSubs, networkTopicsHolder, refreshInterval, ttlInterval, logger)
+	return newPeersOnChannel(pubSubsHolder, refreshInterval, ttlInterval, logger)
 }
 
 // NewPeersOnChannel -
@@ -225,7 +224,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 	handler := &messagesHandler{
 		ctx:                 ctx,
 		cancelFunc:          cancel,
-		pubSubs:             args.PubSubs,
+		pubSubsHolder:       args.PubSubsHolder,
 		directSender:        args.DirectSender,
 		throttler:           args.Throttler,
 		outgoingCLB:         args.OutgoingCLB,

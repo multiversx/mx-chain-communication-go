@@ -213,8 +213,8 @@ var ErrNoTransportsDefined = errors.New("no transports defined")
 // ErrUnknownResourceLimiterType signals that an unknown resource limiter type was provided
 var ErrUnknownResourceLimiterType = errors.New("unknown resource limiter type")
 
-// ErrUnknownNetworkType signals that an unknown network type has been provided
-var ErrUnknownNetworkType = errors.New("unknown network type")
+// ErrNilPubSubsHolder signals that a nil pubSubs holder has been provided
+var ErrNilPubSubsHolder = errors.New("nil pubSubs holder")
 
 // ErrNilNetworkTopicsHolder signals that a nil network topics holder has been provided
 var ErrNilNetworkTopicsHolder = errors.New("nil network topics holder")

@@ -32,7 +32,8 @@ const equivalentMessagesCacheSize = 1000
 
 // ArgMessagesHandler is the DTO struct used to create a new instance of messages handler
 type ArgMessagesHandler struct {
-	PubSubs             map[p2p.NetworkType]PubSub
+	PubSubsHolder       PubSubsHolder
+	NetworkTopicsHolder NetworkTopicsHolder
 	DirectSender        p2p.DirectSender
 	Throttler           core.Throttler
 	OutgoingCLB         ChannelLoadBalancer
@@ -42,7 +43,6 @@ type ArgMessagesHandler struct {
 	SyncTimer           p2p.SyncTimer
 	PeerID              core.PeerID
 	Logger              p2p.Logger
-	NetworkTopicsHolder NetworkTopicsHolder
 }
 
 type messagesHandler struct {
@@ -59,10 +59,10 @@ type messagesHandler struct {
 	syncTimer           p2p.SyncTimer
 	peerID              core.PeerID
 	log                 p2p.Logger
+	pubSubsHolder       PubSubsHolder
 	networkTopicsHolder NetworkTopicsHolder
 
 	mutTopics          sync.RWMutex
-	pubSubs            map[p2p.NetworkType]PubSub
 	processors         map[string]TopicProcessor
 	topics             map[string]PubSubTopic
 	subscriptions      map[string]PubSubSubscription
@@ -80,7 +80,8 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 	handler := &messagesHandler{
 		ctx:                 ctx,
 		cancelFunc:          cancel,
-		pubSubs:             args.PubSubs,
+		pubSubsHolder:       args.PubSubsHolder,
+		networkTopicsHolder: args.NetworkTopicsHolder,
 		directSender:        args.DirectSender,
 		throttler:           args.Throttler,
 		outgoingCLB:         args.OutgoingCLB,
@@ -95,7 +96,6 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		subscriptions:       make(map[string]PubSubSubscription),
 		equivalentMessages:  make(map[string]types.Cacher),
 		log:                 args.Logger,
-		networkTopicsHolder: args.NetworkTopicsHolder,
 	}
 
 	err = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -109,13 +109,8 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 }
 
 func checkArgMessagesHandler(args ArgMessagesHandler) error {
-	if len(args.PubSubs) == 0 {
-		return p2p.ErrNoPubSub
-	}
-	for networkType, pubSub := range args.PubSubs {
-		if pubSub == nil {
-			return fmt.Errorf("%w for %s", p2p.ErrNilPubSub, networkType)
-		}
+	if check.IfNil(args.PubSubsHolder) {
+		return p2p.ErrNilPubSubsHolder
 	}
 	if check.IfNil(args.DirectSender) {
 		return p2p.ErrNilDirectSender
@@ -164,9 +159,9 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 
 		handler.mutTopics.RLock()
 		topic := handler.topics[sendableData.Topic]
-		network := handler.networkTopicsHolder.GetNetworkTypeForTopic(sendableData.Topic)
 		handler.mutTopics.RUnlock()
 		if topic == nil {
+			network := handler.networkTopicsHolder.GetNetworkTypeForTopic(sendableData.Topic)
 			handler.log.Warn("writing on a topic that the node did not register on - message dropped",
 				"network", network,
 				"topic", sendableData.Topic,
@@ -182,6 +177,7 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 
 		errPublish := handler.publish(topic, sendableData, packedSendableDataBuff)
 		if errPublish != nil {
+			network := handler.networkTopicsHolder.GetNetworkTypeForTopic(sendableData.Topic)
 			handler.log.Trace("error sending data", "network", network, "error", errPublish)
 		}
 	}
@@ -207,9 +203,7 @@ func (handler *messagesHandler) BroadcastOnChannel(channel string, topic string,
 	go func() {
 		err := handler.broadcastOnChannelBlocking(channel, topic, buff)
 		if err != nil {
-			handler.mutTopics.RLock()
 			network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
-			handler.mutTopics.RUnlock()
 			handler.log.Warn("p2p broadcast", "network", network, "error", err.Error())
 		}
 	}()
@@ -333,9 +327,9 @@ func (handler *messagesHandler) RegisterMessageProcessor(networkType p2p.Network
 		topicProcs = newTopicProcessors()
 		handler.processors[topic] = topicProcs
 
-		handler.networkTopicsHolder.AddTopicOnNetwork(networkType, topic)
+		handler.networkTopicsHolder.AddTopicOnNetworkIfNeeded(networkType, topic)
 
-		pubSub, found := handler.pubSubs[networkType]
+		pubSub, found := handler.pubSubsHolder.GetPubSub(topic)
 		if !found {
 			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, networkType)
 		}
@@ -536,7 +530,7 @@ func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identif
 		handler.processors[topic] = nil
 
 		network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
-		pubSub, found := handler.pubSubs[network]
+		pubSub, found := handler.pubSubsHolder.GetPubSub(topic)
 		if !found {
 			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, network)
 		}
@@ -554,7 +548,7 @@ func (handler *messagesHandler) UnregisterAllMessageProcessors() error {
 
 	for topic := range handler.processors {
 		networkType := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
-		pubSub, found := handler.pubSubs[networkType]
+		pubSub, found := handler.pubSubsHolder.GetPubSub(topic)
 		if !found {
 			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, networkType)
 		}
@@ -702,8 +696,8 @@ func (handler *messagesHandler) CreateTopic(networkType p2p.NetworkType, name st
 		return nil
 	}
 
-	handler.networkTopicsHolder.AddTopicOnNetwork(networkType, name)
-	pubSub, found := handler.pubSubs[networkType]
+	handler.networkTopicsHolder.AddTopicOnNetworkIfNeeded(networkType, name)
+	pubSub, found := handler.pubSubsHolder.GetPubSub(name)
 	if !found {
 		return fmt.Errorf("%w for topic %s", p2p.ErrNoPubSub, name)
 	}

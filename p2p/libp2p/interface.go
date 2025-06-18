@@ -100,9 +100,16 @@ type ConnectionsMetric interface {
 	IsInterfaceNil() bool
 }
 
+// PubSubsHolder defines a component able to hold multiple pubSub instances
+type PubSubsHolder interface {
+	GetPubSub(topic string) (PubSub, bool)
+	Close() error
+	IsInterfaceNil() bool
+}
+
 // NetworkTopicsHolder defines a component able to map a topic to a network
 type NetworkTopicsHolder interface {
-	AddTopicOnNetwork(networkType p2p.NetworkType, topic string)
+	AddTopicOnNetworkIfNeeded(networkType p2p.NetworkType, topic string)
 	GetNetworkTypeForTopic(topic string) p2p.NetworkType
 	RemoveTopic(topic string)
 	IsInterfaceNil() bool

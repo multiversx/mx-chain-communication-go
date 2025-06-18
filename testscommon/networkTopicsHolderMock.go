@@ -4,15 +4,15 @@ import "github.com/multiversx/mx-chain-communication-go/p2p"
 
 // NetworkTopicsHolderMock -
 type NetworkTopicsHolderMock struct {
-	AddTopicOnNetworkCalled      func(networkType p2p.NetworkType, topic string)
-	GetNetworkTypeForTopicCalled func(topic string) p2p.NetworkType
-	RemoveTopicCalled            func(topic string)
+	AddTopicOnNetworkIfNeededCalled func(networkType p2p.NetworkType, topic string)
+	GetNetworkTypeForTopicCalled    func(topic string) p2p.NetworkType
+	RemoveTopicCalled               func(topic string)
 }
 
-// AddTopicOnNetwork -
-func (mock *NetworkTopicsHolderMock) AddTopicOnNetwork(networkType p2p.NetworkType, topic string) {
-	if mock.AddTopicOnNetworkCalled != nil {
-		mock.AddTopicOnNetworkCalled(networkType, topic)
+// AddTopicOnNetworkIfNeeded -
+func (mock *NetworkTopicsHolderMock) AddTopicOnNetworkIfNeeded(networkType p2p.NetworkType, topic string) {
+	if mock.AddTopicOnNetworkIfNeededCalled != nil {
+		mock.AddTopicOnNetworkIfNeededCalled(networkType, topic)
 	}
 }
 
