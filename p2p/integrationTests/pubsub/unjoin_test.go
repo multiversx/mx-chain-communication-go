@@ -28,7 +28,7 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 	for idx, p := range peers {
 		_ = p.CreateTopic("main", topic, true)
 		processors = append(processors, newMessageProcessor())
-		_ = p.RegisterMessageProcessor(topic, "test", processors[idx])
+		_ = p.RegisterMessageProcessor("main", topic, "test", processors[idx])
 	}
 
 	fmt.Println("bootstrapping nodes")

@@ -469,7 +469,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, nil)
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, nil)
 		assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 	})
 	t.Run("new topic - should work", func(t *testing.T) {
@@ -489,8 +489,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		mh.AddTopicNetwork("main", providedTopic)
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
 	})
@@ -508,8 +507,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		mh.AddTopicNetwork("main", providedTopic)
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Equal(t, expectedError, err)
 	})
 	t.Run("known topic - should work", func(t *testing.T) {
@@ -530,8 +528,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		mh.AddTopicNetwork("main", providedTopic)
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 	})
 	t.Run("known topic - add topic processors fails", func(t *testing.T) {
@@ -555,8 +552,7 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		mh.AddTopicNetwork("main", providedTopic)
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.True(t, errors.Is(err, expectedError))
 	})
 }

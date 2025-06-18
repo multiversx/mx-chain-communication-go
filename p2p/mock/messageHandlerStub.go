@@ -10,7 +10,7 @@ import (
 type MessageHandlerStub struct {
 	CreateTopicCalled                       func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error
 	HasTopicCalled                          func(name string) bool
-	RegisterMessageProcessorCalled          func(topic string, identifier string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled          func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
 	UnregisterAllMessageProcessorsCalled    func() error
 	UnregisterMessageProcessorCalled        func(topic string, identifier string) error
 	BroadcastCalled                         func(topic string, buff []byte)
@@ -41,9 +41,9 @@ func (stub *MessageHandlerStub) HasTopic(name string) bool {
 }
 
 // RegisterMessageProcessor -
-func (stub *MessageHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+func (stub *MessageHandlerStub) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 	if stub.RegisterMessageProcessorCalled != nil {
-		return stub.RegisterMessageProcessorCalled(topic, identifier, handler)
+		return stub.RegisterMessageProcessorCalled(networkType, topic, identifier, handler)
 	}
 	return nil
 }

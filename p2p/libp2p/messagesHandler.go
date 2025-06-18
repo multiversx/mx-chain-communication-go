@@ -315,7 +315,7 @@ func (handler *messagesHandler) checkSendableData(buff []byte) error {
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers
 // on a topic. Each handler should be associated with a new identifier on the same topic. Using same identifier on different
 // topics is allowed. The order of handler calling on a particular topic is not deterministic.
-func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifier string, msgProcessor p2p.MessageProcessor) error {
+func (handler *messagesHandler) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, msgProcessor p2p.MessageProcessor) error {
 	if check.IfNil(msgProcessor) {
 		return fmt.Errorf("%w when calling messagesHandler.RegisterMessageProcessor for topic %s",
 			p2p.ErrNilValidator, topic)
@@ -329,10 +329,11 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 		topicProcs = newTopicProcessors()
 		handler.processors[topic] = topicProcs
 
-		network := handler.getNetworkTypeForTopic(topic)
-		pubSub, found := handler.pubSubs[network]
+		handler.saveNetworkTypeForTopicIfNeeded(networkType, topic)
+
+		pubSub, found := handler.pubSubs[networkType]
 		if !found {
-			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, network)
+			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, networkType)
 		}
 
 		err := pubSub.RegisterTopicValidator(topic, handler.pubsubCallback(topicProcs, topic))
@@ -671,6 +672,14 @@ func (handler *messagesHandler) getNetworkTypeForTopic(topic string) p2p.Network
 	}
 
 	return networkType
+}
+
+// should be called under mutex protection
+func (handler *messagesHandler) saveNetworkTypeForTopicIfNeeded(networkType p2p.NetworkType, topic string) {
+	_, found := handler.networkTopics[topic]
+	if !found {
+		handler.networkTopics[topic] = networkType
+	}
 }
 
 func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {

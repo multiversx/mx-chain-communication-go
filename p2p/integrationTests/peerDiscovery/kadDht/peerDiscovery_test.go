@@ -200,7 +200,7 @@ func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.Simp
 		proc := &peerDiscovery.SimpleMessageProcessor{}
 		processors = append(processors, proc)
 
-		err := peer.RegisterMessageProcessor(topic, "test", proc)
+		err := peer.RegisterMessageProcessor("main", topic, "test", proc)
 		if err != nil {
 			fmt.Println(err.Error())
 		}

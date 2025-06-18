@@ -45,7 +45,7 @@ type MessageHandler interface {
 
 	CreateTopic(networkType NetworkType, name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
+	RegisterMessageProcessor(networkType NetworkType, topic string, identifier string, handler MessageProcessor) error
 	UnregisterAllMessageProcessors() error
 	UnregisterMessageProcessor(topic string, identifier string) error
 	Broadcast(topic string, buff []byte)

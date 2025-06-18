@@ -26,7 +26,7 @@ func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 		mp := NewMessageProcessor(chanMessageProcessor, []byte(testMessage))
 
 		messageProcessors[i] = mp
-		err := peer.RegisterMessageProcessor(topic, "test", mp)
+		err := peer.RegisterMessageProcessor("main", topic, "test", mp)
 		if err != nil {
 			fmt.Println(err.Error())
 			return false
