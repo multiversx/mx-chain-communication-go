@@ -343,8 +343,11 @@ func addComponentsToNode(
 
 	pubSubs[p2pNode.networkType] = mainPubSub
 
+	networkTopicsHolderInstance := newNetworkTopicsHolder(p2pNode.log, p2pNode.networkType)
+
 	peersOnChannelInstance, err := newPeersOnChannel(
-		mainPubSub.ListPeers,
+		pubSubs,
+		networkTopicsHolderInstance,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic,
 		p2pNode.log)
@@ -383,16 +386,17 @@ func addComponentsToNode(
 	}
 
 	argsMessageHandler := ArgMessagesHandler{
-		PubSubs:            pubSubs,
-		DirectSender:       ds,
-		Throttler:          goRoutinesThrottler,
-		OutgoingCLB:        oclb,
-		Marshaller:         marshaller,
-		ConnMonitor:        connMonitor,
-		PeersRatingHandler: peersRatingHandler,
-		SyncTimer:          args.SyncTimer,
-		PeerID:             p2pNode.ID(),
-		Logger:             p2pNode.log,
+		PubSubs:             pubSubs,
+		DirectSender:        ds,
+		Throttler:           goRoutinesThrottler,
+		OutgoingCLB:         oclb,
+		Marshaller:          marshaller,
+		ConnMonitor:         connMonitor,
+		PeersRatingHandler:  peersRatingHandler,
+		SyncTimer:           args.SyncTimer,
+		PeerID:              p2pNode.ID(),
+		Logger:              p2pNode.log,
+		NetworkTopicsHolder: networkTopicsHolderInstance,
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {

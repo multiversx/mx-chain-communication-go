@@ -32,36 +32,37 @@ const equivalentMessagesCacheSize = 1000
 
 // ArgMessagesHandler is the DTO struct used to create a new instance of messages handler
 type ArgMessagesHandler struct {
-	PubSubs            map[p2p.NetworkType]PubSub
-	DirectSender       p2p.DirectSender
-	Throttler          core.Throttler
-	OutgoingCLB        ChannelLoadBalancer
-	Marshaller         p2p.Marshaller
-	ConnMonitor        ConnectionMonitor
-	PeersRatingHandler p2p.PeersRatingHandler
-	SyncTimer          p2p.SyncTimer
-	PeerID             core.PeerID
-	Logger             p2p.Logger
+	PubSubs             map[p2p.NetworkType]PubSub
+	DirectSender        p2p.DirectSender
+	Throttler           core.Throttler
+	OutgoingCLB         ChannelLoadBalancer
+	Marshaller          p2p.Marshaller
+	ConnMonitor         ConnectionMonitor
+	PeersRatingHandler  p2p.PeersRatingHandler
+	SyncTimer           p2p.SyncTimer
+	PeerID              core.PeerID
+	Logger              p2p.Logger
+	NetworkTopicsHolder NetworkTopicsHolder
 }
 
 type messagesHandler struct {
-	ctx                context.Context
-	cancelFunc         context.CancelFunc
-	directSender       p2p.DirectSender
-	throttler          core.Throttler
-	outgoingCLB        ChannelLoadBalancer
-	marshaller         p2p.Marshaller
-	connMonitor        ConnectionMonitor
-	peersRatingHandler p2p.PeersRatingHandler
-	debugger           p2p.Debugger
-	mutDebugger        sync.RWMutex
-	syncTimer          p2p.SyncTimer
-	peerID             core.PeerID
-	log                p2p.Logger
+	ctx                 context.Context
+	cancelFunc          context.CancelFunc
+	directSender        p2p.DirectSender
+	throttler           core.Throttler
+	outgoingCLB         ChannelLoadBalancer
+	marshaller          p2p.Marshaller
+	connMonitor         ConnectionMonitor
+	peersRatingHandler  p2p.PeersRatingHandler
+	debugger            p2p.Debugger
+	mutDebugger         sync.RWMutex
+	syncTimer           p2p.SyncTimer
+	peerID              core.PeerID
+	log                 p2p.Logger
+	networkTopicsHolder NetworkTopicsHolder
 
 	mutTopics          sync.RWMutex
 	pubSubs            map[p2p.NetworkType]PubSub
-	networkTopics      map[string]p2p.NetworkType
 	processors         map[string]TopicProcessor
 	topics             map[string]PubSubTopic
 	subscriptions      map[string]PubSubSubscription
@@ -77,24 +78,24 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &messagesHandler{
-		ctx:                ctx,
-		cancelFunc:         cancel,
-		pubSubs:            args.PubSubs,
-		directSender:       args.DirectSender,
-		throttler:          args.Throttler,
-		outgoingCLB:        args.OutgoingCLB,
-		marshaller:         args.Marshaller,
-		connMonitor:        args.ConnMonitor,
-		peersRatingHandler: args.PeersRatingHandler,
-		debugger:           disabled.NewP2PDebugger(),
-		syncTimer:          args.SyncTimer,
-		peerID:             args.PeerID,
-		processors:         make(map[string]TopicProcessor),
-		networkTopics:      make(map[string]p2p.NetworkType),
-		topics:             make(map[string]PubSubTopic),
-		subscriptions:      make(map[string]PubSubSubscription),
-		equivalentMessages: make(map[string]types.Cacher),
-		log:                args.Logger,
+		ctx:                 ctx,
+		cancelFunc:          cancel,
+		pubSubs:             args.PubSubs,
+		directSender:        args.DirectSender,
+		throttler:           args.Throttler,
+		outgoingCLB:         args.OutgoingCLB,
+		marshaller:          args.Marshaller,
+		connMonitor:         args.ConnMonitor,
+		peersRatingHandler:  args.PeersRatingHandler,
+		debugger:            disabled.NewP2PDebugger(),
+		syncTimer:           args.SyncTimer,
+		peerID:              args.PeerID,
+		processors:          make(map[string]TopicProcessor),
+		topics:              make(map[string]PubSubTopic),
+		subscriptions:       make(map[string]PubSubSubscription),
+		equivalentMessages:  make(map[string]types.Cacher),
+		log:                 args.Logger,
+		networkTopicsHolder: args.NetworkTopicsHolder,
 	}
 
 	err = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -140,6 +141,9 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	if check.IfNil(args.Logger) {
 		return p2p.ErrNilLogger
 	}
+	if check.IfNil(args.NetworkTopicsHolder) {
+		return p2p.ErrNilNetworkTopicsHolder
+	}
 
 	return nil
 }
@@ -160,7 +164,7 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 
 		handler.mutTopics.RLock()
 		topic := handler.topics[sendableData.Topic]
-		network := handler.getNetworkTypeForTopic(sendableData.Topic)
+		network := handler.networkTopicsHolder.GetNetworkTypeForTopic(sendableData.Topic)
 		handler.mutTopics.RUnlock()
 		if topic == nil {
 			handler.log.Warn("writing on a topic that the node did not register on - message dropped",
@@ -204,7 +208,7 @@ func (handler *messagesHandler) BroadcastOnChannel(channel string, topic string,
 		err := handler.broadcastOnChannelBlocking(channel, topic, buff)
 		if err != nil {
 			handler.mutTopics.RLock()
-			network := handler.getNetworkTypeForTopic(topic)
+			network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
 			handler.mutTopics.RUnlock()
 			handler.log.Warn("p2p broadcast", "network", network, "error", err.Error())
 		}
@@ -257,7 +261,7 @@ func (handler *messagesHandler) BroadcastOnChannelUsingPrivateKey(
 		err := handler.broadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
 			handler.mutTopics.RLock()
-			network := handler.getNetworkTypeForTopic(topic)
+			network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
 			handler.mutTopics.RUnlock()
 			handler.log.Warn("p2p broadcast using private key", "network", network, "error", err.Error())
 		}
@@ -329,7 +333,7 @@ func (handler *messagesHandler) RegisterMessageProcessor(networkType p2p.Network
 		topicProcs = newTopicProcessors()
 		handler.processors[topic] = topicProcs
 
-		handler.saveNetworkTypeForTopicIfNeeded(networkType, topic)
+		handler.networkTopicsHolder.AddTopicOnNetwork(networkType, topic)
 
 		pubSub, found := handler.pubSubs[networkType]
 		if !found {
@@ -372,7 +376,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 			msgId, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
 				handler.mutTopics.RLock()
-				network := handler.getNetworkTypeForTopic(topic)
+				network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
 				handler.mutTopics.RUnlock()
 				handler.log.Trace("p2p validator",
 					"network", network,
@@ -440,7 +444,7 @@ func (handler *messagesHandler) checkMessage(msg p2p.MessageP2P, pid core.PeerID
 	err := handler.validateMessageByTimestamp(msg)
 	if err != nil {
 		handler.mutTopics.RLock()
-		network := handler.getNetworkTypeForTopic(topic)
+		network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
 		handler.mutTopics.RUnlock()
 
 		// not reprocessing nor re-broadcasting the same message over and over again
@@ -531,7 +535,7 @@ func (handler *messagesHandler) UnregisterMessageProcessor(topic string, identif
 	if len(identifiers) == 0 {
 		handler.processors[topic] = nil
 
-		network := handler.getNetworkTypeForTopic(topic)
+		network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
 		pubSub, found := handler.pubSubs[network]
 		if !found {
 			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, network)
@@ -549,7 +553,7 @@ func (handler *messagesHandler) UnregisterAllMessageProcessors() error {
 	defer handler.mutTopics.Unlock()
 
 	for topic := range handler.processors {
-		networkType := handler.getNetworkTypeForTopic(topic)
+		networkType := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
 		pubSub, found := handler.pubSubs[networkType]
 		if !found {
 			return fmt.Errorf("%w for %s", p2p.ErrNoPubSub, networkType)
@@ -663,25 +667,6 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	return []byte{}, nil
 }
 
-// should be called under mutex protection
-func (handler *messagesHandler) getNetworkTypeForTopic(topic string) p2p.NetworkType {
-	networkType, found := handler.networkTopics[topic]
-	if !found {
-		handler.log.Warn("p2p network not found for topic %s", topic)
-		return ""
-	}
-
-	return networkType
-}
-
-// should be called under mutex protection
-func (handler *messagesHandler) saveNetworkTypeForTopicIfNeeded(networkType p2p.NetworkType, topic string) {
-	_, found := handler.networkTopics[topic]
-	if !found {
-		handler.networkTopics[topic] = networkType
-	}
-}
-
 func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
 	isDirectMessage := msg.BroadcastMethod() == p2p.Direct
 	isRequestMessage := strings.Contains(msg.Topic(), core.TopicRequestSuffix)
@@ -717,7 +702,7 @@ func (handler *messagesHandler) CreateTopic(networkType p2p.NetworkType, name st
 		return nil
 	}
 
-	handler.networkTopics[name] = networkType
+	handler.networkTopicsHolder.AddTopicOnNetwork(networkType, name)
 	pubSub, found := handler.pubSubs[networkType]
 	if !found {
 		return fmt.Errorf("%w for topic %s", p2p.ErrNoPubSub, name)
@@ -788,7 +773,7 @@ func (handler *messagesHandler) UnJoinAllTopics() error {
 		}
 
 		delete(handler.topics, topicName)
-		delete(handler.networkTopics, topicName)
+		handler.networkTopicsHolder.RemoveTopic(topicName)
 	}
 
 	return errFound

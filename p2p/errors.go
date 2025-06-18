@@ -55,9 +55,6 @@ var ErrMessageTooLarge = errors.New("buffer too large")
 // ErrEmptyBufferToSend signals that an empty buffer was provided for sending to other peers
 var ErrEmptyBufferToSend = errors.New("empty buffer to send")
 
-// ErrNilFetchPeersOnTopicHandler signals that a nil handler was provided
-var ErrNilFetchPeersOnTopicHandler = errors.New("nil fetch peers on topic handler")
-
 // ErrInvalidDurationProvided signals that an invalid time.Duration has been provided
 var ErrInvalidDurationProvided = errors.New("invalid time.Duration provided")
 
@@ -218,3 +215,6 @@ var ErrUnknownResourceLimiterType = errors.New("unknown resource limiter type")
 
 // ErrUnknownNetworkType signals that an unknown network type has been provided
 var ErrUnknownNetworkType = errors.New("unknown network type")
+
+// ErrNilNetworkTopicsHolder signals that a nil network topics holder has been provided
+var ErrNilNetworkTopicsHolder = errors.New("nil network topics holder")

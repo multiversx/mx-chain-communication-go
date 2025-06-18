@@ -169,12 +169,13 @@ func DefaultSendChannel() string {
 
 // NewPeersOnChannel -
 func NewPeersOnChannel(
-	fetchPeersHandler func(topic string) []peer.ID,
+	pubSubs map[p2p.NetworkType]PubSub,
+	networkTopicsHolder NetworkTopicsHolder,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 	logger p2p.Logger,
 ) (*peersOnChannel, error) {
-	return newPeersOnChannel(fetchPeersHandler, refreshInterval, ttlInterval, logger)
+	return newPeersOnChannel(pubSubs, networkTopicsHolder, refreshInterval, ttlInterval, logger)
 }
 
 // NewPeersOnChannel -
@@ -222,24 +223,24 @@ func NewUnknownPeerShardResolver() *unknownPeerShardResolver {
 func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &messagesHandler{
-		ctx:                ctx,
-		cancelFunc:         cancel,
-		pubSubs:            args.PubSubs,
-		directSender:       args.DirectSender,
-		throttler:          args.Throttler,
-		outgoingCLB:        args.OutgoingCLB,
-		marshaller:         args.Marshaller,
-		connMonitor:        args.ConnMonitor,
-		peersRatingHandler: args.PeersRatingHandler,
-		debugger:           disabled.NewP2PDebugger(),
-		syncTimer:          args.SyncTimer,
-		peerID:             args.PeerID,
-		processors:         make(map[string]TopicProcessor),
-		networkTopics:      make(map[string]p2p.NetworkType),
-		topics:             make(map[string]PubSubTopic),
-		subscriptions:      make(map[string]PubSubSubscription),
-		equivalentMessages: make(map[string]types.Cacher),
-		log:                args.Logger,
+		ctx:                 ctx,
+		cancelFunc:          cancel,
+		pubSubs:             args.PubSubs,
+		directSender:        args.DirectSender,
+		throttler:           args.Throttler,
+		outgoingCLB:         args.OutgoingCLB,
+		marshaller:          args.Marshaller,
+		connMonitor:         args.ConnMonitor,
+		peersRatingHandler:  args.PeersRatingHandler,
+		debugger:            disabled.NewP2PDebugger(),
+		syncTimer:           args.SyncTimer,
+		peerID:              args.PeerID,
+		processors:          make(map[string]TopicProcessor),
+		topics:              make(map[string]PubSubTopic),
+		subscriptions:       make(map[string]PubSubSubscription),
+		equivalentMessages:  make(map[string]types.Cacher),
+		log:                 args.Logger,
+		networkTopicsHolder: args.NetworkTopicsHolder,
 	}
 
 	_ = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -277,9 +278,6 @@ func NewMessagesHandlerWithTopics(args ArgMessagesHandler, topics map[string]Pub
 func NewMessagesHandlerWithNoRoutineAndProcessors(args ArgMessagesHandler, processors map[string]TopicProcessor) *messagesHandler {
 	handler := NewMessagesHandlerWithNoRoutine(args)
 	handler.processors = processors
-	for topic := range processors {
-		handler.networkTopics[topic] = "main"
-	}
 
 	return handler
 }

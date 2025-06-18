@@ -59,10 +59,11 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 				return &mock.PeerDenialEvaluatorStub{}
 			},
 		},
-		PeersRatingHandler: &mock.PeersRatingHandlerStub{},
-		SyncTimer:          &libp2p.LocalSyncTimer{},
-		PeerID:             providedPid,
-		Logger:             &testscommon.LoggerStub{},
+		PeersRatingHandler:  &mock.PeersRatingHandlerStub{},
+		SyncTimer:           &libp2p.LocalSyncTimer{},
+		PeerID:              providedPid,
+		Logger:              &testscommon.LoggerStub{},
+		NetworkTopicsHolder: &testscommon.NetworkTopicsHolderMock{},
 	}
 }
 
