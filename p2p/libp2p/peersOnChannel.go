@@ -134,8 +134,6 @@ func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
 	}
 
 	list := pubSub.ListPeers(topic)
-	x := pubSub.GetTopics()
-	poc.log.Warn("refreshPeersOnTopic", "list", len(x))
 	connectedPeers := make([]core.PeerID, len(list))
 	peers := make([]string, 0, len(list))
 	for i, pid := range list {
