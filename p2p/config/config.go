@@ -69,8 +69,9 @@ type SubNetworksConfig struct {
 
 // SubNetworkConfig holds a subnetwork config
 type SubNetworkConfig struct {
-	Name   string
-	PubSub PubSubConfig
+	Name        string
+	PubSub      PubSubConfig
+	ProtocolIDs []string
 }
 
 // PubSubConfig holds the configuration for PubSub

@@ -1,10 +1,14 @@
 package libp2p
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
+
+const requestTopicSuffix = "_REQUEST"
 
 type networkTopicsHolder struct {
 	networkTopics map[string]p2p.NetworkType
@@ -26,19 +30,23 @@ func (holder *networkTopicsHolder) AddTopicOnNetworkIfNeeded(networkType p2p.Net
 	holder.mut.Lock()
 	defer holder.mut.Unlock()
 
-	_, found := holder.networkTopics[topic]
+	baseTopic := strings.Split(topic, requestTopicSuffix)[0]
+
+	_, found := holder.networkTopics[baseTopic]
 	if found {
 		return
 	}
 
-	holder.networkTopics[topic] = networkType
+	holder.networkTopics[baseTopic] = networkType
 }
 
 // GetNetworkTypeForTopic returns the network type a topic lives on
 func (holder *networkTopicsHolder) GetNetworkTypeForTopic(topic string) p2p.NetworkType {
-	networkType, found := holder.networkTopics[topic]
+	baseTopic := strings.Split(topic, requestTopicSuffix)[0]
+	networkType, found := holder.networkTopics[baseTopic]
 	if !found {
-		holder.log.Warn("p2p network not found for topic %s, returning main network %s", topic, holder.mainNetwork)
+		holder.log.Warn(fmt.Sprintf("p2p network not found for baseTopic=%s, initial topic=%s, returning main network %s", baseTopic, topic, holder.mainNetwork))
+
 		return holder.mainNetwork
 	}
 
@@ -50,7 +58,8 @@ func (holder *networkTopicsHolder) RemoveTopic(topic string) {
 	holder.mut.Lock()
 	defer holder.mut.Unlock()
 
-	delete(holder.networkTopics, topic)
+	baseTopic := strings.Split(topic, requestTopicSuffix)[0]
+	delete(holder.networkTopics, baseTopic)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

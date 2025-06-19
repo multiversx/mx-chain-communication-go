@@ -2,7 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -123,11 +122,10 @@ func (holder *pubSubsHolder) createPubSubsForSubNetworks(
 	p2pConfig config.P2PConfig,
 ) (map[p2p.NetworkType]PubSub, error) {
 	subNetworksConfig := p2pConfig.SubNetworks
-	protocolIDs := p2pConfig.KadDhtPeerDiscovery.ProtocolIDs
 
 	pubSubs := make(map[p2p.NetworkType]PubSub)
 	for _, networkCfg := range subNetworksConfig.Networks {
-		pubSub, err := holder.createPubSubForSubNetwork(messageSigning, networkCfg.PubSub, protocolIDs)
+		pubSub, err := holder.createPubSubForSubNetwork(messageSigning, networkCfg)
 		if err != nil {
 			return nil, err
 		}
@@ -141,8 +139,7 @@ func (holder *pubSubsHolder) createPubSubsForSubNetworks(
 
 func (holder *pubSubsHolder) createPubSubForSubNetwork(
 	messageSigning messageSigningConfig,
-	pubSubConfig config.PubSubConfig,
-	protocolIDsStr []string,
+	subNetworkConfig config.SubNetworkConfig,
 ) (PubSub, error) {
 	optsPS := make([]pubsub.Option, 0)
 	if messageSigning == withoutMessageSigning {
@@ -152,8 +149,10 @@ func (holder *pubSubsHolder) createPubSubForSubNetwork(
 
 	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
 
+	pubSubConfig := subNetworkConfig.PubSub
 	gossipSubParams := pubsub.DefaultGossipSubParams()
 	holder.log.Debug("pubsub instance running with the custom parameters",
+		"subNetwork", subNetworkConfig.Name,
 		"D", pubSubConfig.OptimalPeersNum,
 		"Dhi", pubSubConfig.MaximumPeersNum,
 		"Dlo", pubSubConfig.MinimumPeersNum)
@@ -164,24 +163,14 @@ func (holder *pubSubsHolder) createPubSubForSubNetwork(
 
 	optsPS = append(optsPS, pubsub.WithGossipSubParams(gossipSubParams))
 
-	// mandatory when same host is reused
-	protocolIDs := pubsub.GossipSubDefaultProtocols
-	for _, protocolIDStr := range protocolIDsStr {
+	// when same host is reused, different protocol ids are needed for secondary instances
+	protocolIDs := make([]protocol.ID, 0, len(subNetworkConfig.ProtocolIDs))
+	for _, protocolIDStr := range subNetworkConfig.ProtocolIDs {
 		protocolId := protocol.ID(protocolIDStr)
 		protocolIDs = append(protocolIDs, protocolId)
 	}
 
 	optsPS = append(optsPS, pubsub.WithGossipSubProtocols(protocolIDs, pubsub.GossipSubDefaultFeatures))
-	optsPS = append(optsPS, pubsub.WithProtocolMatchFn(holder.protocolMatch))
 
 	return pubsub.NewGossipSub(holder.ctx, holder.p2pHost, optsPS...)
-}
-
-func (holder *pubSubsHolder) protocolMatch(base protocol.ID) func(protocol.ID) bool {
-	return func(check protocol.ID) bool {
-		baseName := strings.ToLower(string(base))
-		checkName := strings.ToLower(string(check))
-
-		return baseName == checkName
-	}
 }
