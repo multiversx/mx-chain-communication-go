@@ -45,7 +45,11 @@ func (holder *networkTopicsHolder) GetNetworkTypeForTopic(topic string) p2p.Netw
 	baseTopic := strings.Split(topic, requestTopicSuffix)[0]
 	networkType, found := holder.networkTopics[baseTopic]
 	if !found {
-		holder.log.Warn(fmt.Sprintf("p2p network not found for baseTopic=%s, initial topic=%s, returning main network %s", baseTopic, topic, holder.mainNetwork))
+		holder.log.Debug(
+			fmt.Sprintf("p2p network not found for baseTopic=%s, initial topic=%s, returning main network: %s",
+				baseTopic, topic, holder.mainNetwork,
+			),
+		)
 
 		return holder.mainNetwork
 	}
