@@ -37,6 +37,9 @@ func (holder *networkTopicsHolder) AddTopicOnNetworkIfNeeded(networkType p2p.Net
 
 // GetNetworkTypeForTopic returns the network type a topic lives on
 func (holder *networkTopicsHolder) GetNetworkTypeForTopic(topic string) p2p.NetworkType {
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
 	networkType, found := holder.networkTopics[topic]
 	if !found {
 		holder.log.Debug(

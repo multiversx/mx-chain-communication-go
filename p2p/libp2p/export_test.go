@@ -326,3 +326,20 @@ func (handler *connectionsHandler) PrintConnectionsStatus() {
 func ParseTransportOptions(configs config.TransportConfig, port int) ([]libp2p.Option, []string, error) {
 	return parseTransportOptions(configs, port)
 }
+
+// NewNetworkTopicsHolder -
+func NewNetworkTopicsHolder(log p2p.Logger, mainNetwork p2p.NetworkType) *networkTopicsHolder {
+	return newNetworkTopicsHolder(log, mainNetwork)
+}
+
+// GetNetworkTopics -
+func (holder *networkTopicsHolder) GetNetworkTopics() map[string]p2p.NetworkType {
+	holder.mut.RLock()
+	mapCopy := make(map[string]p2p.NetworkType, len(holder.networkTopics))
+	for k, v := range holder.networkTopics {
+		mapCopy[k] = v
+	}
+	holder.mut.RUnlock()
+
+	return mapCopy
+}
