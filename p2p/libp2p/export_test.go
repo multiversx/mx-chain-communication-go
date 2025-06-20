@@ -343,3 +343,18 @@ func (holder *networkTopicsHolder) GetNetworkTopics() map[string]p2p.NetworkType
 
 	return mapCopy
 }
+
+// ArgsPubSubsHolder -
+type ArgsPubSubsHolder = argsPubSubsHolder
+
+// NewPubSubsHolder
+func NewPubSubsHolder(args ArgsPubSubsHolder) (*pubSubsHolder, error) {
+	return newPubSubsHolder(argsPubSubsHolder{
+		Log:                 args.Log,
+		Host:                args.Host,
+		MainNetwork:         args.MainNetwork,
+		MessageSigning:      args.MessageSigning,
+		P2pConfig:           args.P2pConfig,
+		NetworkTopicsHolder: args.NetworkTopicsHolder,
+	})
+}

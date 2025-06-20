@@ -70,7 +70,7 @@ func checkArgs(args argsPubSubsHolder) error {
 	if check.IfNil(args.Log) {
 		return p2p.ErrNilLogger
 	}
-	if check.IfNil(args.Log) {
+	if check.IfNil(args.Host) {
 		return p2p.ErrNilHost
 	}
 	if check.IfNil(args.NetworkTopicsHolder) {

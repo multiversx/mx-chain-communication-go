@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const mainNetwork = p2p.NetworkType("main")
+const (
+	mainNetwork         = p2p.NetworkType("main")
+	transactionsNetwork = p2p.NetworkType("transactions")
+)
 
 func TestNewNetworkTopicsHolder(t *testing.T) {
 	t.Parallel()
