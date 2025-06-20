@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
@@ -73,13 +74,22 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 func TestNewMessagesHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("empty PubSubsHolder should error", func(t *testing.T) {
+	t.Run("nil PubSubsHolder should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
 		args.PubSubsHolder = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilPubSubsHolder, err)
+		assert.Nil(t, mh)
+	})
+	t.Run("nil NetworkTopicsHolder should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.NetworkTopicsHolder = nil
+		mh, err := libp2p.NewMessagesHandler(args)
+		assert.Equal(t, p2p.ErrNilNetworkTopicsHolder, err)
 		assert.Nil(t, mh)
 	})
 	t.Run("nil DirectSender should error", func(t *testing.T) {
@@ -469,16 +479,24 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		wasCalled := false
+		wasGetPubSubCalled := false
 		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
 			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
 				return &mock.PubSubStub{
 					RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
-						wasCalled = true
+						wasGetPubSubCalled = true
 						assert.Equal(t, providedTopic, topic)
 						return nil
 					},
 				}, true
+			},
+		}
+		wasAddTopicOnNetworkIfNeededCalled := false
+		args.NetworkTopicsHolder = &testscommon.NetworkTopicsHolderMock{
+			AddTopicOnNetworkIfNeededCalled: func(networkType p2p.NetworkType, topic string) {
+				wasAddTopicOnNetworkIfNeededCalled = true
+				require.Equal(t, p2p.NetworkType("main"), networkType)
+				require.Equal(t, providedTopic, topic)
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
@@ -486,7 +504,8 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 
 		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
-		assert.True(t, wasCalled)
+		assert.True(t, wasGetPubSubCalled)
+		assert.True(t, wasAddTopicOnNetworkIfNeededCalled)
 	})
 	t.Run("new topic - register fails", func(t *testing.T) {
 		t.Parallel()
@@ -1150,6 +1169,28 @@ func TestMessagesHandler_CreateTopic(t *testing.T) {
 
 		err := mh.CreateTopic("main", providedTopic, false)
 		assert.Nil(t, err)
+	})
+	t.Run("GetPubSub error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		wasAddTopicOnNetworkIfNeededCalled := false
+		args.NetworkTopicsHolder = &testscommon.NetworkTopicsHolderMock{
+			AddTopicOnNetworkIfNeededCalled: func(networkType p2p.NetworkType, topic string) {
+				wasAddTopicOnNetworkIfNeededCalled = true
+			},
+		}
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return nil, false
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.NotNil(t, mh)
+
+		err := mh.CreateTopic("main", providedTopic, false)
+		assert.True(t, errors.Is(err, p2p.ErrNoPubSub))
+		require.True(t, wasAddTopicOnNetworkIfNeededCalled)
 	})
 	t.Run("pubSub Join returns error", func(t *testing.T) {
 		t.Parallel()

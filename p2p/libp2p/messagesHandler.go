@@ -437,10 +437,7 @@ func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, 
 func (handler *messagesHandler) checkMessage(msg p2p.MessageP2P, pid core.PeerID, topic string) error {
 	err := handler.validateMessageByTimestamp(msg)
 	if err != nil {
-		handler.mutTopics.RLock()
 		network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
-		handler.mutTopics.RUnlock()
-
 		// not reprocessing nor re-broadcasting the same message over and over again
 		handler.log.Trace("received an invalid message",
 			"network", network,
