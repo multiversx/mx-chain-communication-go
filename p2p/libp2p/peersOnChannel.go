@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,28 +14,28 @@ import (
 // peersOnChannel manages peers on topics
 // it buffers the data and refresh the peers list continuously (in refreshInterval intervals)
 type peersOnChannel struct {
-	mutPeers    sync.RWMutex
-	peers       map[string][]core.PeerID
-	lastUpdated map[string]time.Time
+	mutPeers      sync.RWMutex
+	peers         map[string][]core.PeerID
+	lastUpdated   map[string]time.Time
+	pubSubsHolder PubSubsHolder
 
-	refreshInterval   time.Duration
-	ttlInterval       time.Duration
-	fetchPeersHandler func(topic string) []peer.ID
-	getTimeHandler    func() time.Time
-	cancelFunc        context.CancelFunc
-	log               p2p.Logger
+	refreshInterval time.Duration
+	ttlInterval     time.Duration
+	getTimeHandler  func() time.Time
+	cancelFunc      context.CancelFunc
+	log             p2p.Logger
 }
 
 // newPeersOnChannel returns a new peersOnChannel object
 func newPeersOnChannel(
-	fetchPeersHandler func(topic string) []peer.ID,
+	pubSubsHolder PubSubsHolder,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 	logger p2p.Logger,
 ) (*peersOnChannel, error) {
 
-	if fetchPeersHandler == nil {
-		return nil, p2p.ErrNilFetchPeersOnTopicHandler
+	if check.IfNil(pubSubsHolder) {
+		return nil, p2p.ErrNilPubSubsHolder
 	}
 	if refreshInterval == 0 {
 		return nil, p2p.ErrInvalidDurationProvided
@@ -51,13 +50,13 @@ func newPeersOnChannel(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	poc := &peersOnChannel{
-		peers:             make(map[string][]core.PeerID),
-		lastUpdated:       make(map[string]time.Time),
-		refreshInterval:   refreshInterval,
-		ttlInterval:       ttlInterval,
-		fetchPeersHandler: fetchPeersHandler,
-		cancelFunc:        cancelFunc,
-		log:               logger,
+		pubSubsHolder:   pubSubsHolder,
+		peers:           make(map[string][]core.PeerID),
+		lastUpdated:     make(map[string]time.Time),
+		refreshInterval: refreshInterval,
+		ttlInterval:     ttlInterval,
+		cancelFunc:      cancelFunc,
+		log:             logger,
 	}
 	poc.getTimeHandler = poc.clockTime
 
@@ -127,7 +126,14 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 
 // refreshPeersOnTopic
 func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
-	list := poc.fetchPeersHandler(topic)
+	pubSub, found := poc.pubSubsHolder.GetPubSub(topic)
+	if !found {
+		poc.log.Warn("refreshPeersOnTopic, no pubSub for topic", "topic", topic)
+
+		return make([]core.PeerID, 0)
+	}
+
+	list := pubSub.ListPeers(topic)
 	connectedPeers := make([]core.PeerID, len(list))
 	peers := make([]string, 0, len(list))
 	for i, pid := range list {

@@ -20,11 +20,11 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndTwoNetworks(t *testin
 
 	numOfPeers := 20
 
-	//Step 1. Create advertiser
+	// Step 1. Create advertiser
 	advertiser := integrationTests.CreateMessengerWithKadDhtAndProtocolID("", []string{"/erd/kad/1.1.0", "mvx"})
 	_ = advertiser.Bootstrap()
 
-	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
+	// Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
@@ -37,7 +37,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndTwoNetworks(t *testin
 		_ = peers[i].Bootstrap()
 	}
 
-	//cleanup function that closes all messengers
+	// cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < numOfPeers; i++ {
 			if peers[i] != nil {
@@ -52,10 +52,10 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndTwoNetworks(t *testin
 
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
-	//Step 3. Create a test topic, add receiving handlers
+	// Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
 
-	//Step 4. run the test for a couple of times as peer discovering and topic announcing
+	// Step 4. run the test for a couple of times as peer discovering and topic announcing
 	// are not deterministic nor instant processes
 
 	numOfTests := 5
@@ -78,7 +78,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	numOfPeers := 20
 	numOfAdvertisers := 3
 
-	//Step 1. Create 3 advertisers and connect them together
+	// Step 1. Create 3 advertisers and connect them together
 	advertisers := make([]p2p.Messenger, numOfAdvertisers)
 	advertisers[0] = integrationTests.CreateMessengerWithKadDht("")
 	_ = advertisers[0].Bootstrap()
@@ -88,7 +88,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		_ = advertisers[idx].Bootstrap()
 	}
 
-	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
+	// Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
@@ -96,7 +96,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		_ = peers[i].Bootstrap()
 	}
 
-	//cleanup function that closes all messengers
+	// cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < numOfPeers; i++ {
 			if peers[i] != nil {
@@ -113,10 +113,10 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
-	//Step 3. Create a test topic, add receiving handlers
+	// Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
 
-	//Step 4. run the test for a couple of times as peer discovering and topic announcing
+	// Step 4. run the test for a couple of times as peer discovering and topic announcing
 	// are not deterministic nor instant processes
 
 	noOfTests := 5
@@ -161,7 +161,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 		_ = peer.Bootstrap()
 	}
 
-	//cleanup function that closes all messengers
+	// cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < len(peers); i++ {
 			if peers[i] != nil {
@@ -200,7 +200,7 @@ func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.Simp
 		proc := &peerDiscovery.SimpleMessageProcessor{}
 		processors = append(processors, proc)
 
-		err := peer.RegisterMessageProcessor(topic, "test", proc)
+		err := peer.RegisterMessageProcessor("main", topic, "test", proc)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -211,7 +211,7 @@ func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.Simp
 
 func createTestTopicAndWaitForAnnouncements(t *testing.T, peers []p2p.Messenger) {
 	for _, peer := range peers {
-		err := peer.CreateTopic("test topic", true)
+		err := peer.CreateTopic("main", "test topic", true)
 		if err != nil {
 			assert.Fail(t, "test fail while creating topic")
 		}

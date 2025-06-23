@@ -55,9 +55,6 @@ var ErrMessageTooLarge = errors.New("buffer too large")
 // ErrEmptyBufferToSend signals that an empty buffer was provided for sending to other peers
 var ErrEmptyBufferToSend = errors.New("empty buffer to send")
 
-// ErrNilFetchPeersOnTopicHandler signals that a nil handler was provided
-var ErrNilFetchPeersOnTopicHandler = errors.New("nil fetch peers on topic handler")
-
 // ErrInvalidDurationProvided signals that an invalid time.Duration has been provided
 var ErrInvalidDurationProvided = errors.New("invalid time.Duration provided")
 
@@ -159,6 +156,9 @@ var ErrNilP2PSigner = errors.New("nil p2p signer")
 // ErrNilPubSub signals that a nil pubSub has been provided
 var ErrNilPubSub = errors.New("nil pubSub")
 
+// ErrNoPubSub signals that no pubSub was provided
+var ErrNoPubSub = errors.New("no pubSub")
+
 // ErrNilDirectSender signals that a nil direct sender has been provided
 var ErrNilDirectSender = errors.New("nil direct sender")
 
@@ -212,3 +212,9 @@ var ErrNoTransportsDefined = errors.New("no transports defined")
 
 // ErrUnknownResourceLimiterType signals that an unknown resource limiter type was provided
 var ErrUnknownResourceLimiterType = errors.New("unknown resource limiter type")
+
+// ErrNilPubSubsHolder signals that a nil pubSubs holder has been provided
+var ErrNilPubSubsHolder = errors.New("nil pubSubs holder")
+
+// ErrNilNetworkTopicsHolder signals that a nil network topics holder has been provided
+var ErrNilNetworkTopicsHolder = errors.New("nil network topics holder")

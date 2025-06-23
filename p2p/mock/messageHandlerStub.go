@@ -8,9 +8,9 @@ import (
 
 // MessageHandlerStub -
 type MessageHandlerStub struct {
-	CreateTopicCalled                       func(name string, createChannelForTopic bool) error
+	CreateTopicCalled                       func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error
 	HasTopicCalled                          func(name string) bool
-	RegisterMessageProcessorCalled          func(topic string, identifier string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled          func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
 	UnregisterAllMessageProcessorsCalled    func() error
 	UnregisterMessageProcessorCalled        func(topic string, identifier string) error
 	BroadcastCalled                         func(topic string, buff []byte)
@@ -19,15 +19,16 @@ type MessageHandlerStub struct {
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeerCalled               func(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopicsCalled                   func() error
+	UnJoinTopicCalled                       func(topic string) error
 	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetDebuggerCalled                       func(debugger p2p.Debugger) error
 	CloseCalled                             func() error
 }
 
 // CreateTopic -
-func (stub *MessageHandlerStub) CreateTopic(name string, createChannelForTopic bool) error {
+func (stub *MessageHandlerStub) CreateTopic(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 	if stub.CreateTopicCalled != nil {
-		return stub.CreateTopicCalled(name, createChannelForTopic)
+		return stub.CreateTopicCalled(networkType, name, createChannelForTopic)
 	}
 	return nil
 }
@@ -41,9 +42,9 @@ func (stub *MessageHandlerStub) HasTopic(name string) bool {
 }
 
 // RegisterMessageProcessor -
-func (stub *MessageHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+func (stub *MessageHandlerStub) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 	if stub.RegisterMessageProcessorCalled != nil {
-		return stub.RegisterMessageProcessorCalled(topic, identifier, handler)
+		return stub.RegisterMessageProcessorCalled(networkType, topic, identifier, handler)
 	}
 	return nil
 }
@@ -104,6 +105,14 @@ func (stub *MessageHandlerStub) SendToConnectedPeer(topic string, buff []byte, p
 func (stub *MessageHandlerStub) UnJoinAllTopics() error {
 	if stub.UnJoinAllTopicsCalled != nil {
 		return stub.UnJoinAllTopicsCalled()
+	}
+	return nil
+}
+
+// UnJoinTopic -
+func (stub *MessageHandlerStub) UnJoinTopic(topic string) error {
+	if stub.UnJoinTopicCalled != nil {
+		return stub.UnJoinTopicCalled(topic)
 	}
 	return nil
 }
