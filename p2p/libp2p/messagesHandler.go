@@ -749,25 +749,48 @@ func (handler *messagesHandler) UnJoinAllTopics() error {
 
 	var errFound error
 	for topicName, t := range handler.topics {
-		subscription := handler.subscriptions[topicName]
-		if subscription != nil {
-			subscription.Cancel()
-		}
-
-		err := t.Close()
-		if err != nil {
-			handler.log.Warn("error closing topic",
-				"topic", topicName,
-				"error", err,
-			)
-			errFound = err
-		}
-
-		delete(handler.topics, topicName)
-		handler.networkTopicsHolder.RemoveTopic(topicName)
+		errFound = handler.unjoinTopic(topicName, t)
 	}
 
 	return errFound
+}
+
+// UnJoinTopic call close on the provided topic if found
+func (handler *messagesHandler) UnJoinTopic(topic string) error {
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
+
+	t, found := handler.topics[topic]
+	if !found {
+		handler.log.Warn("topic not found", "topic", topic)
+		return nil
+	}
+
+	return handler.unjoinTopic(topic, t)
+}
+
+// this must be called under mutex protection
+func (handler *messagesHandler) unjoinTopic(
+	topic string,
+	topicInstance PubSubTopic,
+) error {
+	subscription := handler.subscriptions[topic]
+	if subscription != nil {
+		subscription.Cancel()
+	}
+
+	err := topicInstance.Close()
+	if err != nil {
+		handler.log.Warn("error closing topic",
+			"topic", topic,
+			"error", err,
+		)
+	}
+
+	delete(handler.topics, topic)
+	handler.networkTopicsHolder.RemoveTopic(topic)
+
+	return err
 }
 
 // SetDebugger sets the debugger

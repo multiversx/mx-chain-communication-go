@@ -19,6 +19,7 @@ type MessageHandlerStub struct {
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeerCalled               func(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopicsCalled                   func() error
+	UnJoinTopicCalled                       func(topic string) error
 	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetDebuggerCalled                       func(debugger p2p.Debugger) error
 	CloseCalled                             func() error
@@ -104,6 +105,14 @@ func (stub *MessageHandlerStub) SendToConnectedPeer(topic string, buff []byte, p
 func (stub *MessageHandlerStub) UnJoinAllTopics() error {
 	if stub.UnJoinAllTopicsCalled != nil {
 		return stub.UnJoinAllTopicsCalled()
+	}
+	return nil
+}
+
+// UnJoinTopic -
+func (stub *MessageHandlerStub) UnJoinTopic(topic string) error {
+	if stub.UnJoinTopicCalled != nil {
+		return stub.UnJoinTopicCalled(topic)
 	}
 	return nil
 }

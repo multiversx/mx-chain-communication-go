@@ -1263,6 +1263,39 @@ func TestMessagesHandler_UnJoinAllTopics(t *testing.T) {
 	assert.Equal(t, 2, counterCancel)
 }
 
+func TestMessagesHandler_UnJoinTopic(t *testing.T) {
+	t.Parallel()
+
+	wasCloseCalled := false
+	topics := map[string]libp2p.PubSubTopic{
+		"topic1": &mock.PubSubTopicStub{
+			CloseCalled: func() error {
+				wasCloseCalled = true
+				return nil
+			},
+		},
+	}
+	wasCancelCalled := false
+	subscriptions := map[string]libp2p.PubSubSubscription{
+		"topic1": &mock.PubSubSubscriptionStub{
+			CancelCalled: func() {
+				wasCancelCalled = true
+			},
+		},
+	}
+	args := createMockArgMessagesHandler()
+	mh := libp2p.NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args, topics, subscriptions)
+	require.NotNil(t, mh)
+
+	err := mh.UnJoinTopic("missingTopic") // coverage
+	require.NoError(t, err)
+
+	err = mh.UnJoinTopic("topic1")
+	require.NoError(t, err)
+	require.True(t, wasCloseCalled)
+	require.True(t, wasCancelCalled)
+}
+
 func TestMessagesHandler_Close(t *testing.T) {
 	t.Parallel()
 
