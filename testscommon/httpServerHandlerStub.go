@@ -17,7 +17,7 @@ func (h *HttpServerStub) ListenAndServe() error {
 	return nil
 }
 
-//Shutdown -
+// Shutdown -
 func (h *HttpServerStub) Shutdown(ctx context.Context) error {
 	if h.ShutdownCalled != nil {
 		return h.ShutdownCalled(ctx)
