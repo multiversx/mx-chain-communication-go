@@ -70,9 +70,9 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 }
 
 func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
-	_ = messenger.CreateTopic(testTopic, false)
+	_ = messenger.CreateTopic("main", testTopic, false)
 
-	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
+	_ = messenger.RegisterMessageProcessor("main", testTopic, "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 				if !bytes.Equal(matchData, message.Data()) {
@@ -142,6 +142,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 }
 
@@ -429,7 +430,7 @@ func TestLibp2pMessenger_CreateTopicOkValsShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	err := messenger.CreateTopic("test", true)
+	err := messenger.CreateTopic("main", "test", true)
 	assert.Nil(t, err)
 }
 
@@ -437,8 +438,8 @@ func TestLibp2pMessenger_CreateTopicTwiceShouldNotErr(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
-	err := messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
+	err := messenger.CreateTopic("main", "test", false)
 	assert.Nil(t, err)
 }
 
@@ -446,7 +447,7 @@ func TestLibp2pMessenger_HasTopicIfHaveTopicShouldReturnTrue(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 
 	assert.True(t, messenger.HasTopic("test"))
 }
@@ -455,27 +456,18 @@ func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T)
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 
 	assert.False(t, messenger.HasTopic("one topic"))
-}
-
-func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldWork(t *testing.T) {
-	messenger := createMockMessenger()
-	defer closeMessengers(messenger)
-
-	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
-
-	assert.Nil(t, err)
 }
 
 func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 
-	err := messenger.RegisterMessageProcessor("test", "identifier", nil)
+	err := messenger.RegisterMessageProcessor("main", "test", "identifier", nil)
 
 	assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 }
@@ -484,9 +476,9 @@ func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 
-	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
+	err := messenger.RegisterMessageProcessor("main", "test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
 }
@@ -495,11 +487,11 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 	// registration
-	_ = messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
+	_ = messenger.RegisterMessageProcessor("main", "test", "identifier", &mock.MessageProcessorStub{})
 	// re-registration
-	err := messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
+	err := messenger.RegisterMessageProcessor("main", "test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 }
@@ -508,7 +500,7 @@ func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldNotEr
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 	err := messenger.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
@@ -518,10 +510,10 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 
 	// registration
-	_ = messenger.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
+	_ = messenger.RegisterMessageProcessor("main", "test", "identifier", &mock.MessageProcessorStub{})
 
 	// unregistration
 	err := messenger.UnregisterMessageProcessor("test", "identifier")
@@ -533,18 +525,18 @@ func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 	messenger := createMockMessenger()
 	defer closeMessengers(messenger)
 
-	_ = messenger.CreateTopic("test", false)
+	_ = messenger.CreateTopic("main", "test", false)
 	// registration
-	_ = messenger.CreateTopic("test1", false)
-	_ = messenger.RegisterMessageProcessor("test1", "identifier", &mock.MessageProcessorStub{})
-	_ = messenger.CreateTopic("test2", false)
-	_ = messenger.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
+	_ = messenger.CreateTopic("main", "test1", false)
+	_ = messenger.RegisterMessageProcessor("main", "test1", "identifier", &mock.MessageProcessorStub{})
+	_ = messenger.CreateTopic("main", "test2", false)
+	_ = messenger.RegisterMessageProcessor("main", "test2", "identifier", &mock.MessageProcessorStub{})
 	// unregistration
 	err := messenger.UnregisterAllMessageProcessors()
 	assert.Nil(t, err)
-	err = messenger.RegisterMessageProcessor("test1", "identifier", &mock.MessageProcessorStub{})
+	err = messenger.RegisterMessageProcessor("main", "test1", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
-	err = messenger.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
+	err = messenger.RegisterMessageProcessor("main", "test2", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
 }
 
@@ -560,7 +552,7 @@ func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing
 	defer closeMessengers(messenger)
 
 	topic := "test topic"
-	_ = messenger.CreateTopic(topic, false)
+	_ = messenger.CreateTopic("main", topic, false)
 
 	numIdentifiers := 100
 	identifiers := make([]string, 0, numIdentifiers)
@@ -572,7 +564,7 @@ func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing
 	wg.Add(numIdentifiers * 3)
 	for i := 0; i < numIdentifiers; i++ {
 		go func(index int) {
-			_ = messenger.RegisterMessageProcessor(topic, identifiers[index], &mock.MessageProcessorStub{})
+			_ = messenger.RegisterMessageProcessor("main", topic, identifiers[index], &mock.MessageProcessorStub{})
 			wg.Done()
 		}(i)
 
@@ -957,9 +949,9 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicShouldWork(t *testing.T) {
 	//                          |
 	//                          4
 	// 1, 2, 3 should be on topic "topic123"
-	_ = messenger1.CreateTopic("topic123", false)
-	_ = messenger2.CreateTopic("topic123", false)
-	_ = messenger3.CreateTopic("topic123", false)
+	_ = messenger1.CreateTopic("main", "topic123", false)
+	_ = messenger2.CreateTopic("main", "topic123", false)
+	_ = messenger3.CreateTopic("main", "topic123", false)
 
 	// wait a bit for topic announcements
 	time.Sleep(time.Second)
@@ -989,9 +981,9 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicDifferentViewsShouldWork(t
 	//                          |
 	//                          4
 	// 1, 2, 3 should be on topic "topic123"
-	_ = messenger1.CreateTopic("topic123", false)
-	_ = messenger2.CreateTopic("topic123", false)
-	_ = messenger3.CreateTopic("topic123", false)
+	_ = messenger1.CreateTopic("main", "topic123", false)
+	_ = messenger2.CreateTopic("main", "topic123", false)
+	_ = messenger3.CreateTopic("main", "topic123", false)
 
 	// wait a bit for topic announcements
 	time.Sleep(time.Second)
@@ -1027,11 +1019,11 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 	//                          4
 	// 1, 2, 3 should be on topic "topic123"
 	// 2, 4 should be on topic "topic24"
-	_ = messenger1.CreateTopic("topic123", false)
-	_ = messenger2.CreateTopic("topic123", false)
-	_ = messenger2.CreateTopic("topic24", false)
-	_ = messenger3.CreateTopic("topic123", false)
-	_ = messenger4.CreateTopic("topic24", false)
+	_ = messenger1.CreateTopic("main", "topic123", false)
+	_ = messenger2.CreateTopic("main", "topic123", false)
+	_ = messenger2.CreateTopic("main", "topic24", false)
+	_ = messenger3.CreateTopic("main", "topic123", false)
+	_ = messenger4.CreateTopic("main", "topic24", false)
 
 	// wait a bit for topic announcements
 	time.Sleep(time.Second)
@@ -1145,6 +1137,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		},
 		P2pKeyGenerator: &mock.KeyGenStub{},
 		Logger:          &testscommon.LoggerStub{},
+		NetworkType:     "main",
 	}
 	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
@@ -1169,7 +1162,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 	}()
 
 	minimumSigSize := 70
-	err = messenger1.CreateTopic(testTopic, false)
+	err = messenger1.CreateTopic("main", testTopic, false)
 	require.Nil(t, err)
 	prepareMessengerForMatchDataReceive(
 		messenger2,
@@ -1217,6 +1210,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 	args.P2pPrivateKey = mock.NewPrivateKeyMock()
 	messenger1, err := libp2p.NewNetworkMessenger(args)
@@ -1245,7 +1239,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 	}()
 
 	expectedSigSize := 0
-	_ = messenger1.CreateTopic(testTopic, false)
+	_ = messenger1.CreateTopic("main", testTopic, false)
 	prepareMessengerForMatchDataReceive(
 		messenger2,
 		msg,
@@ -1458,6 +1452,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1528,6 +1523,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1606,6 +1602,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
@@ -1673,13 +1670,14 @@ func TestNetworkMessenger_UnJoinAllTopicsShouldWork(t *testing.T) {
 		P2pSingleSigner:       &mock.SingleSignerStub{},
 		P2pKeyGenerator:       &mock.KeyGenStub{},
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 
 	messenger, _ := libp2p.NewNetworkMessenger(args)
 	defer closeMessengers(messenger)
 
 	topic := "topic"
-	_ = messenger.CreateTopic(topic, true)
+	_ = messenger.CreateTopic("main", topic, true)
 	assert.True(t, messenger.HasTopic(topic))
 
 	err := messenger.UnJoinAllTopics()
@@ -1897,6 +1895,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		P2pSingleSigner: &mock.SingleSignerStub{},
 		P2pKeyGenerator: &mock.KeyGenStub{},
 		Logger:          &testscommon.LoggerStub{},
+		NetworkType:     "main",
 	}
 
 	messenger, err := libp2p.NewNetworkMessenger(args)
@@ -2000,15 +1999,15 @@ func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 
 	fmt.Println("Messenger 1:")
 	messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-	_ = messenger1.CreateTopic(topic, true)
+	_ = messenger1.CreateTopic("main", topic, true)
 	interceptors[0] = mock.NewMessageProcessorMock()
-	_ = messenger1.RegisterMessageProcessor(topic, "", interceptors[0])
+	_ = messenger1.RegisterMessageProcessor("main", topic, "", interceptors[0])
 
 	fmt.Println("Messenger 2:")
 	messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-	_ = messenger2.CreateTopic(topic, true)
+	_ = messenger2.CreateTopic("main", topic, true)
 	interceptors[1] = mock.NewMessageProcessorMock()
-	_ = messenger2.RegisterMessageProcessor(topic, "", interceptors[1])
+	_ = messenger2.RegisterMessageProcessor("main", topic, "", interceptors[1])
 
 	defer closeMessengers(messenger1, messenger2)
 
@@ -2236,8 +2235,8 @@ func TestNetworkMessenger_HasCompatibleProtocolID(t *testing.T) {
 		arg3.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs = []string{"/erd/kad/1.2.0"} // another protocol ID
 		messenger3, _ := libp2p.NewNetworkMessenger(arg3)
 
-		_ = messenger2.CreateTopic("test", true)
-		_ = messenger3.CreateTopic("test", true)
+		_ = messenger2.CreateTopic("main", "test", true)
+		_ = messenger3.CreateTopic("main", "test", true)
 
 		defer closeMessengers(messenger1, messenger2, messenger3)
 
@@ -2290,8 +2289,8 @@ func TestNetworkMessenger_HasCompatibleProtocolID(t *testing.T) {
 		arg3.P2pConfig.KadDhtPeerDiscovery.ProtocolIDs = []string{"/erd/kad/1.2.0", "mvx1"} // another protocol ID
 		messenger3, _ := libp2p.NewNetworkMessenger(arg3)
 
-		_ = messenger2.CreateTopic("test", true)
-		_ = messenger3.CreateTopic("test", true)
+		_ = messenger2.CreateTopic("main", "test", true)
+		_ = messenger3.CreateTopic("main", "test", true)
 
 		defer closeMessengers(messenger1, messenger2, messenger3)
 

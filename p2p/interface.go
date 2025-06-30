@@ -43,9 +43,9 @@ type MessageHandler interface {
 	io.Closer
 	MessageProcessor
 
-	CreateTopic(name string, createChannelForTopic bool) error
+	CreateTopic(networkType NetworkType, name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
+	RegisterMessageProcessor(networkType NetworkType, topic string, identifier string, handler MessageProcessor) error
 	UnregisterAllMessageProcessors() error
 	UnregisterMessageProcessor(topic string, identifier string) error
 	Broadcast(topic string, buff []byte)
@@ -54,6 +54,8 @@ type MessageHandler interface {
 	BroadcastOnChannelUsingPrivateKey(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	UnJoinAllTopics() error
+	UnJoinTopic(topic string) error
+
 	SetDebugger(debugger Debugger) error
 	IsInterfaceNil() bool
 }

@@ -91,18 +91,6 @@ func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
 	return netMes.ConnectionsHandler.(*connectionsHandler).MapHistogram(input)
 }
 
-// PubsubHasTopic -
-func (handler *messagesHandler) PubsubHasTopic(expectedTopic string) bool {
-	topics := handler.pubSub.GetTopics()
-
-	for _, topic := range topics {
-		if topic == expectedTopic {
-			return true
-		}
-	}
-	return false
-}
-
 // Disconnect -
 func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
 	return netMes.p2pHost.Network().ClosePeer(peer.ID(pid))
@@ -181,12 +169,12 @@ func DefaultSendChannel() string {
 
 // NewPeersOnChannel -
 func NewPeersOnChannel(
-	fetchPeersHandler func(topic string) []peer.ID,
+	pubSubsHolder PubSubsHolder,
 	refreshInterval time.Duration,
 	ttlInterval time.Duration,
 	logger p2p.Logger,
 ) (*peersOnChannel, error) {
-	return newPeersOnChannel(fetchPeersHandler, refreshInterval, ttlInterval, logger)
+	return newPeersOnChannel(pubSubsHolder, refreshInterval, ttlInterval, logger)
 }
 
 // NewPeersOnChannel -
@@ -234,23 +222,24 @@ func NewUnknownPeerShardResolver() *unknownPeerShardResolver {
 func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &messagesHandler{
-		ctx:                ctx,
-		cancelFunc:         cancel,
-		pubSub:             args.PubSub,
-		directSender:       args.DirectSender,
-		throttler:          args.Throttler,
-		outgoingCLB:        args.OutgoingCLB,
-		marshaller:         args.Marshaller,
-		connMonitor:        args.ConnMonitor,
-		peersRatingHandler: args.PeersRatingHandler,
-		debugger:           disabled.NewP2PDebugger(),
-		syncTimer:          args.SyncTimer,
-		peerID:             args.PeerID,
-		processors:         make(map[string]TopicProcessor),
-		topics:             make(map[string]PubSubTopic),
-		subscriptions:      make(map[string]PubSubSubscription),
-		equivalentMessages: make(map[string]types.Cacher),
-		log:                args.Logger,
+		ctx:                 ctx,
+		cancelFunc:          cancel,
+		pubSubsHolder:       args.PubSubsHolder,
+		directSender:        args.DirectSender,
+		throttler:           args.Throttler,
+		outgoingCLB:         args.OutgoingCLB,
+		marshaller:          args.Marshaller,
+		connMonitor:         args.ConnMonitor,
+		peersRatingHandler:  args.PeersRatingHandler,
+		debugger:            disabled.NewP2PDebugger(),
+		syncTimer:           args.SyncTimer,
+		peerID:              args.PeerID,
+		processors:          make(map[string]TopicProcessor),
+		topics:              make(map[string]PubSubTopic),
+		subscriptions:       make(map[string]PubSubSubscription),
+		equivalentMessages:  make(map[string]types.Cacher),
+		log:                 args.Logger,
+		networkTopicsHolder: args.NetworkTopicsHolder,
 	}
 
 	_ = handler.directSender.RegisterDirectMessageProcessor(handler)
@@ -336,4 +325,29 @@ func (handler *connectionsHandler) PrintConnectionsStatus() {
 // ParseTransportOptions -
 func ParseTransportOptions(configs config.TransportConfig, port int) ([]libp2p.Option, []string, error) {
 	return parseTransportOptions(configs, port)
+}
+
+// NewNetworkTopicsHolder -
+func NewNetworkTopicsHolder(log p2p.Logger, mainNetwork p2p.NetworkType) *networkTopicsHolder {
+	return newNetworkTopicsHolder(log, mainNetwork)
+}
+
+// GetNetworkTopics -
+func (holder *networkTopicsHolder) GetNetworkTopics() map[string]p2p.NetworkType {
+	holder.mut.RLock()
+	mapCopy := make(map[string]p2p.NetworkType, len(holder.networkTopics))
+	for k, v := range holder.networkTopics {
+		mapCopy[k] = v
+	}
+	holder.mut.RUnlock()
+
+	return mapCopy
+}
+
+// ArgsPubSubsHolder -
+type ArgsPubSubsHolder = argsPubSubsHolder
+
+// NewPubSubsHolder
+func NewPubSubsHolder(args argsPubSubsHolder) (*pubSubsHolder, error) {
+	return newPubSubsHolder(args)
 }

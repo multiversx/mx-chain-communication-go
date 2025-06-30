@@ -63,9 +63,9 @@ func closeMessengers(messengers ...p2p.Messenger) {
 }
 
 func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
-	_ = messenger.CreateTopic(testTopic, false)
+	_ = messenger.CreateTopic("main", testTopic, false)
 
-	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
+	_ = messenger.RegisterMessageProcessor("main", testTopic, "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 				if !bytes.Equal(matchData, message.Data()) {
@@ -122,6 +122,7 @@ func TestDisconnectWillCloseGoRoutines(t *testing.T) {
 		P2pSingleSigner:       &singlesig.Secp256k1Signer{},
 		P2pKeyGenerator:       keyGen,
 		Logger:                &testscommon.LoggerStub{},
+		NetworkType:           "main",
 	}
 	args.P2pPrivateKey, _ = keyGen.GeneratePair()
 
@@ -148,7 +149,7 @@ func TestDisconnectWillCloseGoRoutines(t *testing.T) {
 	}()
 
 	minimumSigSize := 70
-	err = messenger1.CreateTopic(testTopic, false)
+	err = messenger1.CreateTopic("main", testTopic, false)
 	require.Nil(t, err)
 	prepareMessengerForMatchDataReceive(
 		messenger2,
