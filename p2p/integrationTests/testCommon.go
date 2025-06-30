@@ -52,6 +52,9 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 		Sharding: config.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
+		Gossip: config.GossipConfig{
+			UseDefaultConfig: true,
+		},
 	}
 }
 
@@ -185,6 +188,9 @@ func createP2PConfigWithNoDiscovery() config.P2PConfig {
 		},
 		Sharding: config.ShardingConfig{
 			Type: p2p.NilListSharder,
+		},
+		Gossip: config.GossipConfig{
+			UseDefaultConfig: true,
 		},
 	}
 }

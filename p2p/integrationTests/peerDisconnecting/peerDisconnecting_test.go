@@ -37,6 +37,9 @@ func createDefaultConfig() config.P2PConfig {
 			InitialPeerList:                  nil,
 			BucketSize:                       100,
 		},
+		Gossip: config.GossipConfig{
+			UseDefaultConfig: true,
+		},
 	}
 }
 
