@@ -21,6 +21,15 @@ type NetworkStub struct {
 	PeersCall             func() []peer.ID
 	ClosePeerCall         func(peer.ID) error
 	ResourceManagerCalled func() network.ResourceManager
+	CanDialCalled         func(p peer.ID, addr multiaddr.Multiaddr) bool
+}
+
+// CanDial -
+func (ns *NetworkStub) CanDial(p peer.ID, addr multiaddr.Multiaddr) bool {
+	if ns.CanDialCalled != nil {
+		return ns.CanDialCalled(p, addr)
+	}
+	return true
 }
 
 // ResourceManager -
