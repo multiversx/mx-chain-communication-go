@@ -43,7 +43,7 @@ type server struct {
 	payloadVersion             uint32
 }
 
-//NewWebSocketServer will create a new instance of server
+// NewWebSocketServer will create a new instance of server
 func NewWebSocketServer(args ArgsWebSocketServer) (*server, error) {
 	if err := checkArgs(args); err != nil {
 		return nil, err
