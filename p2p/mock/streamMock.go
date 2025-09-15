@@ -20,6 +20,11 @@ type streamMock struct {
 	id           string
 }
 
+// ResetWithError implements network.Stream.
+func (sm *streamMock) ResetWithError(errCode network.StreamErrorCode) error {
+	panic("unimplemented")
+}
+
 // NewStreamMock -
 func NewStreamMock() *streamMock {
 	return &streamMock{

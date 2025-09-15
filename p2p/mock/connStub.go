@@ -27,6 +27,11 @@ type ConnStub struct {
 	IsClosedCalled        func() bool
 }
 
+// CloseWithError implements network.Conn.
+func (cs *ConnStub) CloseWithError(errCode network.ConnErrorCode) error {
+	panic("unimplemented")
+}
+
 // ID -
 func (cs *ConnStub) ID() string {
 	if cs.IDCalled != nil {
