@@ -1,6 +1,6 @@
 module github.com/multiversx/mx-chain-communication-go
 
-go 1.24
+go 1.23.8
 
 toolchain go1.24.7
 
@@ -14,7 +14,7 @@ require (
 	github.com/libp2p/go-libp2p v0.42.1
 	github.com/libp2p/go-libp2p-kad-dht v0.33.1
 	github.com/libp2p/go-libp2p-kbucket v0.7.0
-	github.com/libp2p/go-libp2p-pubsub v0.15.0
+	github.com/libp2p/go-libp2p-pubsub v0.14.2
 	github.com/multiformats/go-multiaddr v0.16.0
 	github.com/multiversx/mx-chain-core-go v1.4.0
 	github.com/multiversx/mx-chain-crypto-go v1.3.0

@@ -21,7 +21,7 @@ var log = logger.GetOrCreate("integrationtests")
 var TestMarshaller = &marshal.GogoProtoMarshalizer{}
 
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
-var P2pBootstrapDelay = 5 * time.Second
+var P2pBootstrapDelay = 500 * time.Millisecond
 
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
