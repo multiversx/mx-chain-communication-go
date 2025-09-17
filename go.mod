@@ -2,8 +2,6 @@ module github.com/multiversx/mx-chain-communication-go
 
 go 1.23.8
 
-toolchain go1.24.7
-
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gogo/protobuf v1.3.2
