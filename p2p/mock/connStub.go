@@ -25,11 +25,15 @@ type ConnStub struct {
 	ScopeCalled           func() network.ConnScope
 	ConnStateCalled       func() network.ConnectionState
 	IsClosedCalled        func() bool
+	CloseWithErrorCalled  func(errCode network.ConnErrorCode) error
 }
 
 // CloseWithError implements network.Conn.
 func (cs *ConnStub) CloseWithError(errCode network.ConnErrorCode) error {
-	panic("unimplemented")
+	if cs.CloseWithErrorCalled != nil {
+		return cs.CloseWithErrorCalled(errCode)
+	}
+	return nil
 }
 
 // ID -
