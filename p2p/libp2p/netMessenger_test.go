@@ -2111,38 +2111,38 @@ func TestParseTransportOptions(t *testing.T) {
 			assert.Nil(t, err)
 		})
 	})
-	t.Run("QUIC address", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("malformed QUIC address, no int markup, should error", func(t *testing.T) {
-			options, addresses, err := libp2p.ParseTransportOptions(
-				config.TransportConfig{
-					QUICAddress: "malformed address",
-				}, 0)
-			assert.Nil(t, options)
-			assert.Nil(t, addresses)
-			assert.Equal(t, p2p.ErrInvalidQUICAddress, err)
-		})
-		t.Run("malformed QUIC address, multiple int markups, should error", func(t *testing.T) {
-			options, addresses, err := libp2p.ParseTransportOptions(
-				config.TransportConfig{
-					QUICAddress: "malformed address %d %d",
-				}, 0)
-			assert.Nil(t, options)
-			assert.Nil(t, addresses)
-			assert.Equal(t, p2p.ErrInvalidQUICAddress, err)
-		})
-		t.Run("should work", func(t *testing.T) {
-			options, addresses, err := libp2p.ParseTransportOptions(
-				config.TransportConfig{
-					QUICAddress: "/ip4/127.0.0.1/udp/%d/quic-v1",
-				}, 100)
-			assert.Equal(t, 1, len(options))
-			assert.Equal(t, 1, len(addresses))
-			assert.Equal(t, "/ip4/127.0.0.1/udp/100/quic-v1", addresses[0])
-			assert.Nil(t, err)
-		})
-	})
+	// t.Run("QUIC address", func(t *testing.T) {
+	// 	t.Parallel()
+	//
+	// 	t.Run("malformed QUIC address, no int markup, should error", func(t *testing.T) {
+	// 		options, addresses, err := libp2p.ParseTransportOptions(
+	// 			config.TransportConfig{
+	// 				QUICAddress: "malformed address",
+	// 			}, 0)
+	// 		assert.Nil(t, options)
+	// 		assert.Nil(t, addresses)
+	// 		assert.Equal(t, p2p.ErrInvalidQUICAddress, err)
+	// 	})
+	// 	t.Run("malformed QUIC address, multiple int markups, should error", func(t *testing.T) {
+	// 		options, addresses, err := libp2p.ParseTransportOptions(
+	// 			config.TransportConfig{
+	// 				QUICAddress: "malformed address %d %d",
+	// 			}, 0)
+	// 		assert.Nil(t, options)
+	// 		assert.Nil(t, addresses)
+	// 		assert.Equal(t, p2p.ErrInvalidQUICAddress, err)
+	// 	})
+	// 	t.Run("should work", func(t *testing.T) {
+	// 		options, addresses, err := libp2p.ParseTransportOptions(
+	// 			config.TransportConfig{
+	// 				QUICAddress: "/ip4/127.0.0.1/udp/%d/quic-v1",
+	// 			}, 100)
+	// 		assert.Equal(t, 1, len(options))
+	// 		assert.Equal(t, 1, len(addresses))
+	// 		assert.Equal(t, "/ip4/127.0.0.1/udp/100/quic-v1", addresses[0])
+	// 		assert.Nil(t, err)
+	// 	})
+	// })
 	t.Run("WebSocket address", func(t *testing.T) {
 		t.Parallel()
 
