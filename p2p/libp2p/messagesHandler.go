@@ -254,9 +254,7 @@ func (handler *messagesHandler) BroadcastOnChannelUsingPrivateKey(
 	go func() {
 		err := handler.broadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
-			handler.mutTopics.RLock()
 			network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
-			handler.mutTopics.RUnlock()
 			handler.log.Warn("p2p broadcast using private key", "network", network, "error", err.Error())
 		}
 	}()
@@ -369,9 +367,7 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 		for index, msgProc := range msgProcessors {
 			msgId, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
-				handler.mutTopics.RLock()
 				network := handler.networkTopicsHolder.GetNetworkTypeForTopic(topic)
-				handler.mutTopics.RUnlock()
 				handler.log.Trace("p2p validator",
 					"network", network,
 					"error", err.Error(),
