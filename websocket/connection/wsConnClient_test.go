@@ -1,6 +1,8 @@
 package connection
 
 import (
+	"errors"
+	"net"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -175,4 +177,56 @@ func TestWsConnClient_IsOpen(t *testing.T) {
 	require.True(t, open)
 
 	_ = conClient.Close()
+}
+
+type closeErrConn struct {
+	net.Conn
+	err error
+}
+
+func (c *closeErrConn) Close() error {
+	_ = c.Conn.Close()
+	return c.err
+}
+
+func TestWsConnClient_CloseWithErrorShouldSetConToNil(t *testing.T) {
+	t.Parallel()
+
+	testServer := testscommon.NewHttpTestEchoHandler()
+	defer testServer.Close()
+
+	connectionURL := createConnectionURLForTestServer(testServer)
+	u, err := url.Parse(connectionURL)
+	require.NoError(t, err)
+
+	rawConn, err := net.Dial("tcp", u.Host)
+	require.NoError(t, err)
+
+	closeErr := errors.New(data.ClosedConnectionMessage)
+	wrappedConn := &closeErrConn{
+		Conn: rawConn,
+		err:  closeErr,
+	}
+
+	d := websocket.Dialer{
+		ReadBufferSize:  0,
+		WriteBufferSize: 0,
+		NetDial: func(net, addr string) (net.Conn, error) {
+			return wrappedConn, nil
+		},
+	}
+	wsConn, _, err := d.Dial(u.String(), nil)
+	if err != nil {
+		_ = rawConn.Close()
+	}
+	require.Nil(t, err)
+
+	conClient := NewWSConnClientWithConn(wsConn)
+	err = conClient.Close()
+	require.Nil(t, err)
+	require.Nil(t, conClient.conn)
+	require.False(t, conClient.IsOpen())
+
+	err = conClient.Close()
+	require.Equal(t, data.ErrConnectionNotOpen, err)
 }

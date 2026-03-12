@@ -2,6 +2,7 @@ package connection
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -120,7 +121,7 @@ func (wsc *wsConnClient) Close() error {
 	wsc.conn.CloseHandler()
 
 	err = wsc.conn.Close()
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), data.ClosedConnectionMessage) {
 		return err
 	}
 
