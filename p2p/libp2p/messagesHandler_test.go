@@ -1226,7 +1226,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	realPID, _ := core.NewPeerID("QmY33RXFSbFFpxD2ZfamQvXGULFUsxAYSR2VkTXVewuMNh")
-	t.Run("broadcast message should not increase rating", func(t *testing.T) {
+	t.Run("valid broadcast message should not increase rating", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
@@ -1240,7 +1240,28 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast)
-		mh.IncreaseRatingIfNeeded(msg, realPID)
+		mh.UpdateRatingIfNeeded(msg, realPID, true)
+	})
+	t.Run("invalid broadcast message should decrease rating", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		wasDecreaseRatingCalled := false
+		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
+			IncreaseRatingCalled: func(pid core.PeerID) {
+				assert.Fail(t, "should not have been called")
+			},
+			DecreaseRatingCalled: func(pid core.PeerID) {
+				wasDecreaseRatingCalled = true
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.NotNil(t, mh)
+
+		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
+		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Broadcast)
+		mh.UpdateRatingIfNeeded(msg, realPID, false)
+		assert.True(t, wasDecreaseRatingCalled)
 	})
 	t.Run("request message should not increase rating", func(t *testing.T) {
 		t.Parallel()
@@ -1258,7 +1279,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 		requestTopic := fmt.Sprintf("topic_%s", core.TopicRequestSuffix)
 		providedPubSubMsg.Topic = &requestTopic
 		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
-		mh.IncreaseRatingIfNeeded(msg, realPID)
+		mh.UpdateRatingIfNeeded(msg, realPID, true)
 	})
 	t.Run("should increase rating", func(t *testing.T) {
 		t.Parallel()
@@ -1276,7 +1297,7 @@ func TestMessagesHandler_IncreaseRatingIfNeeded(t *testing.T) {
 
 		providedPubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)
 		msg, _ := libp2p.NewMessage(providedPubSubMsg, args.Marshaller, p2p.Direct)
-		mh.IncreaseRatingIfNeeded(msg, realPID)
+		mh.UpdateRatingIfNeeded(msg, realPID, true)
 		assert.True(t, wasCalled)
 	})
 }
