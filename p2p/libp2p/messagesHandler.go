@@ -619,20 +619,28 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		handler.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
 		handler.mutDebugger.RUnlock()
 
-		if messageOk {
-			handler.increaseRatingIfNeeded(msg, fromConnectedPeer)
-		}
+		handler.updateRatingIfNeeded(msg, fromConnectedPeer, messageOk)
 	}(message)
 
 	return []byte{}, nil
 }
 
-func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+func (handler *messagesHandler) updateRatingIfNeeded(
+	msg p2p.MessageP2P,
+	fromConnectedPeer core.PeerID,
+	messageOk bool,
+) {
 	isDirectMessage := msg.BroadcastMethod() == p2p.Direct
+	isBroadcastMessage := msg.BroadcastMethod() == p2p.Broadcast
 	isRequestMessage := strings.Contains(msg.Topic(), core.TopicRequestSuffix)
-	shouldIncreaseRating := isDirectMessage && !isRequestMessage
+	shouldIncreaseRating := messageOk && isDirectMessage && !isRequestMessage
 	if shouldIncreaseRating {
 		handler.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+	}
+
+	shouldDecreaseRating := !messageOk && isBroadcastMessage
+	if shouldDecreaseRating {
+		handler.peersRatingHandler.DecreaseRating(fromConnectedPeer)
 	}
 }
 
