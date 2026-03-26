@@ -26,7 +26,7 @@ func NewMessageProcessor(chanDone chan struct{}, requiredVal []byte) *MessagePro
 }
 
 // ProcessReceivedMessage -
-func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, bool, error) {
 	if bytes.Equal(mp.RequiredValue, message.Data()) {
 		mp.mutDataReceived.Lock()
 		mp.wasDataReceived = true
@@ -35,7 +35,7 @@ func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ co
 		mp.chanDone <- struct{}{}
 	}
 
-	return []byte{}, nil
+	return []byte{}, true, nil
 }
 
 // WasDataReceived -

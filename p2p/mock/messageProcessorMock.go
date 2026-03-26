@@ -23,14 +23,14 @@ func NewMessageProcessorMock() *MessageProcessorMock {
 }
 
 // ProcessReceivedMessage -
-func (processor *MessageProcessorMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+func (processor *MessageProcessorMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, bool, error) {
 	processor.mut.Lock()
 	defer processor.mut.Unlock()
 
 	fmt.Printf("got message from %s\n", message.Peer().Pretty())
 	processor.messages[message.Peer()]++
 
-	return []byte{}, nil
+	return []byte{}, true, nil
 }
 
 // GetMessages -

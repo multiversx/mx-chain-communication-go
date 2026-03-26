@@ -20,13 +20,13 @@ func newMessageProcessor() *messageProcessor {
 }
 
 // ProcessReceivedMessage -
-func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, bool, error) {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
 
 	mp.messages[fromConnectedPeer] = append(mp.messages[fromConnectedPeer], message)
 
-	return []byte{}, nil
+	return []byte{}, true, nil
 }
 
 // Messages -

@@ -21,7 +21,7 @@ type BroadcastChecker interface {
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID, source MessageHandler) ([]byte, error)
+	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID, source MessageHandler) ([]byte, bool, error)
 	IsInterfaceNil() bool
 }
 

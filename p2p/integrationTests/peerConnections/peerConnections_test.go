@@ -285,7 +285,7 @@ func getAddressMatching(addresses []string, including string, excluding string) 
 
 func createInterceptor(hostName string, dataMap map[string]map[string]int, mut *sync.Mutex) p2p.MessageProcessor {
 	return &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 			mut.Lock()
 			numMessagesMap := dataMap[hostName]
 			if numMessagesMap == nil {
@@ -296,7 +296,7 @@ func createInterceptor(hostName string, dataMap map[string]map[string]int, mut *
 			numMessagesMap[string(message.Data())]++
 			mut.Unlock()
 
-			return nil, nil
+			return nil, true, nil
 		},
 	}
 }

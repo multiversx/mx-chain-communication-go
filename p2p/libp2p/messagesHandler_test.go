@@ -561,8 +561,8 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 		assert.NotNil(t, mh)
 
 		tp := &mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-				return nil, expectedError
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
+				return nil, false, expectedError
 			},
 		}
 		cb := mh.PubsubCallback(tp, providedTopic)
@@ -824,22 +824,22 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 	t.Run("send to self, should work", func(t *testing.T) {
 		t.Parallel()
 
+		ch := make(chan *libp2p.SendableData)
 		processors := map[string]libp2p.TopicProcessor{
 			providedTopic: &mock.TopicProcessorStub{
 				GetListCalled: func() ([]string, []p2p.MessageProcessor) {
-					return []string{providedTopic}, []p2p.MessageProcessor{&mock.MessageProcessorStub{}}
+					return []string{providedTopic}, []p2p.MessageProcessor{&mock.MessageProcessorStub{
+						ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
+							assert.Equal(t, realPID, fromConnectedPeer)
+							ch <- &libp2p.SendableData{}
+							return nil, true, nil
+						},
+					}}
 				},
 			},
 		}
 		args := createMockArgMessagesHandler()
 		args.PeerID = realPID
-		ch := make(chan *libp2p.SendableData)
-		args.PeersRatingHandler = &mock.PeersRatingHandlerStub{
-			IncreaseRatingCalled: func(pid core.PeerID) {
-				assert.Equal(t, realPID, pid)
-				ch <- &libp2p.SendableData{}
-			},
-		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
@@ -853,14 +853,14 @@ func TestMessagesHandler_SendToConnectedPeer(t *testing.T) {
 		counter := uint32(0)
 		providedMsgProcessors := []p2p.MessageProcessor{
 			&mock.MessageProcessorStub{
-				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 					atomic.AddUint32(&counter, 1)
-					return nil, expectedError
+					return nil, false, expectedError
 				},
 			}, &mock.MessageProcessorStub{
-				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+				ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 					atomic.AddUint32(&counter, 1)
-					return nil, nil
+					return nil, true, nil
 				},
 			},
 		}
@@ -1209,7 +1209,7 @@ func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
 		assert.NotNil(t, mh)
-		_, err := mh.ProcessReceivedMessage(nil, "pid", &mock.MessageHandlerStub{})
+		_, _, err := mh.ProcessReceivedMessage(nil, "pid", &mock.MessageHandlerStub{})
 		assert.Nil(t, err)
 	})
 	t.Run("nil source should return nil", func(t *testing.T) {
@@ -1217,7 +1217,7 @@ func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
 		assert.NotNil(t, mh)
-		_, err := mh.ProcessReceivedMessage(&message.Message{}, "pid", nil)
+		_, _, err := mh.ProcessReceivedMessage(&message.Message{}, "pid", nil)
 		assert.Nil(t, err)
 	})
 }

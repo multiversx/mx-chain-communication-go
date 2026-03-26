@@ -67,12 +67,12 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 
 	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 				if !bytes.Equal(matchData, message.Data()) {
-					return nil, nil
+					return nil, true, nil
 				}
 				if !checkSigSize(len(message.Signature())) {
-					return nil, nil
+					return nil, true, nil
 				}
 
 				// do not print the message.Data() or matchData as the test TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork
@@ -80,7 +80,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 
 				wg.Done()
 
-				return nil, nil
+				return nil, true, nil
 			},
 		})
 }

@@ -177,7 +177,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		return err
 	}
 
-	_, err = ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer), ds.messageHandler)
+	_, _, err = ds.messageHandler.ProcessReceivedMessage(msg, core.PeerID(fromConnectedPeer), ds.messageHandler)
 	return err
 }
 

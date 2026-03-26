@@ -349,9 +349,10 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 
 		identifiers, msgProcessors := topicProcs.GetList()
 		messageOk := true
+		validMessage := true
 		var msgId []byte
 		for index, msgProc := range msgProcessors {
-			msgId, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
+			msgId, validMessage, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
 			if err != nil {
 				handler.log.Trace("p2p validator",
 					"network", handler.networkType,
@@ -361,7 +362,11 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 					"seq no", p2p.MessageOriginatorSeq(msg),
 					"topic identifier", identifiers[index],
+					"valid message", validMessage,
 				)
+				messageOk = false
+			}
+			if !validMessage {
 				messageOk = false
 			}
 		}
@@ -371,6 +376,8 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 		if messageOk {
 			messageOk = handler.isEquivalentMessageFirstBroadcast(msgId, topic)
 		}
+
+		handler.updateRatingIfNeeded(msg, fromConnectedPeer, validMessage)
 
 		return messageOk
 	}
@@ -568,23 +575,23 @@ func (handler *messagesHandler) sendDirectToSelf(topic string, buff []byte) erro
 		return err
 	}
 
-	_, err = handler.ProcessReceivedMessage(msg, handler.peerID, handler)
+	_, _, err = handler.ProcessReceivedMessage(msg, handler.peerID, handler)
 	return err
 }
 
 // ProcessReceivedMessage handles received direct messages
-func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 	if check.IfNil(message) {
-		return []byte{}, nil
+		return []byte{}, false, nil
 	}
 	if check.IfNil(source) {
-		return []byte{}, nil
+		return []byte{}, false, nil
 	}
 
 	topic := message.Topic()
 	err := handler.checkMessage(message, fromConnectedPeer, topic)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	handler.mutTopics.RLock()
@@ -592,7 +599,7 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	handler.mutTopics.RUnlock()
 
 	if check.IfNil(topicProcs) {
-		return nil, fmt.Errorf("%w on HandleDirectMessageReceived for topic %s", p2p.ErrNilValidator, topic)
+		return nil, false, fmt.Errorf("%w on HandleDirectMessageReceived for topic %s", p2p.ErrNilValidator, topic)
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
@@ -600,8 +607,10 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
 		messageOk := true
+		validMessage := true
 		for index, msgProc := range msgProcessors {
-			_, errProcess := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, source)
+			var errProcess error
+			_, validMessage, errProcess = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, source)
 			if errProcess != nil {
 				handler.log.Trace("p2p validator",
 					"error", errProcess.Error(),
@@ -610,7 +619,11 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 					"seq no", p2p.MessageOriginatorSeq(msg),
 					"topic identifier", identifiers[index],
+					"valid message", validMessage,
 				)
+				messageOk = false
+			}
+			if !validMessage {
 				messageOk = false
 			}
 		}
@@ -619,10 +632,10 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 		handler.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
 		handler.mutDebugger.RUnlock()
 
-		handler.updateRatingIfNeeded(msg, fromConnectedPeer, messageOk)
+		handler.updateRatingIfNeeded(msg, fromConnectedPeer, validMessage)
 	}(message)
 
-	return []byte{}, nil
+	return []byte{}, true, nil
 }
 
 func (handler *messagesHandler) updateRatingIfNeeded(
@@ -630,6 +643,11 @@ func (handler *messagesHandler) updateRatingIfNeeded(
 	fromConnectedPeer core.PeerID,
 	messageOk bool,
 ) {
+	isFromSelf := handler.peerID == fromConnectedPeer
+	if isFromSelf {
+		return
+	}
+
 	isDirectMessage := msg.BroadcastMethod() == p2p.Direct
 	isBroadcastMessage := msg.BroadcastMethod() == p2p.Broadcast
 	isRequestMessage := strings.Contains(msg.Topic(), core.TopicRequestSuffix)

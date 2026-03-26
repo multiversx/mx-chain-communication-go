@@ -31,8 +31,8 @@ const timeout = time.Second * 5
 const testMaxSize = 1 << 21
 
 var blankMessageHandler = &mock.MessageHandlerStub{
-	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-		return []byte{}, nil
+	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
+		return []byte{}, true, nil
 	},
 }
 
@@ -400,9 +400,9 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 			wasCalled = true
-			return []byte{}, nil
+			return []byte{}, true, nil
 		},
 	})
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -439,8 +439,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-			return nil, checkErr
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
+			return nil, false, checkErr
 		},
 	})
 
@@ -772,10 +772,10 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 		&testscommon.LoggerStub{},
 	)
 	_ = ds.RegisterDirectMessageProcessor(&mock.MessageHandlerStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, bool, error) {
 			receivedMsg = message
 			chanDone <- true
-			return []byte{}, nil
+			return []byte{}, true, nil
 		},
 	})
 
