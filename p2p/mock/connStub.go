@@ -26,6 +26,16 @@ type ConnStub struct {
 	ConnStateCalled       func() network.ConnectionState
 	IsClosedCalled        func() bool
 	CloseWithErrorCalled  func(errCode network.ConnErrorCode) error
+	AsCalled              func(target any) bool
+}
+
+// As -
+func (cs *ConnStub) As(target any) bool {
+	if cs.AsCalled != nil {
+		return cs.AsCalled(target)
+	}
+
+	return false
 }
 
 // CloseWithError implements network.Conn.
