@@ -168,7 +168,7 @@ func TestDisconnectWillCloseGoRoutines(t *testing.T) {
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-	assert.Equal(t, 2, getDirectSenderRunningGoRoutines()) // direct sender go routines running
+	assert.Equal(t, 1, getDirectSenderRunningGoRoutines()) // direct sender go routines running
 
 	err = messenger1.ClosePeer(messenger2.ID())
 	assert.Nil(t, err)

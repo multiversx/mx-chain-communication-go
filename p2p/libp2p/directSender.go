@@ -107,34 +107,32 @@ func (ds *directSender) RegisterDirectMessageProcessor(handler p2p.MessageHandle
 func (ds *directSender) directStreamHandler(s network.Stream) {
 	reader := ggio.NewDelimitedReader(s, maxSendBuffSize)
 
-	go func(r ggio.ReadCloser) {
-		for {
-			msg := &pubsubPb.Message{}
+	for {
+		msg := &pubsubPb.Message{}
 
-			err := reader.ReadMsg(msg)
-			if err != nil {
-				// stream has encountered an error, close this go routine
+		err := reader.ReadMsg(msg)
+		if err != nil {
+			// stream has encountered an error, close this go routine
 
-				if err != io.EOF {
-					_ = s.Reset()
-					ds.log.Trace("error reading rpc",
-						"from", s.Conn().RemotePeer(),
-						"error", err.Error(),
-					)
-				} else {
-					// Just be nice. They probably won't read this
-					// but it doesn't hurt to send it.
-					_ = s.Close()
-				}
-				return
+			if err != io.EOF {
+				_ = s.Reset()
+				ds.log.Trace("error reading rpc",
+					"from", s.Conn().RemotePeer(),
+					"error", err.Error(),
+				)
+			} else {
+				// Just be nice. They probably won't read this
+				// but it doesn't hurt to send it.
+				_ = s.Close()
 			}
-
-			err = ds.processReceivedDirectMessage(msg, s.Conn().RemotePeer())
-			if err != nil {
-				ds.log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
-			}
+			return
 		}
-	}(reader)
+
+		err = ds.processReceivedDirectMessage(msg, s.Conn().RemotePeer())
+		if err != nil {
+			ds.log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
+		}
+	}
 }
 
 func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, fromConnectedPeer peer.ID) error {
