@@ -375,6 +375,15 @@ func addComponentsToNode(
 		return err
 	}
 
+	peerThrottler, err := NewDirectMsgThrottlerHandler(ArgDirectMsgThrottlerHandler{
+		MaxGoroutinesPerPeer: maxGoroutinesPerPeer,
+		Network:              p2pNode.p2pHost.Network(),
+		Logger:               p2pNode.log,
+	})
+	if err != nil {
+		return err
+	}
+
 	argsMessageHandler := ArgMessagesHandler{
 		PubSub:             pubSub,
 		DirectSender:       ds,
@@ -383,6 +392,7 @@ func addComponentsToNode(
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
+		PeerThrottler:      peerThrottler,
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,

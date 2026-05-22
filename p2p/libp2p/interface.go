@@ -99,3 +99,11 @@ type ConnectionsMetric interface {
 	ResetNumDisconnections() uint32
 	IsInterfaceNil() bool
 }
+
+// DirectMsgThrottlerHandler defines the behavior of a per-peer goroutine throttler for direct messages
+type DirectMsgThrottlerHandler interface {
+	CanProcess(pid core.PeerID) bool
+	StartProcessing(pid core.PeerID)
+	EndProcessing(pid core.PeerID)
+	IsInterfaceNil() bool
+}

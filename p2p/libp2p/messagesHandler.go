@@ -29,6 +29,7 @@ var maxSendBuffSize = (1 << 21) - messageHeader
 
 const durationBetweenSends = time.Microsecond * 10
 const equivalentMessagesCacheSize = 1000
+const maxGoroutinesPerPeer int32 = 10 // Todo: move this into config
 
 // ArgMessagesHandler is the DTO struct used to create a new instance of messages handler
 type ArgMessagesHandler struct {
@@ -39,6 +40,7 @@ type ArgMessagesHandler struct {
 	Marshaller         p2p.Marshaller
 	ConnMonitor        ConnectionMonitor
 	PeersRatingHandler p2p.PeersRatingHandler
+	PeerThrottler      DirectMsgThrottlerHandler
 	SyncTimer          p2p.SyncTimer
 	PeerID             core.PeerID
 	NetworkType        p2p.NetworkType
@@ -51,6 +53,7 @@ type messagesHandler struct {
 	pubSub             PubSub
 	directSender       p2p.DirectSender
 	throttler          core.Throttler
+	peerThrottler      DirectMsgThrottlerHandler
 	outgoingCLB        ChannelLoadBalancer
 	marshaller         p2p.Marshaller
 	connMonitor        ConnectionMonitor
@@ -83,6 +86,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		pubSub:             args.PubSub,
 		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
+		peerThrottler:      args.PeerThrottler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
@@ -129,6 +133,9 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	}
 	if check.IfNil(args.PeersRatingHandler) {
 		return p2p.ErrNilPeersRatingHandler
+	}
+	if check.IfNil(args.PeerThrottler) {
+		return p2p.ErrNilDirectMsgThrottlerHandler
 	}
 	if check.IfNil(args.SyncTimer) {
 		return p2p.ErrNilSyncTimer
@@ -596,7 +603,15 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
+	if !handler.peerThrottler.CanProcess(fromConnectedPeer) {
+		return nil, p2p.ErrTooManyGoroutines
+	}
+
+	handler.peerThrottler.StartProcessing(fromConnectedPeer)
+
 	go func(msg p2p.MessageP2P) {
+		defer handler.peerThrottler.EndProcessing(fromConnectedPeer)
+
 		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
 		messageOk := true
