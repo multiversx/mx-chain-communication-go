@@ -29,7 +29,6 @@ var maxSendBuffSize = (1 << 21) - messageHeader
 
 const durationBetweenSends = time.Microsecond * 10
 const equivalentMessagesCacheSize = 1000
-const maxGoroutinesPerPeer int32 = 10 // Todo: move this into config
 
 // ArgMessagesHandler is the DTO struct used to create a new instance of messages handler
 type ArgMessagesHandler struct {

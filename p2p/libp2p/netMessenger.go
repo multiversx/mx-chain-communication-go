@@ -47,8 +47,9 @@ const (
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
 
-	baseErrorSuffix      = "when creating a new network messenger"
-	pubSubMaxMessageSize = 1 << 21 // 2 MB
+	baseErrorSuffix            = "when creating a new network messenger"
+	pubSubMaxMessageSize       = 1 << 21 // 2 MB
+	maxGoroutinesPerPeer int32 = 10      // Todo: move this into config
 )
 
 type messageSigningConfig bool
