@@ -195,6 +195,9 @@ var ErrNilConnectionsHandler = errors.New("nil connections handler")
 // ErrNilLogger signals that a nil logger has been provided
 var ErrNilLogger = errors.New("nil logger")
 
+// ErrNilDirectMsgThrottlerHandler signals that a nil direct message throttler handler has been provided
+var ErrNilDirectMsgThrottlerHandler = errors.New("nil direct message throttler handler")
+
 // ErrInvalidTCPAddress signals that an invalid TCP address was used
 var ErrInvalidTCPAddress = errors.New("invalid TCP address")
 

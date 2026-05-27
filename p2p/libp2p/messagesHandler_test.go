@@ -39,9 +39,10 @@ var (
 
 func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 	return libp2p.ArgMessagesHandler{
-		PubSub:       &mock.PubSubStub{},
-		DirectSender: &mock.DirectSenderStub{},
-		Throttler:    &mock.ThrottlerStub{},
+		PubSub:        &mock.PubSubStub{},
+		DirectSender:  &mock.DirectSenderStub{},
+		Throttler:     &mock.ThrottlerStub{},
+		PeerThrottler: &mock.DirectMsgThrottlerHandlerStub{},
 		OutgoingCLB: &mock.ChannelLoadBalancerStub{
 			CollectOneElementFromChannelsCalled: func() *libp2p.SendableData {
 				return &libp2p.SendableData{}
@@ -133,6 +134,15 @@ func TestNewMessagesHandler(t *testing.T) {
 		args.SyncTimer = nil
 		mh, err := libp2p.NewMessagesHandler(args)
 		assert.Equal(t, p2p.ErrNilSyncTimer, err)
+		assert.Nil(t, mh)
+	})
+	t.Run("nil PeerThrottler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.PeerThrottler = nil
+		mh, err := libp2p.NewMessagesHandler(args)
+		assert.Equal(t, p2p.ErrNilDirectMsgThrottlerHandler, err)
 		assert.Nil(t, mh)
 	})
 	t.Run("RegisterMessageHandler fails", func(t *testing.T) {
