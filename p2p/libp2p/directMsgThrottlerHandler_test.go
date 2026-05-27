@@ -1,6 +1,8 @@
 package libp2p_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -195,4 +197,51 @@ func TestDirectMsgThrottlerHandler_IsInterfaceNil(t *testing.T) {
 
 	handler := libp2p.NewDirectMsgThrottlerHandlerForNetwork(&mock.NetworkStub{}, &testscommon.LoggerStub{})
 	assert.False(t, handler.IsInterfaceNil())
+}
+
+func TestDirectMsgThrottlerHandler_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		assert.Nil(t, recover())
+	}()
+
+	handler := libp2p.NewDirectMsgThrottlerHandlerForNetwork(&mock.NetworkStub{}, &testscommon.LoggerStub{})
+	require.NotNil(t, handler)
+
+	const numGoroutines = 1000
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := range numGoroutines {
+		go func(idx int) {
+			defer wg.Done()
+
+			pid := core.PeerID(fmt.Sprintf("peer-%d", idx%10))
+			conn := &mock.ConnStub{
+				RemotePeerCalled: func() peer.ID {
+					return peer.ID(pid)
+				},
+			}
+
+			switch idx % 7 {
+			case 0:
+				_ = handler.CanProcess(pid)
+			case 1:
+				handler.StartProcessing(pid)
+			case 2:
+				handler.EndProcessing(pid)
+			case 3:
+				handler.Listen(nil, multiaddr.Multiaddr(nil))
+			case 4:
+				handler.ListenClose(nil, multiaddr.Multiaddr(nil))
+			case 5:
+				handler.Connected(nil, conn)
+			case 6:
+				handler.Disconnected(nil, conn)
+			}
+		}(i)
+	}
+
+	wg.Wait()
 }
