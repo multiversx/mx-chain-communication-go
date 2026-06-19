@@ -105,7 +105,7 @@ func (sm *streamMock) SetReadDeadline(time.Time) error {
 
 // SetWriteDeadline -
 func (sm *streamMock) SetWriteDeadline(time.Time) error {
-	panic("implement me")
+	return nil
 }
 
 // Protocol -
