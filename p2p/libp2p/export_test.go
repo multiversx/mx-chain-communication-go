@@ -292,6 +292,14 @@ func NewMessagesHandlerWithNoRoutineAndProcessors(args ArgMessagesHandler, proce
 	return handler
 }
 
+// EquivalentMessages -
+func (handler *messagesHandler) EquivalentMessages() map[string]types.Cacher {
+	handler.mutTopics.RLock()
+	defer handler.mutTopics.RUnlock()
+
+	return handler.equivalentMessages
+}
+
 // NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions -
 func NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args ArgMessagesHandler, topics map[string]PubSubTopic, subscriptions map[string]PubSubSubscription) *messagesHandler {
 	handler := NewMessagesHandlerWithNoRoutine(args)

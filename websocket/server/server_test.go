@@ -59,6 +59,33 @@ func TestNewWebSocketsServer(t *testing.T) {
 		require.Nil(t, ws)
 		require.Equal(t, data.ErrZeroValueRetryDuration, err)
 	})
+
+	t.Run("with acknowledge and zero ack timeout in seconds, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.WithAcknowledge = true
+		args.AckTimeoutInSeconds = 0
+		ws, err := NewWebSocketServer(args)
+		require.Nil(t, ws)
+		require.Equal(t, data.ErrZeroValueAckTimeout, err)
+	})
+
+	t.Run("without acknowledge and zero ack timeout in seconds, should work", func(t *testing.T) {
+		args := createArgs()
+		args.WithAcknowledge = false
+		args.AckTimeoutInSeconds = 0
+		ws, err := NewWebSocketServer(args)
+		require.NotNil(t, ws)
+		require.Nil(t, err)
+	})
+
+	t.Run("with acknowledge and non-zero ack timeout in seconds, should work", func(t *testing.T) {
+		args := createArgs()
+		args.WithAcknowledge = true
+		args.AckTimeoutInSeconds = 1
+		ws, err := NewWebSocketServer(args)
+		require.NotNil(t, ws)
+		require.Nil(t, err)
+	})
 }
 
 func TestServer_ListenAndClose(t *testing.T) {

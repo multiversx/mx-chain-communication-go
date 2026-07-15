@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -488,6 +489,86 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 
 		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Equal(t, expectedError, err)
+	})
+	t.Run("new topic - register fails should not poison the processors and equivalent messages maps", func(t *testing.T) {
+		t.Parallel()
+
+		processors := make(map[string]libp2p.TopicProcessor)
+		args := createMockArgMessagesHandler()
+		args.PubSub = &mock.PubSubStub{
+			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+				return expectedError
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
+		assert.NotNil(t, mh)
+
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		assert.Equal(t, expectedError, err)
+		assert.Equal(t, 0, len(processors))
+		assert.Equal(t, 0, len(mh.EquivalentMessages()))
+	})
+	t.Run("new topic - retry after a failed registration should work", func(t *testing.T) {
+		t.Parallel()
+
+		processors := make(map[string]libp2p.TopicProcessor)
+		registerCalls := 0
+		args := createMockArgMessagesHandler()
+		args.PubSub = &mock.PubSubStub{
+			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+				registerCalls++
+				if registerCalls == 1 {
+					return expectedError
+				}
+
+				return nil
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
+		assert.NotNil(t, mh)
+
+		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		assert.Equal(t, expectedError, err)
+		assert.Equal(t, 0, len(processors))
+
+		err = mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(processors))
+		_, ok := processors[providedTopic]
+		assert.True(t, ok)
+		assert.Equal(t, 1, len(mh.EquivalentMessages()))
+	})
+	t.Run("concurrent registration on multiple topics should not race", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.PubSub = &mock.PubSubStub{
+			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+				return nil
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.NotNil(t, mh)
+
+		numTopics := 50
+		var wg sync.WaitGroup
+		wg.Add(numTopics)
+		for i := 0; i < numTopics; i++ {
+			go func(idx int) {
+				defer wg.Done()
+
+				topic := fmt.Sprintf("topic_%d", idx)
+				err := mh.RegisterMessageProcessor(topic, providedIdentifier, &mock.MessageProcessorStub{})
+				assert.Nil(t, err)
+			}(i)
+		}
+		wg.Wait()
+
+		for i := 0; i < numTopics; i++ {
+			topic := fmt.Sprintf("topic_%d", i)
+			err := mh.RegisterMessageProcessor(topic, providedIdentifier, &mock.MessageProcessorStub{})
+			assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
+		}
 	})
 	t.Run("known topic - should work", func(t *testing.T) {
 		t.Parallel()
