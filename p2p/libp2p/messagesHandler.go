@@ -316,7 +316,6 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 	topicProcs := handler.processors[topic]
 	if topicProcs == nil {
 		topicProcs = newTopicProcessors()
-		handler.processors[topic] = topicProcs
 
 		err := handler.pubSub.RegisterTopicValidator(topic, handler.pubsubCallback(topicProcs, topic))
 		if err != nil {
@@ -327,6 +326,8 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 		if err != nil {
 			return err
 		}
+
+		handler.processors[topic] = topicProcs
 		handler.equivalentMessages[topic] = cache
 	}
 
@@ -377,19 +378,24 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 }
 
 func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []byte, topic string) bool {
-	if len(messageId) > 0 {
-		_, ok := handler.equivalentMessages[topic]
-		if !ok {
-			return true
-		}
-
-		_, ok = handler.equivalentMessages[topic].Get(messageId)
-		if ok {
-			return false
-		}
-
-		handler.equivalentMessages[topic].Put(messageId, struct{}{}, 0)
+	if len(messageId) == 0 {
+		return true
 	}
+
+	handler.mutTopics.Lock()
+	defer handler.mutTopics.Unlock()
+
+	_, ok := handler.equivalentMessages[topic]
+	if !ok {
+		return true
+	}
+
+	_, ok = handler.equivalentMessages[topic].Get(messageId)
+	if ok {
+		return false
+	}
+
+	handler.equivalentMessages[topic].Put(messageId, struct{}{}, 0)
 
 	return true
 }
