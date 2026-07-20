@@ -2,6 +2,7 @@ package transceiver
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -140,7 +141,11 @@ func (wt *wsTransceiver) verifyPayloadAndSendAckIfNeeded(connection webSocket.WS
 		return
 	}
 
-	err = wt.payloadHandler.ProcessPayload(wsMessage.Payload, wsMessage.Topic, wsMessage.Version)
+	wt.mutPayloadHandler.RLock()
+	handler := wt.payloadHandler
+	wt.mutPayloadHandler.RUnlock()
+
+	err = handler.ProcessPayload(wsMessage.Payload, wsMessage.Topic, wsMessage.Version)
 	if err != nil && wt.blockingAckOnError {
 		wt.log.Warn("wt.payloadHandler.ProcessPayload: cannot handle payload", "error", err)
 		return
@@ -186,6 +191,12 @@ func (wt *wsTransceiver) sendAckIfNeeded(connection webSocket.WSConClient, wsMes
 
 		err := connection.WriteMessage(websocket.BinaryMessage, wsMessageBytes)
 		if err == nil {
+			return
+		}
+
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			wt.log.Error("write deadline exceeded, closing connection", "error", err)
+			_ = connection.Close()
 			return
 		}
 
@@ -267,10 +278,5 @@ func (wt *wsTransceiver) waitForAck(ch chan struct{}) error {
 func (wt *wsTransceiver) Close() error {
 	defer wt.safeCloser.Close()
 
-	err := wt.payloadHandler.Close()
-	if err != nil {
-		wt.log.Debug("cannot close the payload handler", "error", err)
-	}
-
-	return err
+	return nil
 }
