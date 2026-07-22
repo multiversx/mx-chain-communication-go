@@ -80,6 +80,9 @@ func checkArgs(args ArgsWebSocketServer) error {
 	if args.RetryDurationInSeconds == 0 {
 		return data.ErrZeroValueRetryDuration
 	}
+	if args.WithAcknowledge && args.AckTimeoutInSeconds == 0 {
+		return data.ErrZeroValueAckTimeout
+	}
 	return nil
 }
 
