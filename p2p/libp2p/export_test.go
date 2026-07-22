@@ -297,7 +297,12 @@ func (handler *messagesHandler) EquivalentMessages() map[string]types.Cacher {
 	handler.mutTopics.RLock()
 	defer handler.mutTopics.RUnlock()
 
-	return handler.equivalentMessages
+	copyMap := make(map[string]types.Cacher, len(handler.equivalentMessages))
+	for k, v := range handler.equivalentMessages {
+		copyMap[k] = v
+	}
+
+	return copyMap
 }
 
 // NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions -

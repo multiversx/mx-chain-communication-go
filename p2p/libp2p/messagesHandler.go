@@ -382,20 +382,20 @@ func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []by
 		return true
 	}
 
-	handler.mutTopics.Lock()
-	defer handler.mutTopics.Unlock()
+	handler.mutTopics.RLock()
+	cache, ok := handler.equivalentMessages[topic]
+	handler.mutTopics.RUnlock()
 
-	_, ok := handler.equivalentMessages[topic]
 	if !ok {
 		return true
 	}
 
-	_, ok = handler.equivalentMessages[topic].Get(messageId)
+	_, ok = cache.Get(messageId)
 	if ok {
 		return false
 	}
 
-	handler.equivalentMessages[topic].Put(messageId, struct{}{}, 0)
+	cache.Put(messageId, struct{}{}, 0)
 
 	return true
 }
