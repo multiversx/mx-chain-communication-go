@@ -68,7 +68,7 @@ func NewWebSocketClient(args ArgsWebSocketClient) (*client, error) {
 
 	wsClient := &client{
 		url:                        wsUrl.String(),
-		wsConn:                     connection.NewWSConnClient(),
+		wsConn:                     connection.NewWSConnClient(time.Duration(args.RetryDurationInSeconds) * time.Second),
 		retryDuration:              time.Duration(args.RetryDurationInSeconds) * time.Second,
 		safeCloser:                 closing.NewSafeChanCloser(),
 		transceiver:                wsTransceiver,
@@ -107,32 +107,19 @@ func (c *client) start() {
 				c.log.Warn(fmt.Sprintf("c.openConnection(), retrying in %v...", c.retryDuration), "error", err)
 			}
 
+			if err == nil {
+				closed := c.transceiver.Listen(c.wsConn)
+				if closed {
+					_ = c.wsConn.Close()
+				}
+			}
+
 			timer.Reset(c.retryDuration)
 
 			select {
 			case <-timer.C:
 			case <-c.safeCloser.ChanClose():
 				return
-			}
-		}
-	}()
-
-	go func() {
-		timer := time.NewTimer(c.retryDuration)
-		defer timer.Stop()
-		for {
-			closed := c.transceiver.Listen(c.wsConn)
-			if closed {
-				err := c.wsConn.Close()
-				c.log.Debug("try to close the connection", "close error", err)
-			}
-
-			timer.Reset(c.retryDuration)
-
-			select {
-			case <-c.safeCloser.ChanClose():
-				return
-			case <-timer.C:
 			}
 		}
 	}()

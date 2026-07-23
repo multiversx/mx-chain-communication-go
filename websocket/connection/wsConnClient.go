@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -13,20 +14,24 @@ import (
 var log = logger.GetOrCreate("connection")
 
 type wsConnClient struct {
-	mut      sync.RWMutex
-	conn     *websocket.Conn
-	clientID string
+	mut          sync.RWMutex
+	conn         *websocket.Conn
+	clientID     string
+	writeTimeout time.Duration
 }
 
 // NewWSConnClient creates a new wrapper over a websocket connection
-func NewWSConnClient() *wsConnClient {
-	return &wsConnClient{}
+func NewWSConnClient(writeTimeout time.Duration) *wsConnClient {
+	return &wsConnClient{
+		writeTimeout: writeTimeout,
+	}
 }
 
 // NewWSConnClientWithConn creates a new wrapper over a provided websocket connection
-func NewWSConnClientWithConn(conn *websocket.Conn) *wsConnClient {
+func NewWSConnClientWithConn(conn *websocket.Conn, writeTimeout time.Duration) *wsConnClient {
 	wsc := &wsConnClient{
-		conn: conn,
+		conn:         conn,
+		writeTimeout: writeTimeout,
 	}
 	wsc.clientID = fmt.Sprintf("%p", wsc)
 
@@ -61,6 +66,17 @@ func (wsc *wsConnClient) ReadMessage() (messageType int, p []byte, err error) {
 	return conn.ReadMessage()
 }
 
+func (wsc *wsConnClient) setWriteDeadline() {
+	if wsc.writeTimeout == 0 {
+		return
+	}
+
+	err := wsc.conn.SetWriteDeadline(time.Now().Add(wsc.writeTimeout))
+	if err != nil {
+		log.Trace("cannot set write deadline", "error", err)
+	}
+}
+
 // WriteMessage calls the underlying write message ws connection func
 func (wsc *wsConnClient) WriteMessage(messageType int, payload []byte) error {
 	wsc.mut.Lock()
@@ -69,6 +85,8 @@ func (wsc *wsConnClient) WriteMessage(messageType int, payload []byte) error {
 	if wsc.conn == nil {
 		return data.ErrConnectionNotOpen
 	}
+
+	wsc.setWriteDeadline()
 
 	return wsc.conn.WriteMessage(messageType, payload)
 }
@@ -110,6 +128,8 @@ func (wsc *wsConnClient) Close() error {
 	}
 
 	log.Debug("closing ws connection...")
+
+	wsc.setWriteDeadline()
 
 	//Cleanly close the connection by sending a close message and then
 	//waiting (with timeout) for the server to close the connection.

@@ -105,13 +105,18 @@ func (s *server) connectionHandler(connection webSocket.WSConClient) {
 		s.log.Warn("s.SetPayloadHandler cannot set payload handler", "error", err)
 	}
 
+	s.transceiversAndConn.addTransceiverAndConn(webSocketTransceiver, connection)
+
 	go func() {
-		s.transceiversAndConn.addTransceiverAndConn(webSocketTransceiver, connection)
 		// this method is blocking
 		_ = webSocketTransceiver.Listen(connection)
 		s.log.Info("connection closed", "client id", connection.GetID())
 		// if method listen will end, the client was disconnected, and we should remove the listener from the list
 		s.transceiversAndConn.remove(connection.GetID())
+		errC := connection.Close()
+		if errC != nil {
+			s.log.Trace("cannot close connection", "id", connection.GetID(), "error", errC)
+		}
 	}()
 }
 
@@ -139,7 +144,7 @@ func (s *server) initializeServer(wsURL string, wsPath string) {
 			s.log.Warn("could not update websocket connection", "remote address", r.RemoteAddr, "error", errUpgrade)
 			return
 		}
-		client := connection.NewWSConnClientWithConn(ws)
+		client := connection.NewWSConnClientWithConn(ws, s.retryDuration)
 		s.connectionHandler(client)
 	}
 
@@ -213,6 +218,12 @@ func (s *server) Close() error {
 			s.log.Debug("server.Close() cannot close connection", "id", tuple.conn.GetID(), "error", err.Error())
 			lastError = err
 		}
+	}
+
+	err = s.payloadHandler.Close()
+	if err != nil {
+		s.log.Debug("server.Close() cannot close payload handler", "error", err)
+		lastError = err
 	}
 
 	return lastError
