@@ -21,12 +21,12 @@ func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 	chanDone := make(chan struct{})
 	chanMessageProcessor := make(chan struct{}, len(peers))
 
-	//add a new message processor for each messenger
+	// add a new message processor for each messenger
 	for i, peer := range peers {
 		mp := NewMessageProcessor(chanMessageProcessor, []byte(testMessage))
 
 		messageProcessors[i] = mp
-		err := peer.RegisterMessageProcessor(topic, "test", mp)
+		err := peer.RegisterMessageProcessor("main", topic, "test", mp)
 		if err != nil {
 			fmt.Println(err.Error())
 			return false
@@ -44,7 +44,7 @@ func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 
 			atomic.StoreInt32(&msgReceived, 0)
 
-			//to be 100% all peers received the messages, iterate all message processors and check received flag
+			// to be 100% all peers received the messages, iterate all message processors and check received flag
 			for _, mp := range messageProcessors {
 				if !mp.WasDataReceived() {
 					completelyRecv = false
@@ -58,13 +58,13 @@ func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 				continue
 			}
 
-			//all messengers got the message
+			// all messengers got the message
 			chanDone <- struct{}{}
 			return
 		}
 	}()
 
-	//write the message on topic
+	// write the message on topic
 	peers[0].Broadcast(topic, []byte(testMessage))
 
 	select {

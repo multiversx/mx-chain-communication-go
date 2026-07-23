@@ -70,13 +70,13 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	for i := 0; i < numOfPeers; i++ {
 		idx := i
 		mapMessages[idx] = make(map[string]struct{})
-		err := peers[idx].CreateTopic(testTopic, true)
+		err := peers[idx].CreateTopic("main", testTopic, true)
 		if err != nil {
 			fmt.Println("CreateTopic failed:", err.Error())
 			continue
 		}
 
-		err = peers[idx].RegisterMessageProcessor(testTopic, "test", &messageProcessorStub{
+		err = peers[idx].RegisterMessageProcessor("main", testTopic, "test", &messageProcessorStub{
 			ProcessReceivedMessageCalled: func(message p2p.MessageP2P, source p2p.MessageHandler) ([]byte, error) {
 				time.Sleep(time.Second)
 
@@ -172,13 +172,13 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string) ([]*me
 	interceptors := make([]*messageProcessor, len(peers))
 
 	for idx, p := range peers {
-		err := p.CreateTopic(topic, true)
+		err := p.CreateTopic("main", topic, true)
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}
 
 		interceptors[idx] = newMessageProcessor()
-		err = p.RegisterMessageProcessor(topic, "test", interceptors[idx])
+		err = p.RegisterMessageProcessor("main", topic, "test", interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}

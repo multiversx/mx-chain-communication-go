@@ -73,6 +73,7 @@ type networkMessenger struct {
 	p2pSigner
 	p2p.MessageHandler
 	p2p.ConnectionsHandler
+	PubSubsHolder
 
 	ctx                     context.Context
 	cancelFunc              context.CancelFunc
@@ -331,13 +332,22 @@ func addComponentsToNode(
 	peersRatingHandler := args.PeersRatingHandler
 	marshaller := args.Marshaller
 
-	pubSub, err := p2pNode.createPubSub(messageSigning)
+	networkTopicsHolderInstance := newNetworkTopicsHolder(p2pNode.log, p2pNode.networkType)
+	argsPSH := argsPubSubsHolder{
+		Log:                 p2pNode.log,
+		Host:                p2pNode.p2pHost,
+		MainNetwork:         p2pNode.networkType,
+		MessageSigning:      bool(messageSigning),
+		P2pConfig:           args.P2pConfig,
+		NetworkTopicsHolder: networkTopicsHolderInstance,
+	}
+	p2pNode.PubSubsHolder, err = newPubSubsHolder(argsPSH)
 	if err != nil {
 		return err
 	}
 
 	peersOnChannelInstance, err := newPeersOnChannel(
-		pubSub.ListPeers,
+		p2pNode.PubSubsHolder,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic,
 		p2pNode.log)
@@ -376,17 +386,17 @@ func addComponentsToNode(
 	}
 
 	argsMessageHandler := ArgMessagesHandler{
-		PubSub:             pubSub,
-		DirectSender:       ds,
-		Throttler:          goRoutinesThrottler,
-		OutgoingCLB:        oclb,
-		Marshaller:         marshaller,
-		ConnMonitor:        connMonitor,
-		PeersRatingHandler: peersRatingHandler,
-		SyncTimer:          args.SyncTimer,
-		PeerID:             p2pNode.ID(),
-		Logger:             p2pNode.log,
-		NetworkType:        p2pNode.networkType,
+		PubSubsHolder:       p2pNode.PubSubsHolder,
+		DirectSender:        ds,
+		Throttler:           goRoutinesThrottler,
+		OutgoingCLB:         oclb,
+		Marshaller:          marshaller,
+		ConnMonitor:         connMonitor,
+		PeersRatingHandler:  peersRatingHandler,
+		SyncTimer:           args.SyncTimer,
+		PeerID:              p2pNode.ID(),
+		Logger:              p2pNode.log,
+		NetworkTopicsHolder: networkTopicsHolderInstance,
 	}
 	p2pNode.MessageHandler, err = NewMessagesHandler(argsMessageHandler)
 	if err != nil {
@@ -429,18 +439,6 @@ func (netMes *networkMessenger) validateSeeders(seeders []string) error {
 	}
 
 	return nil
-}
-
-func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig) (PubSub, error) {
-	optsPS := make([]pubsub.Option, 0)
-	if messageSigning == withoutMessageSigning {
-		netMes.log.Warn("signature verification is turned off in network messenger instance. NOT recommended in production environment")
-		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
-	}
-
-	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
-
-	return pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
 }
 
 func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) (p2p.Sharder, error) {
@@ -546,6 +544,15 @@ func (netMes *networkMessenger) Close() error {
 		err = errCH
 		netMes.log.Warn("networkMessenger.Close",
 			"component", "connectionsHandler",
+			"error", err)
+	}
+
+	netMes.log.Debug("closing network messenger's pubSubs holder...")
+	errPubSubsHolder := netMes.PubSubsHolder.Close()
+	if errPubSubsHolder != nil {
+		err = errPubSubsHolder
+		netMes.log.Warn("networkMessenger.Close",
+			"component", "pubSubsHolder",
 			"error", err)
 	}
 

@@ -26,15 +26,15 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 	topic := "test_topic"
 	processors := make([]*messageProcessor, 0, len(peers))
 	for idx, p := range peers {
-		_ = p.CreateTopic(topic, true)
+		_ = p.CreateTopic("main", topic, true)
 		processors = append(processors, newMessageProcessor())
-		_ = p.RegisterMessageProcessor(topic, "test", processors[idx])
+		_ = p.RegisterMessageProcessor("main", topic, "test", processors[idx])
 	}
 
 	fmt.Println("bootstrapping nodes")
 	time.Sleep(durationBootstrapping)
 
-	//a message should traverse the network
+	// a message should traverse the network
 	fmt.Println("sending the message that should traverse the whole network")
 	sender := peers[4]
 	sender.Broadcast(topic, []byte("message 1"))
@@ -46,7 +46,7 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 	}
 
 	blockedIdxs := []int{3, 6, 2, 5}
-	//node 3 unjoins the topic, which should prevent the propagation of the messages on peers 3, 6, 2 and 5
+	// node 3 unjoins the topic, which should prevent the propagation of the messages on peers 3, 6, 2 and 5
 	err := peers[3].UnregisterAllMessageProcessors()
 	assert.Nil(t, err)
 

@@ -13,12 +13,14 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiversx/mx-chain-communication-go/testscommon/pubSub"
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
@@ -40,7 +42,15 @@ var (
 
 func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 	return libp2p.ArgMessagesHandler{
-		PubSub:       &mock.PubSubStub{},
+		PubSubsHolder: &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					JoinCalled: func(topic string, opts ...pubsub.TopicOpt) (*pubsub.Topic, error) {
+						return &pubsub.Topic{}, nil
+					},
+				}, true
+			},
+		},
 		DirectSender: &mock.DirectSenderStub{},
 		Throttler:    &mock.ThrottlerStub{},
 		OutgoingCLB: &mock.ChannelLoadBalancerStub{
@@ -54,23 +64,33 @@ func createMockArgMessagesHandler() libp2p.ArgMessagesHandler {
 				return &mock.PeerDenialEvaluatorStub{}
 			},
 		},
-		PeersRatingHandler: &mock.PeersRatingHandlerStub{},
-		SyncTimer:          &libp2p.LocalSyncTimer{},
-		PeerID:             providedPid,
-		Logger:             &testscommon.LoggerStub{},
+		PeersRatingHandler:  &mock.PeersRatingHandlerStub{},
+		SyncTimer:           &libp2p.LocalSyncTimer{},
+		PeerID:              providedPid,
+		Logger:              &testscommon.LoggerStub{},
+		NetworkTopicsHolder: &testscommon.NetworkTopicsHolderMock{},
 	}
 }
 
 func TestNewMessagesHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil PubSub should error", func(t *testing.T) {
+	t.Run("nil PubSubsHolder should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		args.PubSub = nil
+		args.PubSubsHolder = nil
 		mh, err := libp2p.NewMessagesHandler(args)
-		assert.Equal(t, p2p.ErrNilPubSub, err)
+		assert.Equal(t, p2p.ErrNilPubSubsHolder, err)
+		assert.Nil(t, mh)
+	})
+	t.Run("nil NetworkTopicsHolder should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.NetworkTopicsHolder = nil
+		mh, err := libp2p.NewMessagesHandler(args)
+		assert.Equal(t, p2p.ErrNilNetworkTopicsHolder, err)
 		assert.Nil(t, mh)
 	})
 	t.Run("nil DirectSender should error", func(t *testing.T) {
@@ -453,41 +473,58 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, nil)
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, nil)
 		assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 	})
 	t.Run("new topic - should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		wasCalled := false
-		args.PubSub = &mock.PubSubStub{
-			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
-				wasCalled = true
-				assert.Equal(t, providedTopic, topic)
-				return nil
+		wasGetPubSubCalled := false
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+						wasGetPubSubCalled = true
+						assert.Equal(t, providedTopic, topic)
+						return nil
+					},
+				}, true
+			},
+		}
+		wasAddTopicOnNetworkIfNeededCalled := false
+		args.NetworkTopicsHolder = &testscommon.NetworkTopicsHolderMock{
+			AddTopicOnNetworkIfNeededCalled: func(networkType p2p.NetworkType, topic string) {
+				wasAddTopicOnNetworkIfNeededCalled = true
+				require.Equal(t, p2p.NetworkType("main"), networkType)
+				require.Equal(t, providedTopic, topic)
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
-		assert.True(t, wasCalled)
+		assert.True(t, wasGetPubSubCalled)
+		assert.True(t, wasAddTopicOnNetworkIfNeededCalled)
 	})
 	t.Run("new topic - register fails", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		args.PubSub = &mock.PubSubStub{
-			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
-				return expectedError
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+						return expectedError
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Equal(t, expectedError, err)
 	})
 	t.Run("new topic - register fails should not poison the processors and equivalent messages maps", func(t *testing.T) {
@@ -577,16 +614,20 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 			providedTopic: &mock.TopicProcessorStub{},
 		}
 		args := createMockArgMessagesHandler()
-		args.PubSub = &mock.PubSubStub{
-			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
-				assert.Fail(t, "should not have called this")
-				return nil
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+						assert.Fail(t, "should not have called this")
+						return nil
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 	})
 	t.Run("known topic - add topic processors fails", func(t *testing.T) {
@@ -600,15 +641,19 @@ func TestMessagesHandler_RegisterMessageProcessor(t *testing.T) {
 			},
 		}
 		args := createMockArgMessagesHandler()
-		args.PubSub = &mock.PubSubStub{
-			RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
-				return nil
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					RegisterTopicValidatorCalled: func(topic string, val interface{}, opts ...pubsub.ValidatorOpt) error {
+						return nil
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
 		assert.NotNil(t, mh)
 
-		err := mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
+		err := mh.RegisterMessageProcessor("main", providedTopic, providedIdentifier, &mock.MessageProcessorStub{})
 		assert.True(t, errors.Is(err, expectedError))
 	})
 }
@@ -703,10 +748,14 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 		}
 		args := createMockArgMessagesHandler()
 		wasCalled := false
-		args.PubSub = &mock.PubSubStub{
-			UnregisterTopicValidatorCalled: func(topic string) error {
-				wasCalled = true
-				return nil
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					UnregisterTopicValidatorCalled: func(topic string) error {
+						wasCalled = true
+						return nil
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
@@ -727,10 +776,14 @@ func TestMessagesHandler_UnregisterMessageProcessor(t *testing.T) {
 			},
 		}
 		args := createMockArgMessagesHandler()
-		args.PubSub = &mock.PubSubStub{
-			UnregisterTopicValidatorCalled: func(topic string) error {
-				assert.Fail(t, "should not have been called")
-				return nil
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					UnregisterTopicValidatorCalled: func(topic string) error {
+						assert.Fail(t, "should not have been called")
+						return nil
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
@@ -760,9 +813,13 @@ func TestMessagesHandler_UnregisterAllMessageProcessors(t *testing.T) {
 			},
 		}
 		args := createMockArgMessagesHandler()
-		args.PubSub = &mock.PubSubStub{
-			UnregisterTopicValidatorCalled: func(topic string) error {
-				return expectedError
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					UnregisterTopicValidatorCalled: func(topic string) error {
+						return expectedError
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
@@ -789,10 +846,14 @@ func TestMessagesHandler_UnregisterAllMessageProcessors(t *testing.T) {
 		expectedCounters := uint32(len(processors))
 		args := createMockArgMessagesHandler()
 		counterUnregister := uint32(0)
-		args.PubSub = &mock.PubSubStub{
-			UnregisterTopicValidatorCalled: func(topic string) error {
-				atomic.AddUint32(&counterUnregister, 1)
-				return nil
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					UnregisterTopicValidatorCalled: func(topic string) error {
+						atomic.AddUint32(&counterUnregister, 1)
+						return nil
+					},
+				}, true
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutineAndProcessors(args, processors)
@@ -1187,22 +1248,48 @@ func TestMessagesHandler_CreateTopic(t *testing.T) {
 		mh := libp2p.NewMessagesHandlerWithTopics(args, topics, false)
 		assert.NotNil(t, mh)
 
-		err := mh.CreateTopic(providedTopic, false)
+		err := mh.CreateTopic("main", providedTopic, false)
 		assert.Nil(t, err)
 	})
-	t.Run("pubSub Join returns error", func(t *testing.T) {
+	t.Run("GetPubSub error should return error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgMessagesHandler()
-		args.PubSub = &mock.PubSubStub{
-			JoinCalled: func(topic string, opts ...pubsub.TopicOpt) (*pubsub.Topic, error) {
-				return nil, expectedError
+		wasAddTopicOnNetworkIfNeededCalled := false
+		args.NetworkTopicsHolder = &testscommon.NetworkTopicsHolderMock{
+			AddTopicOnNetworkIfNeededCalled: func(networkType p2p.NetworkType, topic string) {
+				wasAddTopicOnNetworkIfNeededCalled = true
+			},
+		}
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return nil, false
 			},
 		}
 		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
 		assert.NotNil(t, mh)
 
-		err := mh.CreateTopic(providedTopic, false)
+		err := mh.CreateTopic("main", providedTopic, false)
+		assert.True(t, errors.Is(err, p2p.ErrNoPubSub))
+		require.True(t, wasAddTopicOnNetworkIfNeededCalled)
+	})
+	t.Run("pubSub Join returns error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgMessagesHandler()
+		args.PubSubsHolder = &pubSub.PubSubsHolderMock{
+			GetPubSubCalled: func(topic string) (libp2p.PubSub, bool) {
+				return &mock.PubSubStub{
+					JoinCalled: func(topic string, opts ...pubsub.TopicOpt) (*pubsub.Topic, error) {
+						return nil, expectedError
+					},
+				}, true
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		assert.NotNil(t, mh)
+
+		err := mh.CreateTopic("main", providedTopic, false)
 		assert.True(t, errors.Is(err, expectedError))
 	})
 }
@@ -1255,6 +1342,39 @@ func TestMessagesHandler_UnJoinAllTopics(t *testing.T) {
 	assert.Equal(t, expectedError, err)
 	assert.Equal(t, 2, counterGetAllTopics)
 	assert.Equal(t, 2, counterCancel)
+}
+
+func TestMessagesHandler_UnJoinTopic(t *testing.T) {
+	t.Parallel()
+
+	wasCloseCalled := false
+	topics := map[string]libp2p.PubSubTopic{
+		"topic1": &mock.PubSubTopicStub{
+			CloseCalled: func() error {
+				wasCloseCalled = true
+				return nil
+			},
+		},
+	}
+	wasCancelCalled := false
+	subscriptions := map[string]libp2p.PubSubSubscription{
+		"topic1": &mock.PubSubSubscriptionStub{
+			CancelCalled: func() {
+				wasCancelCalled = true
+			},
+		},
+	}
+	args := createMockArgMessagesHandler()
+	mh := libp2p.NewMessagesHandlerWithNoRoutineTopicsAndSubscriptions(args, topics, subscriptions)
+	require.NotNil(t, mh)
+
+	err := mh.UnJoinTopic("missingTopic") // coverage
+	require.NoError(t, err)
+
+	err = mh.UnJoinTopic("topic1")
+	require.NoError(t, err)
+	require.True(t, wasCloseCalled)
+	require.True(t, wasCancelCalled)
 }
 
 func TestMessagesHandler_Close(t *testing.T) {
