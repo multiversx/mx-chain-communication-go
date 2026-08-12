@@ -129,23 +129,25 @@ func (wsc *wsConnClient) Close() error {
 
 	log.Debug("closing ws connection...")
 
-	wsc.setWriteDeadline()
+	conn := wsc.conn
+	wsc.conn = nil
+
+	if wsc.writeTimeout > 0 {
+		_ = conn.SetWriteDeadline(time.Now().Add(wsc.writeTimeout))
+	}
 
 	//Cleanly close the connection by sending a close message and then
 	//waiting (with timeout) for the server to close the connection.
-	err := wsc.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	if err != nil {
 		log.Trace("cannot send close message", "error", err)
 	}
 
-	wsc.conn.CloseHandler()
-
-	err = wsc.conn.Close()
+	err = conn.Close()
 	if err != nil && !strings.Contains(err.Error(), data.ClosedConnectionMessage) {
 		return err
 	}
 
-	wsc.conn = nil
 	return nil
 }
 

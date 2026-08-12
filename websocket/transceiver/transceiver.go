@@ -250,6 +250,8 @@ func (wt *wsTransceiver) prepareChanAndCounter() (chan struct{}, uint64) {
 func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConClient, ch chan struct{}) error {
 	errSend := connection.WriteMessage(websocket.BinaryMessage, payload)
 	if errSend != nil {
+		wt.log.Debug("wt.sendPayload: cannot write message, closing connection", "error", errSend)
+		_ = connection.Close()
 		return errSend
 	}
 

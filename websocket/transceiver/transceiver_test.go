@@ -277,6 +277,57 @@ func TestWsTransceiver_SendMessageWaitAcKTimeout(t *testing.T) {
 	require.Equal(t, data.ErrAckTimeout, err)
 }
 
+func TestWsTransceiver_SendOnWriteErrorShouldCloseConnection(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	expectedErr := errors.New("write: broken pipe")
+	closeCalled := false
+	conn := &testscommon.WebsocketConnectionStub{
+		WriteMessageCalled: func(messageType int, data []byte) error {
+			return expectedErr
+		},
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicFinalizedBlock, conn)
+	require.Equal(t, expectedErr, err)
+	require.True(t, closeCalled)
+}
+
+func TestWsTransceiver_SendOnWriteSuccessShouldNotCloseConnection(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	closeCalled := false
+	conn := &testscommon.WebsocketConnectionStub{
+		WriteMessageCalled: func(messageType int, data []byte) error {
+			return nil
+		},
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicFinalizedBlock, conn)
+	require.Nil(t, err)
+	require.False(t, closeCalled)
+}
+
 func TestWsTransceiver_ListenReturnsTrue(t *testing.T) {
 	args := createArgs()
 	args.AckTimeoutInSec = 2
