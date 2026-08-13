@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
-	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
+
+	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 )
 
 // ArgsTransceiver holds the arguments that are needed for a transceiver
@@ -227,10 +228,22 @@ func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket
 	}
 	newPayload, err := wt.payloadParser.ConstructPayload(wsMessage)
 	if err != nil {
+		wt.removeAckEntry(localCounter)
 		return err
 	}
 
-	return wt.sendPayload(newPayload, connection, ch)
+	err = wt.sendPayload(newPayload, connection, ch)
+	if err != nil {
+		wt.removeAckEntry(localCounter)
+	}
+
+	return err
+}
+
+func (wt *wsTransceiver) removeAckEntry(counter uint64) {
+	wt.mutMapAck.Lock()
+	delete(wt.mapAck, counter)
+	wt.mutMapAck.Unlock()
 }
 
 func (wt *wsTransceiver) prepareChanAndCounter() (chan struct{}, uint64) {
@@ -259,7 +272,13 @@ func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConC
 		return nil
 	}
 
-	return wt.waitForAck(ch)
+	errAck := wt.waitForAck(ch)
+	if errors.Is(errAck, data.ErrAckTimeout) {
+		wt.log.Debug("wt.sendPayload: acknowledge timeout, closing connection")
+		_ = connection.Close()
+	}
+
+	return errAck
 }
 
 func (wt *wsTransceiver) waitForAck(ch chan struct{}) error {
