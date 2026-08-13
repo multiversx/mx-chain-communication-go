@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/multiversx/mx-chain-communication-go/testscommon"
-	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
-	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-communication-go/testscommon"
+	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 )
 
 func createArgs() ArgsTransceiver {
@@ -271,10 +272,120 @@ func TestWsTransceiver_SendMessageWaitAcKTimeout(t *testing.T) {
 		_ = webSocketTransceiver.Close()
 	}()
 
-	conn := &testscommon.WebsocketConnectionStub{}
+	closeCalled := false
+	conn := &testscommon.WebsocketConnectionStub{
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}
 
 	err := webSocketTransceiver.Send([]byte("message"), outport.TopicSaveBlock, conn)
 	require.Equal(t, data.ErrAckTimeout, err)
+	require.True(t, closeCalled)
+	require.Equal(t, 0, getNumPendingAcks(webSocketTransceiver))
+}
+
+func getNumPendingAcks(wt *wsTransceiver) int {
+	wt.mutMapAck.Lock()
+	defer wt.mutMapAck.Unlock()
+
+	return len(wt.mapAck)
+}
+
+func TestWsTransceiver_SendOnWriteErrorShouldCleanAckEntry(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	args.WithAcknowledge = true
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	expectedErr := errors.New("write: broken pipe")
+	conn := &testscommon.WebsocketConnectionStub{
+		WriteMessageCalled: func(messageType int, data []byte) error {
+			return expectedErr
+		},
+	}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicSaveBlock, conn)
+	require.Equal(t, expectedErr, err)
+	require.Equal(t, 0, getNumPendingAcks(webSocketTransceiver))
+}
+
+func TestWsTransceiver_SendWithReceivedAckShouldCleanAckEntry(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	args.WithAcknowledge = true
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	conn := &testscommon.WebsocketConnectionStub{
+		WriteMessageCalled: func(messageType int, data []byte) error {
+			go webSocketTransceiver.handleAckMessage(1)
+			return nil
+		},
+	}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicSaveBlock, conn)
+	require.Nil(t, err)
+	require.Equal(t, 0, getNumPendingAcks(webSocketTransceiver))
+}
+
+func TestWsTransceiver_SendOnWriteErrorShouldCloseConnection(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	expectedErr := errors.New("write: broken pipe")
+	closeCalled := false
+	conn := &testscommon.WebsocketConnectionStub{
+		WriteMessageCalled: func(messageType int, data []byte) error {
+			return expectedErr
+		},
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicFinalizedBlock, conn)
+	require.Equal(t, expectedErr, err)
+	require.True(t, closeCalled)
+}
+
+func TestWsTransceiver_SendOnWriteSuccessShouldNotCloseConnection(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	webSocketTransceiver, _ := NewTransceiver(args)
+	defer func() {
+		_ = webSocketTransceiver.Close()
+	}()
+
+	closeCalled := false
+	conn := &testscommon.WebsocketConnectionStub{
+		WriteMessageCalled: func(messageType int, data []byte) error {
+			return nil
+		},
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}
+
+	err := webSocketTransceiver.Send([]byte("message"), outport.TopicFinalizedBlock, conn)
+	require.Nil(t, err)
+	require.False(t, closeCalled)
 }
 
 func TestWsTransceiver_ListenReturnsTrue(t *testing.T) {
