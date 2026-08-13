@@ -403,6 +403,10 @@ func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []by
 	}
 
 	has, _ := cache.HasOrAdd(messageId, struct{}{}, 0)
+	if has {
+		// force LRU cache update
+		_, _ = cache.Get(messageId)
+	}
 	return !has
 }
 
