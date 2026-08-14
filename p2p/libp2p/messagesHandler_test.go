@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
@@ -1229,6 +1230,124 @@ func TestMessagesHandler_ProcessReceivedMessage(t *testing.T) {
 		assert.NotNil(t, mh)
 		_, err := mh.ProcessReceivedMessage(&message.Message{}, "pid", nil)
 		assert.Nil(t, err)
+	})
+	t.Run("remote peer without capacity should error", func(t *testing.T) {
+		t.Parallel()
+
+		remotePID, err := core.NewPeerID("QmY33RXFSbFFpxD2ZfamQvXGULFUsxAYSR2VkTXVewuMNh")
+		require.NoError(t, err)
+		args := createMockArgMessagesHandler()
+		args.PeerThrottler = &mock.DirectMsgThrottlerHandlerStub{
+			TryStartProcessingCalled: func(pid core.PeerID) bool {
+				assert.Equal(t, remotePID, pid)
+				return false
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		require.NotNil(t, mh)
+		require.NoError(t, mh.RegisterMessageProcessor(providedTopic, providedIdentifier, &mock.MessageProcessorStub{}))
+
+		pubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), remotePID, args.Marshaller)
+		msg, err := libp2p.NewMessage(pubSubMsg, args.Marshaller, p2p.Direct)
+		require.NoError(t, err)
+
+		_, err = mh.ProcessReceivedMessage(msg, remotePID, &mock.MessageHandlerStub{})
+		assert.ErrorIs(t, err, p2p.ErrTooManyGoroutines)
+	})
+	t.Run("remote capacity should be released after processing", func(t *testing.T) {
+		t.Parallel()
+
+		remotePID, err := core.NewPeerID("QmY33RXFSbFFpxD2ZfamQvXGULFUsxAYSR2VkTXVewuMNh")
+		require.NoError(t, err)
+		peerThrottler, err := libp2p.NewDirectMsgThrottlerHandler(libp2p.ArgDirectMsgThrottlerHandler{
+			MaxGoroutinesPerPeer: 1,
+		})
+		require.NoError(t, err)
+
+		firstStarted := make(chan struct{})
+		finishFirst := make(chan struct{})
+		firstFinished := make(chan struct{})
+		var numCalls atomic.Int32
+		processor := &mock.MessageProcessorStub{
+			ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+				if numCalls.Add(1) == 1 {
+					close(firstStarted)
+					<-finishFirst
+					close(firstFinished)
+				}
+
+				return nil, nil
+			},
+		}
+		args := createMockArgMessagesHandler()
+		args.PeerThrottler = peerThrottler
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		require.NotNil(t, mh)
+		require.NoError(t, mh.RegisterMessageProcessor(providedTopic, providedIdentifier, processor))
+
+		pubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), remotePID, args.Marshaller)
+		msg, err := libp2p.NewMessage(pubSubMsg, args.Marshaller, p2p.Direct)
+		require.NoError(t, err)
+		_, err = mh.ProcessReceivedMessage(msg, remotePID, &mock.MessageHandlerStub{})
+		require.NoError(t, err)
+		select {
+		case <-firstStarted:
+		case <-time.After(time.Second):
+			require.Fail(t, "first message was not processed")
+		}
+
+		_, err = mh.ProcessReceivedMessage(msg, remotePID, &mock.MessageHandlerStub{})
+		assert.ErrorIs(t, err, p2p.ErrTooManyGoroutines)
+
+		close(finishFirst)
+		select {
+		case <-firstFinished:
+		case <-time.After(time.Second):
+			require.Fail(t, "first message did not finish")
+		}
+		require.Eventually(t, func() bool {
+			_, processErr := mh.ProcessReceivedMessage(msg, remotePID, &mock.MessageHandlerStub{})
+			return processErr == nil
+		}, time.Second, time.Millisecond)
+	})
+	t.Run("send to self should not consume remote capacity", func(t *testing.T) {
+		t.Parallel()
+
+		selfPID, err := core.NewPeerID("QmY33RXFSbFFpxD2ZfamQvXGULFUsxAYSR2VkTXVewuMNh")
+		require.NoError(t, err)
+		args := createMockArgMessagesHandler()
+		args.PeerID = selfPID
+		args.PeerThrottler = &mock.DirectMsgThrottlerHandlerStub{
+			TryStartProcessingCalled: func(_ core.PeerID) bool {
+				assert.Fail(t, "should not throttle send-to-self processing")
+				return false
+			},
+			EndProcessingCalled: func(_ core.PeerID) {
+				assert.Fail(t, "should not release unreserved capacity")
+			},
+		}
+		processed := make(chan struct{}, 1)
+		processor := &mock.MessageProcessorStub{
+			ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+				processed <- struct{}{}
+				return nil, nil
+			},
+		}
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		require.NotNil(t, mh)
+		require.NoError(t, mh.RegisterMessageProcessor(providedTopic, providedIdentifier, processor))
+
+		pubSubMsg := createPubSubMsgWithTimestamp(time.Now().Unix(), selfPID, args.Marshaller)
+		msg, err := libp2p.NewMessage(pubSubMsg, args.Marshaller, p2p.Direct)
+		require.NoError(t, err)
+		_, err = mh.ProcessReceivedMessage(msg, selfPID, &mock.MessageHandlerStub{})
+		require.NoError(t, err)
+
+		select {
+		case <-processed:
+		case <-time.After(time.Second):
+			assert.Fail(t, "self message was not processed")
+		}
 	})
 }
 

@@ -14,6 +14,12 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/connectionMonitor"
@@ -23,11 +29,6 @@ import (
 	metricsFactory "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/metrics/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/resourceLimiter"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -49,7 +50,7 @@ const (
 
 	baseErrorSuffix            = "when creating a new network messenger"
 	pubSubMaxMessageSize       = 1 << 21 // 2 MB
-	maxGoroutinesPerPeer int32 = 10      // Todo: move this into config
+	maxGoroutinesPerPeer int32 = 10
 )
 
 type messageSigningConfig bool
@@ -378,8 +379,6 @@ func addComponentsToNode(
 
 	peerThrottler, err := NewDirectMsgThrottlerHandler(ArgDirectMsgThrottlerHandler{
 		MaxGoroutinesPerPeer: maxGoroutinesPerPeer,
-		Network:              p2pNode.p2pHost.Network(),
-		Logger:               p2pNode.log,
 	})
 	if err != nil {
 		return err

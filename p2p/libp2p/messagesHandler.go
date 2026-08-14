@@ -602,14 +602,15 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
-	if !handler.peerThrottler.CanProcess(fromConnectedPeer) {
+	shouldThrottle := fromConnectedPeer != handler.peerID
+	if shouldThrottle && !handler.peerThrottler.TryStartProcessing(fromConnectedPeer) {
 		return nil, p2p.ErrTooManyGoroutines
 	}
 
-	handler.peerThrottler.StartProcessing(fromConnectedPeer)
-
 	go func(msg p2p.MessageP2P) {
-		defer handler.peerThrottler.EndProcessing(fromConnectedPeer)
+		if shouldThrottle {
+			defer handler.peerThrottler.EndProcessing(fromConnectedPeer)
+		}
 
 		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender

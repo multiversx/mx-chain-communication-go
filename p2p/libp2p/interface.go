@@ -7,8 +7,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 // ConnectionMonitor defines the behavior of a connection monitor
@@ -102,8 +103,7 @@ type ConnectionsMetric interface {
 
 // DirectMsgThrottlerHandler defines the behavior of a per-peer goroutine throttler for direct messages
 type DirectMsgThrottlerHandler interface {
-	CanProcess(pid core.PeerID) bool
-	StartProcessing(pid core.PeerID)
+	TryStartProcessing(pid core.PeerID) bool
 	EndProcessing(pid core.PeerID)
 	IsInterfaceNil() bool
 }
