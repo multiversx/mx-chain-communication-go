@@ -29,6 +29,7 @@ var _ p2p.DirectSender = (*directSender)(nil)
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
 const sequenceNumberSize = 8
+const directSendWriteTimeout = 5 * time.Second
 
 type directSender struct {
 	counter           uint64
@@ -222,6 +223,12 @@ func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error 
 	if err != nil {
 		return err
 	}
+
+	err = stream.SetWriteDeadline(time.Now().Add(directSendWriteTimeout))
+	if err != nil {
+		ds.log.Trace("directSender.Send: SetWriteDeadline failed", "peer", peer.Pretty(), "err", err)
+	}
+	defer func() { _ = stream.SetWriteDeadline(time.Time{}) }() // clear deadline before releasing
 
 	msg, err := ds.createMessage(topic, buff, conn)
 	if err != nil {
