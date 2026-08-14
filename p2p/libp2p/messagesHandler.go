@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -339,21 +340,26 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 	return nil
 }
 
-func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic string) pubsub.ValidatorEx {
+	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) pubsub.ValidationResult {
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := handler.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
 			handler.log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic)
-			return false
+			return pubsub.ValidationReject
 		}
 
 		identifiers, msgProcessors := topicProcs.GetList()
-		messageOk := true
+		validationResult := pubsub.ValidationIgnore
 		var msgId []byte
 		for index, msgProc := range msgProcessors {
-			msgId, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
+			processorMsgID, processErr := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
+			err = processErr
 			if err != nil {
+				if errors.Is(err, p2p.ErrMessageShouldBeIgnored) {
+					continue
+				}
+
 				handler.log.Trace("p2p validator",
 					"network", handler.networkType,
 					"error", err.Error(),
@@ -363,17 +369,23 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 					"seq no", p2p.MessageOriginatorSeq(msg),
 					"topic identifier", identifiers[index],
 				)
-				messageOk = false
+				validationResult = pubsub.ValidationReject
+				continue
 			}
+
+			if validationResult != pubsub.ValidationReject {
+				validationResult = pubsub.ValidationAccept
+			}
+			msgId = processorMsgID
 		}
 
-		handler.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
+		handler.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), validationResult == pubsub.ValidationReject)
 
-		if messageOk {
-			messageOk = handler.isEquivalentMessageFirstBroadcast(msgId, topic)
+		if validationResult == pubsub.ValidationAccept && !handler.isEquivalentMessageFirstBroadcast(msgId, topic) {
+			return pubsub.ValidationIgnore
 		}
 
-		return messageOk
+		return validationResult
 	}
 }
 
@@ -390,14 +402,12 @@ func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []by
 		return true
 	}
 
-	_, ok = cache.Get(messageId)
-	if ok {
-		return false
+	has, _ := cache.HasOrAdd(messageId, struct{}{}, 0)
+	if has {
+		// force LRU cache update
+		_, _ = cache.Get(messageId)
 	}
-
-	cache.Put(messageId, struct{}{}, 0)
-
-	return true
+	return !has
 }
 
 func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {

@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
@@ -659,6 +660,109 @@ func TestMessagesHandler_pubsubCallback(t *testing.T) {
 		tp := &mock.MessageProcessorStub{}
 		cb := mh.PubsubCallback(tp, providedTopic)
 		assert.True(t, cb(context.Background(), peerID, createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, args.Marshaller)))
+	})
+}
+
+func TestMessagesHandler_PubsubCallbackExValidationResults(t *testing.T) {
+	t.Parallel()
+
+	realPID, _ := core.NewPeerID("QmY33RXFSbFFpxD2ZfamQvXGULFUsxAYSR2VkTXVewuMNh")
+	peerID := peer.ID(realPID)
+	msg := createPubSubMsgWithTimestamp(time.Now().Unix(), realPID, createMockArgMessagesHandler().Marshaller)
+
+	t.Run("ignore result is preserved", func(t *testing.T) {
+		args := createMockArgMessagesHandler()
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		topicProcs := &mock.TopicProcessorStub{
+			GetListCalled: func() ([]string, []p2p.MessageProcessor) {
+				return []string{"ignore"}, []p2p.MessageProcessor{&mock.MessageProcessorStub{
+					ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+						return []byte("id"), p2p.ErrMessageShouldBeIgnored
+					},
+				}}
+			},
+		}
+
+		result := mh.PubsubCallbackEx(topicProcs, providedTopic)(context.Background(), peerID, msg)
+		assert.Equal(t, pubsub.ValidationIgnore, result)
+	})
+
+	t.Run("reject takes precedence over accept and ignore", func(t *testing.T) {
+		args := createMockArgMessagesHandler()
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		topicProcs := &mock.TopicProcessorStub{
+			GetListCalled: func() ([]string, []p2p.MessageProcessor) {
+				return []string{"ignore", "accept", "reject"}, []p2p.MessageProcessor{
+					&mock.MessageProcessorStub{ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+						return nil, p2p.ErrMessageShouldBeIgnored
+					}},
+					&mock.MessageProcessorStub{ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+						return []byte("id"), nil
+					}},
+					&mock.MessageProcessorStub{ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+						return nil, expectedError
+					}},
+				}
+			},
+		}
+
+		result := mh.PubsubCallbackEx(topicProcs, providedTopic)(context.Background(), peerID, msg)
+		assert.Equal(t, pubsub.ValidationReject, result)
+	})
+
+	t.Run("equivalent message is ignored", func(t *testing.T) {
+		args := createMockArgMessagesHandler()
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		require.NoError(t, mh.RegisterMessageProcessor(providedTopic, "cache", &mock.MessageProcessorStub{}))
+		topicProcs := &mock.TopicProcessorStub{
+			GetListCalled: func() ([]string, []p2p.MessageProcessor) {
+				return []string{"accept"}, []p2p.MessageProcessor{&mock.MessageProcessorStub{
+					ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+						return []byte("same id"), nil
+					},
+				}}
+			},
+		}
+		callback := mh.PubsubCallbackEx(topicProcs, providedTopic)
+
+		assert.Equal(t, pubsub.ValidationAccept, callback(context.Background(), peerID, msg))
+		assert.Equal(t, pubsub.ValidationIgnore, callback(context.Background(), peerID, msg))
+	})
+
+	t.Run("concurrent equivalent messages have one winner", func(t *testing.T) {
+		args := createMockArgMessagesHandler()
+		mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+		require.NoError(t, mh.RegisterMessageProcessor(providedTopic, "cache", &mock.MessageProcessorStub{}))
+		topicProcs := &mock.TopicProcessorStub{
+			GetListCalled: func() ([]string, []p2p.MessageProcessor) {
+				return []string{"accept"}, []p2p.MessageProcessor{&mock.MessageProcessorStub{
+					ProcessMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+						return []byte("same concurrent id"), nil
+					},
+				}}
+			},
+		}
+		callback := mh.PubsubCallbackEx(topicProcs, providedTopic)
+		var accepted atomic.Int32
+		var ignored atomic.Int32
+		var wg sync.WaitGroup
+		const numCalls = 100
+		wg.Add(numCalls)
+		for range numCalls {
+			go func() {
+				defer wg.Done()
+				switch callback(context.Background(), peerID, msg) {
+				case pubsub.ValidationAccept:
+					accepted.Add(1)
+				case pubsub.ValidationIgnore:
+					ignored.Add(1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.Equal(t, int32(1), accepted.Load())
+		assert.Equal(t, int32(numCalls-1), ignored.Load())
 	})
 }
 

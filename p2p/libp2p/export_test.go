@@ -62,7 +62,15 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 func (handler *messagesHandler) PubsubCallback(msgProc p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	topicProcs := newTopicProcessors()
 	_ = topicProcs.AddTopicProcessor("identifier", msgProc)
+	callback := handler.pubsubCallback(topicProcs, topic)
 
+	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+		return callback(ctx, pid, message) == pubsub.ValidationAccept
+	}
+}
+
+// PubsubCallbackEx -
+func (handler *messagesHandler) PubsubCallbackEx(topicProcs TopicProcessor, topic string) pubsub.ValidatorEx {
 	return handler.pubsubCallback(topicProcs, topic)
 }
 
