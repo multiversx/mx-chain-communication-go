@@ -47,8 +47,9 @@ const (
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
 
-	baseErrorSuffix      = "when creating a new network messenger"
-	pubSubMaxMessageSize = 1 << 21 // 2 MB
+	baseErrorSuffix            = "when creating a new network messenger"
+	pubSubMaxMessageSize       = 1 << 21 // 2 MB
+	maxGoroutinesPerPeer int32 = 10      // Todo: move this into config
 )
 
 type messageSigningConfig bool
@@ -375,10 +376,20 @@ func addComponentsToNode(
 		return err
 	}
 
+	peerThrottler, err := NewDirectMsgThrottlerHandler(ArgDirectMsgThrottlerHandler{
+		MaxGoroutinesPerPeer: maxGoroutinesPerPeer,
+		Network:              p2pNode.p2pHost.Network(),
+		Logger:               p2pNode.log,
+	})
+	if err != nil {
+		return err
+	}
+
 	argsMessageHandler := ArgMessagesHandler{
 		PubSub:             pubSub,
 		DirectSender:       ds,
 		Throttler:          goRoutinesThrottler,
+		PeerThrottler:      peerThrottler,
 		OutgoingCLB:        oclb,
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,

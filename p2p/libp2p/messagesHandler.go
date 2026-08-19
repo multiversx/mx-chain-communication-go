@@ -36,6 +36,7 @@ type ArgMessagesHandler struct {
 	PubSub             PubSub
 	DirectSender       p2p.DirectSender
 	Throttler          core.Throttler
+	PeerThrottler      DirectMsgThrottlerHandler
 	OutgoingCLB        ChannelLoadBalancer
 	Marshaller         p2p.Marshaller
 	ConnMonitor        ConnectionMonitor
@@ -52,6 +53,7 @@ type messagesHandler struct {
 	pubSub             PubSub
 	directSender       p2p.DirectSender
 	throttler          core.Throttler
+	peerThrottler      DirectMsgThrottlerHandler
 	outgoingCLB        ChannelLoadBalancer
 	marshaller         p2p.Marshaller
 	connMonitor        ConnectionMonitor
@@ -84,6 +86,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		pubSub:             args.PubSub,
 		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
+		peerThrottler:      args.PeerThrottler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
@@ -118,6 +121,9 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	}
 	if check.IfNil(args.Throttler) {
 		return p2p.ErrNilThrottler
+	}
+	if check.IfNil(args.PeerThrottler) {
+		return p2p.ErrNilDirectMsgThrottlerHandler
 	}
 	if check.IfNil(args.OutgoingCLB) {
 		return p2p.ErrNilChannelLoadBalancer
@@ -612,7 +618,15 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
+	if !handler.peerThrottler.CanProcess(fromConnectedPeer) {
+		return nil, p2p.ErrTooManyGoroutines
+	}
+
+	handler.peerThrottler.StartProcessing(fromConnectedPeer)
+
 	go func(msg p2p.MessageP2P) {
+		defer handler.peerThrottler.EndProcessing(fromConnectedPeer)
+
 		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
 		messageOk := true

@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -19,6 +20,7 @@ import (
 
 var MaxSendBuffSize = maxSendBuffSize
 var BroadcastGoRoutines = broadcastGoRoutines
+var MaxGoroutinesPerPeerVal = maxGoroutinesPerPeer
 var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 var SequenceNumberSize = sequenceNumberSize
@@ -247,6 +249,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		pubSub:             args.PubSub,
 		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
+		peerThrottler:      args.PeerThrottler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
@@ -262,6 +265,17 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 	}
 
 	_ = handler.directSender.RegisterDirectMessageProcessor(handler)
+	return handler
+}
+
+// NewDirectMsgThrottlerHandlerForNetwork -
+func NewDirectMsgThrottlerHandlerForNetwork(net network.Network, log p2p.Logger) *directMsgThrottlerHandler {
+	args := ArgDirectMsgThrottlerHandler{
+		MaxGoroutinesPerPeer: maxGoroutinesPerPeer,
+		Network:              net,
+		Logger:               log,
+	}
+	handler, _ := NewDirectMsgThrottlerHandler(args)
 	return handler
 }
 
