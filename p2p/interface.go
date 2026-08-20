@@ -244,6 +244,15 @@ type DiscardedMessagesDebugger interface {
 	IsInterfaceNil() bool
 }
 
+// RPCDebugger represents a p2p debugger able to record the pubsub RPC traffic: the published messages as they
+// travel on the wire and the gossip control messages.
+type RPCDebugger interface {
+	IsRecording() bool
+	AddRPCPublishedMessage(topic string, size uint64, isIncoming bool)
+	AddRPCControlMessage(topic string, size uint64, isIncoming bool)
+	IsInterfaceNil() bool
+}
+
 // SyncTimer represent an entity able to tell the current time
 type SyncTimer interface {
 	CurrentTime() time.Time

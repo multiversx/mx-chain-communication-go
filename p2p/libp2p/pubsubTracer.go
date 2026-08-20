@@ -13,16 +13,20 @@ import (
 
 // pubsubTracer records the received messages that are not propagated further. This is the only observation point:
 // pubsub drops byte identical messages before the topic validator runs, and reports ignored ones only to the tracer.
+// controlWithoutTopic labels the control messages that carry no topic id, as iwant and idontwant only hold message ids
+const controlWithoutTopic = "[control without topic]"
+
 type pubsubTracer struct {
-	mut      sync.RWMutex
-	debugger p2p.DiscardedMessagesDebugger
+	mut         sync.RWMutex
+	debugger    p2p.DiscardedMessagesDebugger
+	rpcDebugger p2p.RPCDebugger
 }
 
 func newPubsubTracer() *pubsubTracer {
 	return &pubsubTracer{}
 }
 
-// setDebugger returns false if the provided debugger is unable to record the discarded messages
+// setDebugger returns false if the provided debugger is unable to record the extra p2p statistics
 func (tracer *pubsubTracer) setDebugger(debugger p2p.Debugger) bool {
 	if tracer == nil {
 		return false
@@ -33,11 +37,70 @@ func (tracer *pubsubTracer) setDebugger(debugger p2p.Debugger) bool {
 		discardedDebugger = nil
 	}
 
+	rpcDebugger, isRPCDebugger := debugger.(p2p.RPCDebugger)
+	if !isRPCDebugger || check.IfNil(rpcDebugger) {
+		rpcDebugger = nil
+	}
+
 	tracer.mut.Lock()
 	tracer.debugger = discardedDebugger
+	tracer.rpcDebugger = rpcDebugger
 	tracer.mut.Unlock()
 
-	return discardedDebugger != nil
+	return discardedDebugger != nil && rpcDebugger != nil
+}
+
+func (tracer *pubsubTracer) recordingRPCDebugger() p2p.RPCDebugger {
+	if tracer == nil {
+		return nil
+	}
+
+	tracer.mut.RLock()
+	rpcDebugger := tracer.rpcDebugger
+	tracer.mut.RUnlock()
+
+	if rpcDebugger == nil || !rpcDebugger.IsRecording() {
+		return nil
+	}
+
+	return rpcDebugger
+}
+
+// recordRPC covers the published and the control messages only, so the totals stay below the bytes the operating
+// system reports: the subscriptions and the transport framing are not accounted.
+func (tracer *pubsubTracer) recordRPC(rpc *pubsub.RPC, isIncoming bool) {
+	if rpc == nil {
+		return
+	}
+
+	rpcDebugger := tracer.recordingRPCDebugger()
+	if rpcDebugger == nil {
+		return
+	}
+
+	for _, msg := range rpc.Publish {
+		rpcDebugger.AddRPCPublishedMessage(msg.GetTopic(), uint64(msg.Size()), isIncoming)
+	}
+
+	if rpc.Control == nil {
+		return
+	}
+
+	for _, ihave := range rpc.Control.Ihave {
+		rpcDebugger.AddRPCControlMessage(ihave.GetTopicID(), uint64(ihave.Size()), isIncoming)
+	}
+	for _, graft := range rpc.Control.Graft {
+		rpcDebugger.AddRPCControlMessage(graft.GetTopicID(), uint64(graft.Size()), isIncoming)
+	}
+	for _, prune := range rpc.Control.Prune {
+		rpcDebugger.AddRPCControlMessage(prune.GetTopicID(), uint64(prune.Size()), isIncoming)
+	}
+	for _, iwant := range rpc.Control.Iwant {
+		rpcDebugger.AddRPCControlMessage(controlWithoutTopic, uint64(iwant.Size()), isIncoming)
+	}
+	for _, idontwant := range rpc.Control.Idontwant {
+		rpcDebugger.AddRPCControlMessage(controlWithoutTopic, uint64(idontwant.Size()), isIncoming)
+	}
 }
 
 func (tracer *pubsubTracer) debuggerFor(msg *pubsub.Message) p2p.DiscardedMessagesDebugger {
@@ -103,11 +166,15 @@ func (tracer *pubsubTracer) DeliverMessage(_ *pubsub.Message) {}
 // ThrottlePeer does nothing
 func (tracer *pubsubTracer) ThrottlePeer(_ peer.ID) {}
 
-// RecvRPC does nothing
-func (tracer *pubsubTracer) RecvRPC(_ *pubsub.RPC) {}
+// RecvRPC is invoked for every incoming RPC
+func (tracer *pubsubTracer) RecvRPC(rpc *pubsub.RPC) {
+	tracer.recordRPC(rpc, true)
+}
 
-// SendRPC does nothing
-func (tracer *pubsubTracer) SendRPC(_ *pubsub.RPC, _ peer.ID) {}
+// SendRPC is invoked for every outgoing RPC, once per destination peer
+func (tracer *pubsubTracer) SendRPC(rpc *pubsub.RPC, _ peer.ID) {
+	tracer.recordRPC(rpc, false)
+}
 
 // DropRPC does nothing
 func (tracer *pubsubTracer) DropRPC(_ *pubsub.RPC, _ peer.ID) {}

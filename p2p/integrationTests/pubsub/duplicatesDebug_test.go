@@ -18,6 +18,10 @@ type discardedDebuggerStub struct {
 	sizes         map[string]uint64
 	numIgnored    map[string]int
 	ignoredSizes  map[string]uint64
+	rpcMsgsIn     map[string]uint64
+	rpcMsgsOut    map[string]uint64
+	rpcControlIn  map[string]uint64
+	rpcControlOut map[string]uint64
 }
 
 func newDiscardedDebuggerStub() *discardedDebuggerStub {
@@ -26,6 +30,10 @@ func newDiscardedDebuggerStub() *discardedDebuggerStub {
 		sizes:         make(map[string]uint64),
 		numIgnored:    make(map[string]int),
 		ignoredSizes:  make(map[string]uint64),
+		rpcMsgsIn:     make(map[string]uint64),
+		rpcMsgsOut:    make(map[string]uint64),
+		rpcControlIn:  make(map[string]uint64),
+		rpcControlOut: make(map[string]uint64),
 	}
 }
 
@@ -57,6 +65,45 @@ func (stub *discardedDebuggerStub) get(topic string) (int, uint64) {
 	return stub.numDuplicates[topic], stub.sizes[topic]
 }
 
+func (stub *discardedDebuggerStub) IsRecording() bool { return true }
+
+func (stub *discardedDebuggerStub) AddRPCPublishedMessage(topic string, size uint64, isIncoming bool) {
+	stub.mut.Lock()
+	defer stub.mut.Unlock()
+
+	if isIncoming {
+		stub.rpcMsgsIn[topic] += size
+		return
+	}
+	stub.rpcMsgsOut[topic] += size
+}
+
+func (stub *discardedDebuggerStub) AddRPCControlMessage(topic string, size uint64, isIncoming bool) {
+	stub.mut.Lock()
+	defer stub.mut.Unlock()
+
+	if isIncoming {
+		stub.rpcControlIn[topic] += size
+		return
+	}
+	stub.rpcControlOut[topic] += size
+}
+
+func (stub *discardedDebuggerStub) getRPC() (uint64, uint64, uint64, uint64) {
+	stub.mut.Lock()
+	defer stub.mut.Unlock()
+
+	sum := func(m map[string]uint64) uint64 {
+		total := uint64(0)
+		for _, v := range m {
+			total += v
+		}
+		return total
+	}
+
+	return sum(stub.rpcMsgsIn), sum(stub.rpcMsgsOut), sum(stub.rpcControlIn), sum(stub.rpcControlOut)
+}
+
 func (stub *discardedDebuggerStub) getIgnored(topic string) (int, uint64) {
 	stub.mut.Lock()
 	defer stub.mut.Unlock()
@@ -64,7 +111,6 @@ func (stub *discardedDebuggerStub) getIgnored(topic string) (int, uint64) {
 	return stub.numIgnored[topic], stub.ignoredSizes[topic]
 }
 
-// TestDuplicatedMessagesAreRecordedByTheDebugger checks the whole chain: pubsub raw tracer -> messenger -> debugger.
 // In a fully connected mesh of 3 peers, the 2 non-publishing peers forward the message to each other, so both
 // record exactly one duplicate per broadcast.
 func TestDuplicatedMessagesAreRecordedByTheDebugger(t *testing.T) {
@@ -131,10 +177,10 @@ func TestDuplicatedMessagesAreRecordedByTheDebugger(t *testing.T) {
 }
 
 var _ p2p.DiscardedMessagesDebugger = (*discardedDebuggerStub)(nil)
+var _ p2p.RPCDebugger = (*discardedDebuggerStub)(nil)
 
-// TestIgnoredMessagesAreRecordedByTheDebugger covers the equivalent messages case: distinct pubsub messages
-// (different originators and sequence numbers, so the pubsub deduplication does not catch them) that the node
-// maps to the same message id. Only the first one is accepted, the rest are ignored and not propagated.
+// Covers the equivalent messages case: distinct pubsub messages that the node maps to the same message id, so
+// the pubsub deduplication does not catch them. Only the first one is accepted, the rest are ignored.
 func TestIgnoredMessagesAreRecordedByTheDebugger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -202,4 +248,73 @@ func TestIgnoredMessagesAreRecordedByTheDebugger(t *testing.T) {
 	// the payloads are distinct messages, so the pubsub deduplication must not have caught any of them
 	require.Zero(t, numDuplicates)
 	require.True(t, ignoredSize > 0)
+}
+
+// Covers the relayed messages in particular, as they are invisible to the topic validator.
+func TestRPCTrafficIsRecordedByTheDebugger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfPeers := 3
+	peers := make([]p2p.Messenger, numOfPeers)
+	for i := 0; i < numOfPeers; i++ {
+		peers[i] = integrationTests.CreateMessengerWithNoDiscovery()
+	}
+
+	defer func() {
+		for _, peerInstance := range peers {
+			if peerInstance != nil {
+				_ = peerInstance.Close()
+			}
+		}
+	}()
+
+	for i := 0; i < numOfPeers; i++ {
+		for j := i + 1; j < numOfPeers; j++ {
+			err := peers[i].ConnectToPeer(peers[j].Addresses()[0])
+			require.Nil(t, err)
+		}
+	}
+
+	testTopic := "test"
+	for _, peerInstance := range peers {
+		err := peerInstance.CreateTopic(testTopic, true)
+		require.Nil(t, err)
+
+		err = peerInstance.RegisterMessageProcessor(testTopic, "test", &messageProcessorStub{
+			ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ p2p.MessageHandler) ([]byte, error) {
+				return []byte{}, nil
+			},
+		})
+		require.Nil(t, err)
+	}
+
+	debugger := newDiscardedDebuggerStub()
+	err := peers[0].SetDebugger(debugger)
+	require.Nil(t, err)
+
+	// let the gossipsub mesh form, so the graft control messages are exchanged
+	time.Sleep(time.Second * 3)
+
+	numBroadcasts := 5
+	payload := []byte("this is a test message used to check the RPC accounting")
+	for i := 0; i < numBroadcasts; i++ {
+		peers[1].Broadcast(testTopic, payload)
+		time.Sleep(time.Millisecond * 200)
+	}
+
+	require.Eventually(t, func() bool {
+		msgsIn, msgsOut, _, _ := debugger.getRPC()
+		return msgsIn > 0 && msgsOut > 0
+	}, time.Second*10, time.Millisecond*100, "expected both received and relayed messages to be recorded")
+
+	msgsIn, msgsOut, controlIn, controlOut := debugger.getRPC()
+	fmt.Printf("RPC recorded: messages in %d B, out %d B, control in %d B, out %d B\n",
+		msgsIn, msgsOut, controlIn, controlOut)
+
+	// this node never published, so everything it sent is relayed traffic
+	require.True(t, msgsOut > 0)
+	require.True(t, msgsIn >= uint64(numBroadcasts)*uint64(len(payload)))
+	require.True(t, controlIn+controlOut > 0)
 }

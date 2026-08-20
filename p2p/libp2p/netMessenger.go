@@ -424,12 +424,12 @@ func addComponentsToNode(
 	return nil
 }
 
-// SetDebugger sets the debugger on the message handler and, when it also records discarded messages, on the pubsub tracer
+// SetDebugger sets the debugger on the message handler and, when it records the extra statistics, on the pubsub tracer
 func (netMes *networkMessenger) SetDebugger(debugger p2p.Debugger) error {
 	recordsDiscarded := netMes.pubsubTracer.setDebugger(debugger)
 	if !recordsDiscarded && !check.IfNil(debugger) {
-		netMes.log.Warn("the provided p2p debugger does not record discarded messages, " +
-			"the duplicates and ignored counters will stay zero")
+		netMes.log.Warn("the provided p2p debugger does not record the extra statistics, " +
+			"the duplicates, ignored and RPC counters will stay zero")
 	}
 
 	return netMes.MessageHandler.SetDebugger(debugger)
