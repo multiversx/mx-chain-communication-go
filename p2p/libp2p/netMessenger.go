@@ -14,6 +14,12 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/connectionMonitor"
@@ -23,11 +29,6 @@ import (
 	metricsFactory "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/metrics/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/resourceLimiter"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -81,6 +82,7 @@ type networkMessenger struct {
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	networkType             p2p.NetworkType
 	log                     p2p.Logger
+	pubsubTracer            *pubsubTracer
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -331,6 +333,8 @@ func addComponentsToNode(
 	peersRatingHandler := args.PeersRatingHandler
 	marshaller := args.Marshaller
 
+	p2pNode.pubsubTracer = newPubsubTracer()
+
 	pubSub, err := p2pNode.createPubSub(messageSigning)
 	if err != nil {
 		return err
@@ -420,6 +424,17 @@ func addComponentsToNode(
 	return nil
 }
 
+// SetDebugger sets the debugger on the message handler and, when it also records discarded messages, on the pubsub tracer
+func (netMes *networkMessenger) SetDebugger(debugger p2p.Debugger) error {
+	recordsDiscarded := netMes.pubsubTracer.setDebugger(debugger)
+	if !recordsDiscarded && !check.IfNil(debugger) {
+		netMes.log.Warn("the provided p2p debugger does not record discarded messages, " +
+			"the duplicates and ignored counters will stay zero")
+	}
+
+	return netMes.MessageHandler.SetDebugger(debugger)
+}
+
 func (netMes *networkMessenger) validateSeeders(seeders []string) error {
 	selfID := netMes.p2pHost.ID().String()
 	for _, seeder := range seeders {
@@ -439,6 +454,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}
 
 	optsPS = append(optsPS, pubsub.WithMaxMessageSize(pubSubMaxMessageSize))
+	optsPS = append(optsPS, pubsub.WithRawTracer(netMes.pubsubTracer))
 
 	return pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
 }

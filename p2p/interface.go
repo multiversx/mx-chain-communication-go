@@ -236,6 +236,14 @@ type Debugger interface {
 	IsInterfaceNil() bool
 }
 
+// DiscardedMessagesDebugger represents a p2p debugger able to record the received messages that are not propagated
+// further: the byte identical ones dropped by pubsub deduplication and the ones ignored by validation.
+type DiscardedMessagesDebugger interface {
+	AddDuplicateMessage(topic string, size uint64)
+	AddIgnoredMessage(topic string, size uint64)
+	IsInterfaceNil() bool
+}
+
 // SyncTimer represent an entity able to tell the current time
 type SyncTimer interface {
 	CurrentTime() time.Time
