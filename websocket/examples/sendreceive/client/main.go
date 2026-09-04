@@ -16,7 +16,7 @@ import (
 var (
 	marshaller, _ = factory.NewMarshalizer("json")
 	log           = logger.GetOrCreate("client")
-	url           = ":12345"
+	url           = "ws://127.0.0.1:12345"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 			WithAcknowledge:            true,
 			BlockingAckOnError:         false,
 			DropMessagesIfNoConnection: false,
-			AcknowledgeTimeoutInSec:    10,
+			AcknowledgeTimeoutInSec:    1,
 		},
 		Marshaller: marshaller,
 		Log:        log,

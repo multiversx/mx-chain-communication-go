@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/multiversx/mx-chain-communication-go/testscommon"
@@ -39,7 +40,7 @@ func TestWsConnClient_OpenCloseConnectionShouldWork(t *testing.T) {
 	testServer := testscommon.NewHttpTestEchoHandler()
 	defer testServer.Close()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	connectionURL := createConnectionURLForTestServer(testServer)
 	err := conClient.OpenConnection(connectionURL)
 	require.Nil(t, err)
@@ -54,7 +55,7 @@ func TestWsConnClient_WriteAndReadMessageShouldWork(t *testing.T) {
 	testServer := testscommon.NewHttpTestEchoHandler()
 	defer testServer.Close()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	connectionURL := createConnectionURLForTestServer(testServer)
 	_ = conClient.OpenConnection(connectionURL)
 	defer func() {
@@ -74,7 +75,7 @@ func TestWsConnClient_WriteAndReadMessageShouldWork(t *testing.T) {
 func TestWsConnClient_WorkingWithANonOpenedConnectionShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	assert.NotPanics(t, func() {
 		err := conClient.Close()
 		assert.Equal(t, data.ErrConnectionNotOpen, err)
@@ -97,7 +98,7 @@ func TestWsConnClient_WorkingWithAClosedConnectionShouldNotPanic(t *testing.T) {
 	testServer := testscommon.NewHttpTestEchoHandler()
 	defer testServer.Close()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	connectionURL := createConnectionURLForTestServer(testServer)
 	_ = conClient.OpenConnection(connectionURL)
 	_ = conClient.Close()
@@ -124,7 +125,7 @@ func TestWsConnClient_ReOpenConnectionAfterCloseShouldWork(t *testing.T) {
 	testServer := testscommon.NewHttpTestEchoHandler()
 	defer testServer.Close()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	connectionURL := createConnectionURLForTestServer(testServer)
 	err := conClient.OpenConnection(connectionURL)
 	require.Nil(t, err)
@@ -153,7 +154,7 @@ func TestWsConnClient_ReOpenAlreadyOpenedConnectionShouldError(t *testing.T) {
 	testServer := testscommon.NewHttpTestEchoHandler()
 	defer testServer.Close()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	connectionURL := createConnectionURLForTestServer(testServer)
 	err := conClient.OpenConnection(connectionURL)
 	require.Nil(t, err)
@@ -168,7 +169,7 @@ func TestWsConnClient_IsOpen(t *testing.T) {
 	testServer := testscommon.NewHttpTestEchoHandler()
 	defer testServer.Close()
 
-	conClient := NewWSConnClient()
+	conClient := NewWSConnClient(time.Second)
 	connectionURL := createConnectionURLForTestServer(testServer)
 	err := conClient.OpenConnection(connectionURL)
 	require.Nil(t, err)
@@ -221,7 +222,7 @@ func TestWsConnClient_CloseWithErrorShouldSetConToNil(t *testing.T) {
 	}
 	require.Nil(t, err)
 
-	conClient := NewWSConnClientWithConn(wsConn)
+	conClient := NewWSConnClientWithConn(wsConn, time.Second)
 	err = conClient.Close()
 	require.Nil(t, err)
 	require.Nil(t, conClient.conn)

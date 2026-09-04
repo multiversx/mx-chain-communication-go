@@ -2,16 +2,18 @@ package transceiver
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
-	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
-	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
+
+	webSocket "github.com/multiversx/mx-chain-communication-go/websocket"
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 )
 
 // ArgsTransceiver holds the arguments that are needed for a transceiver
@@ -140,7 +142,11 @@ func (wt *wsTransceiver) verifyPayloadAndSendAckIfNeeded(connection webSocket.WS
 		return
 	}
 
-	err = wt.payloadHandler.ProcessPayload(wsMessage.Payload, wsMessage.Topic, wsMessage.Version)
+	wt.mutPayloadHandler.RLock()
+	handler := wt.payloadHandler
+	wt.mutPayloadHandler.RUnlock()
+
+	err = handler.ProcessPayload(wsMessage.Payload, wsMessage.Topic, wsMessage.Version)
 	if err != nil && wt.blockingAckOnError {
 		wt.log.Warn("wt.payloadHandler.ProcessPayload: cannot handle payload", "error", err)
 		return
@@ -189,6 +195,12 @@ func (wt *wsTransceiver) sendAckIfNeeded(connection webSocket.WSConClient, wsMes
 			return
 		}
 
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			wt.log.Error("write deadline exceeded, closing connection", "error", err)
+			_ = connection.Close()
+			return
+		}
+
 		if !strings.Contains(err.Error(), data.ErrConnectionNotOpen.Error()) {
 			wt.log.Error("could not write acknowledge message", "error", err.Error(), "retrying in", wt.retryDuration)
 		}
@@ -216,10 +228,22 @@ func (wt *wsTransceiver) Send(payload []byte, topic string, connection webSocket
 	}
 	newPayload, err := wt.payloadParser.ConstructPayload(wsMessage)
 	if err != nil {
+		wt.removeAckEntry(localCounter)
 		return err
 	}
 
-	return wt.sendPayload(newPayload, connection, ch)
+	err = wt.sendPayload(newPayload, connection, ch)
+	if err != nil {
+		wt.removeAckEntry(localCounter)
+	}
+
+	return err
+}
+
+func (wt *wsTransceiver) removeAckEntry(counter uint64) {
+	wt.mutMapAck.Lock()
+	delete(wt.mapAck, counter)
+	wt.mutMapAck.Unlock()
 }
 
 func (wt *wsTransceiver) prepareChanAndCounter() (chan struct{}, uint64) {
@@ -239,6 +263,8 @@ func (wt *wsTransceiver) prepareChanAndCounter() (chan struct{}, uint64) {
 func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConClient, ch chan struct{}) error {
 	errSend := connection.WriteMessage(websocket.BinaryMessage, payload)
 	if errSend != nil {
+		wt.log.Debug("wt.sendPayload: cannot write message, closing connection", "error", errSend)
+		_ = connection.Close()
 		return errSend
 	}
 
@@ -246,7 +272,13 @@ func (wt *wsTransceiver) sendPayload(payload []byte, connection webSocket.WSConC
 		return nil
 	}
 
-	return wt.waitForAck(ch)
+	errAck := wt.waitForAck(ch)
+	if errors.Is(errAck, data.ErrAckTimeout) {
+		wt.log.Debug("wt.sendPayload: acknowledge timeout, closing connection")
+		_ = connection.Close()
+	}
+
+	return errAck
 }
 
 func (wt *wsTransceiver) waitForAck(ch chan struct{}) error {
@@ -267,10 +299,5 @@ func (wt *wsTransceiver) waitForAck(ch chan struct{}) error {
 func (wt *wsTransceiver) Close() error {
 	defer wt.safeCloser.Close()
 
-	err := wt.payloadHandler.Close()
-	if err != nil {
-		wt.log.Debug("cannot close the payload handler", "error", err)
-	}
-
-	return err
+	return nil
 }

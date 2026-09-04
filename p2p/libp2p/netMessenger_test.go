@@ -859,18 +859,10 @@ func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *tes
 
 	peerstoreHandler := &mock.PeerstoreStub{
 		AddrsCalled: func(p peer.ID) []multiaddr.Multiaddr {
-			return []multiaddr.Multiaddr{
-				&mock.MultiaddrStub{
-					StringCalled: func() string {
-						return "multiaddress 1"
-					},
-				},
-				&mock.MultiaddrStub{
-					StringCalled: func() string {
-						return "multiaddress 2"
-					},
-				},
-			}
+			addr1, _ := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/1234")
+			addr2, _ := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/5678")
+
+			return []multiaddr.Multiaddr{addr1, addr2}
 		},
 	}
 
@@ -885,8 +877,8 @@ func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *tes
 
 	addresses := messenger.PeerAddresses("pid")
 	require.Equal(t, 2, len(addresses))
-	assert.Equal(t, addresses[0], "multiaddress 1")
-	assert.Equal(t, addresses[1], "multiaddress 2")
+	assert.Equal(t, "/ip4/127.0.0.1/tcp/1234", addresses[0])
+	assert.Equal(t, "/ip4/127.0.0.1/tcp/5678", addresses[1])
 }
 
 func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {

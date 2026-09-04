@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/data"
@@ -29,6 +30,33 @@ import (
 
 const timeout = time.Second * 5
 const testMaxSize = 1 << 21
+
+type deadlineFailingStream struct {
+	network.Stream
+	errSetWriteDeadline error
+	numWrites           int
+	numResets           int
+	numCloses           int
+}
+
+func (stream *deadlineFailingStream) SetWriteDeadline(_ time.Time) error {
+	return stream.errSetWriteDeadline
+}
+
+func (stream *deadlineFailingStream) Write(_ []byte) (int, error) {
+	stream.numWrites++
+	return 0, nil
+}
+
+func (stream *deadlineFailingStream) Reset() error {
+	stream.numResets++
+	return nil
+}
+
+func (stream *deadlineFailingStream) Close() error {
+	stream.numCloses++
+	return nil
+}
 
 var blankMessageHandler = &mock.MessageHandlerStub{
 	ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
@@ -568,6 +596,157 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 	err := ds.Send(topic, providedData, core.PeerID(cs.RemotePeer()))
 
 	assert.Equal(t, errNewStream, err)
+}
+
+func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldUseDeadline(t *testing.T) {
+	t.Parallel()
+
+	netw := &mock.NetworkStub{}
+	hs := &mock.ConnectableHostStub{
+		SetStreamHandlerCalled: func(_ protocol.ID, _ network.StreamHandler) {},
+		NetworkCalled: func() network.Network {
+			return netw
+		},
+	}
+
+	ds, err := libp2p.NewDirectSender(
+		context.Background(),
+		hs,
+		&mock.P2PSignerStub{},
+		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
+	)
+	assert.Nil(t, err)
+
+	id, sk := createLibP2PCredentialsDirectSender()
+	remotePeer := peer.ID("remote peer")
+	cs := createConnStub(nil, id, sk, remotePeer)
+	netw.ConnsToPeerCalled = func(_ peer.ID) []network.Conn {
+		return []network.Conn{cs}
+	}
+
+	hs.NewStreamCalled = func(ctx context.Context, _ peer.ID, _ ...protocol.ID) (network.Stream, error) {
+		deadline, ok := ctx.Deadline()
+		assert.True(t, ok)
+		assert.WithinDuration(t, time.Now().Add(timeout), deadline, time.Second)
+		return nil, context.DeadlineExceeded
+	}
+
+	err = ds.Send("topic", providedData, core.PeerID(remotePeer))
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestDirectSender_SendDirectToConnectedPeerCanceledStreamCreationShouldReleasePeerMutex(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	netw := &mock.NetworkStub{}
+	hs := &mock.ConnectableHostStub{
+		SetStreamHandlerCalled: func(_ protocol.ID, _ network.StreamHandler) {},
+		NetworkCalled: func() network.Network {
+			return netw
+		},
+	}
+
+	ds, err := libp2p.NewDirectSender(
+		ctx,
+		hs,
+		&mock.P2PSignerStub{},
+		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
+	)
+	assert.Nil(t, err)
+
+	id, sk := createLibP2PCredentialsDirectSender()
+	remotePeer := peer.ID("remote peer")
+	cs := createConnStub(nil, id, sk, remotePeer)
+	netw.ConnsToPeerCalled = func(_ peer.ID) []network.Conn {
+		return []network.Conn{cs}
+	}
+
+	streamCreationStarted := make(chan struct{}, 1)
+	hs.NewStreamCalled = func(ctx context.Context, _ peer.ID, _ ...protocol.ID) (network.Stream, error) {
+		streamCreationStarted <- struct{}{}
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+
+	firstSendDone := make(chan error, 1)
+	go func() {
+		firstSendDone <- ds.Send("topic", providedData, core.PeerID(remotePeer))
+	}()
+
+	select {
+	case <-streamCreationStarted:
+	case <-time.After(time.Second):
+		require.FailNow(t, "stream creation did not start")
+	}
+	cancel()
+	select {
+	case err = <-firstSendDone:
+		assert.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		require.FailNow(t, "first send did not stop after cancellation")
+	}
+
+	secondSendDone := make(chan error, 1)
+	go func() {
+		secondSendDone <- ds.Send("topic", providedData, core.PeerID(remotePeer))
+	}()
+
+	select {
+	case <-streamCreationStarted:
+		select {
+		case err = <-secondSendDone:
+			assert.ErrorIs(t, err, context.Canceled)
+		case <-time.After(time.Second):
+			require.FailNow(t, "second send did not stop after cancellation")
+		}
+	case <-time.After(time.Second):
+		assert.Fail(t, "peer mutex was not released")
+	}
+}
+
+func TestDirectSender_SendDirectToConnectedPeerSetWriteDeadlineErrorShouldResetStream(t *testing.T) {
+	t.Parallel()
+
+	netw := &mock.NetworkStub{}
+	ds, err := libp2p.NewDirectSender(
+		context.Background(),
+		&mock.ConnectableHostStub{
+			SetStreamHandlerCalled: func(_ protocol.ID, _ network.StreamHandler) {},
+			NetworkCalled: func() network.Network {
+				return netw
+			},
+		},
+		&mock.P2PSignerStub{},
+		&testscommon.MarshallerMock{},
+		&testscommon.LoggerStub{},
+	)
+	assert.Nil(t, err)
+
+	id, sk := createLibP2PCredentialsDirectSender()
+	remotePeer := peer.ID("remote peer")
+	baseStream := mock.NewStreamMock()
+	assert.NoError(t, baseStream.SetProtocol(libp2p.DirectSendID))
+	errSetWriteDeadline := errors.New("set write deadline failed")
+	stream := &deadlineFailingStream{
+		Stream:              baseStream,
+		errSetWriteDeadline: errSetWriteDeadline,
+	}
+	cs := createConnStub(stream, id, sk, remotePeer)
+	netw.ConnsToPeerCalled = func(_ peer.ID) []network.Conn {
+		return []network.Conn{cs}
+	}
+
+	err = ds.Send("topic", providedData, core.PeerID(remotePeer))
+	assert.ErrorIs(t, err, errSetWriteDeadline)
+	assert.Zero(t, stream.numWrites)
+	assert.Equal(t, 1, stream.numResets)
+	assert.Equal(t, 1, stream.numCloses)
+
+	err = ds.Send("topic", providedData, core.PeerID(remotePeer))
+	assert.ErrorIs(t, err, errSetWriteDeadline)
 }
 
 func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {

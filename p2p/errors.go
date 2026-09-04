@@ -25,6 +25,9 @@ var ErrChannelCanNotBeReAdded = errors.New("channel can not be re added")
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
+// ErrMessageShouldBeIgnored signals that a valid message should not be processed or propagated
+var ErrMessageShouldBeIgnored = errors.New("message should be ignored")
+
 // ErrAlreadySeenMessage signals that the message has already been seen
 var ErrAlreadySeenMessage = errors.New("already seen this message")
 
