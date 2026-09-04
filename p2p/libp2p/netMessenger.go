@@ -14,6 +14,12 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/connectionMonitor"
@@ -23,11 +29,6 @@ import (
 	metricsFactory "github.com/multiversx/mx-chain-communication-go/p2p/libp2p/metrics/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/networksharding/factory"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/resourceLimiter"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	commonCrypto "github.com/multiversx/mx-chain-crypto-go"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -47,8 +48,9 @@ const (
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
 
-	baseErrorSuffix      = "when creating a new network messenger"
-	pubSubMaxMessageSize = 1 << 21 // 2 MB
+	baseErrorSuffix            = "when creating a new network messenger"
+	pubSubMaxMessageSize       = 1 << 21 // 2 MB
+	maxGoroutinesPerPeer int32 = 10
 )
 
 type messageSigningConfig bool
@@ -375,6 +377,13 @@ func addComponentsToNode(
 		return err
 	}
 
+	peerThrottler, err := NewDirectMsgThrottlerHandler(ArgDirectMsgThrottlerHandler{
+		MaxGoroutinesPerPeer: maxGoroutinesPerPeer,
+	})
+	if err != nil {
+		return err
+	}
+
 	argsMessageHandler := ArgMessagesHandler{
 		PubSub:             pubSub,
 		DirectSender:       ds,
@@ -383,6 +392,7 @@ func addComponentsToNode(
 		Marshaller:         marshaller,
 		ConnMonitor:        connMonitor,
 		PeersRatingHandler: peersRatingHandler,
+		PeerThrottler:      peerThrottler,
 		SyncTimer:          args.SyncTimer,
 		PeerID:             p2pNode.ID(),
 		Logger:             p2pNode.log,

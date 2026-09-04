@@ -6,6 +6,7 @@ import (
 
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/protocol"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
@@ -177,6 +178,8 @@ func (okdd *optimizedKadDhtDiscoverer) createKadDht(ctx context.Context) (KadDht
 		dht.ProtocolPrefix(protocolID),
 		dht.RoutingTableRefreshPeriod(okdd.routingTableRefresh),
 		dht.Mode(dht.ModeServer),
+		dht.DisableValues(),
+		dht.DisableProviders(),
 	)
 }
 

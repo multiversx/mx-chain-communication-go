@@ -247,6 +247,7 @@ func NewMessagesHandlerWithNoRoutine(args ArgMessagesHandler) *messagesHandler {
 		pubSub:             args.PubSub,
 		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
+		peerThrottler:      args.PeerThrottler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
