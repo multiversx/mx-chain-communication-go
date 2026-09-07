@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -39,6 +40,7 @@ type ArgMessagesHandler struct {
 	Marshaller         p2p.Marshaller
 	ConnMonitor        ConnectionMonitor
 	PeersRatingHandler p2p.PeersRatingHandler
+	PeerThrottler      DirectMsgThrottlerHandler
 	SyncTimer          p2p.SyncTimer
 	PeerID             core.PeerID
 	NetworkType        p2p.NetworkType
@@ -51,6 +53,7 @@ type messagesHandler struct {
 	pubSub             PubSub
 	directSender       p2p.DirectSender
 	throttler          core.Throttler
+	peerThrottler      DirectMsgThrottlerHandler
 	outgoingCLB        ChannelLoadBalancer
 	marshaller         p2p.Marshaller
 	connMonitor        ConnectionMonitor
@@ -83,6 +86,7 @@ func NewMessagesHandler(args ArgMessagesHandler) (*messagesHandler, error) {
 		pubSub:             args.PubSub,
 		directSender:       args.DirectSender,
 		throttler:          args.Throttler,
+		peerThrottler:      args.PeerThrottler,
 		outgoingCLB:        args.OutgoingCLB,
 		marshaller:         args.Marshaller,
 		connMonitor:        args.ConnMonitor,
@@ -129,6 +133,9 @@ func checkArgMessagesHandler(args ArgMessagesHandler) error {
 	}
 	if check.IfNil(args.PeersRatingHandler) {
 		return p2p.ErrNilPeersRatingHandler
+	}
+	if check.IfNil(args.PeerThrottler) {
+		return p2p.ErrNilDirectMsgThrottlerHandler
 	}
 	if check.IfNil(args.SyncTimer) {
 		return p2p.ErrNilSyncTimer
@@ -316,7 +323,6 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 	topicProcs := handler.processors[topic]
 	if topicProcs == nil {
 		topicProcs = newTopicProcessors()
-		handler.processors[topic] = topicProcs
 
 		err := handler.pubSub.RegisterTopicValidator(topic, handler.pubsubCallback(topicProcs, topic))
 		if err != nil {
@@ -327,6 +333,8 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 		if err != nil {
 			return err
 		}
+
+		handler.processors[topic] = topicProcs
 		handler.equivalentMessages[topic] = cache
 	}
 
@@ -338,21 +346,26 @@ func (handler *messagesHandler) RegisterMessageProcessor(topic string, identifie
 	return nil
 }
 
-func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic string) pubsub.ValidatorEx {
+	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) pubsub.ValidationResult {
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := handler.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
 			handler.log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic)
-			return false
+			return pubsub.ValidationReject
 		}
 
 		identifiers, msgProcessors := topicProcs.GetList()
-		messageOk := true
+		validationResult := pubsub.ValidationIgnore
 		var msgId []byte
 		for index, msgProc := range msgProcessors {
-			msgId, err = msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
+			processorMsgID, processErr := msgProc.ProcessReceivedMessage(msg, fromConnectedPeer, handler)
+			err = processErr
 			if err != nil {
+				if errors.Is(err, p2p.ErrMessageShouldBeIgnored) {
+					continue
+				}
+
 				handler.log.Trace("p2p validator",
 					"network", handler.networkType,
 					"error", err.Error(),
@@ -362,36 +375,45 @@ func (handler *messagesHandler) pubsubCallback(topicProcs TopicProcessor, topic 
 					"seq no", p2p.MessageOriginatorSeq(msg),
 					"topic identifier", identifiers[index],
 				)
-				messageOk = false
+				validationResult = pubsub.ValidationReject
+				continue
 			}
+
+			if validationResult != pubsub.ValidationReject {
+				validationResult = pubsub.ValidationAccept
+			}
+			msgId = processorMsgID
 		}
 
-		handler.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
+		handler.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), validationResult == pubsub.ValidationReject)
 
-		if messageOk {
-			messageOk = handler.isEquivalentMessageFirstBroadcast(msgId, topic)
+		if validationResult == pubsub.ValidationAccept && !handler.isEquivalentMessageFirstBroadcast(msgId, topic) {
+			return pubsub.ValidationIgnore
 		}
 
-		return messageOk
+		return validationResult
 	}
 }
 
 func (handler *messagesHandler) isEquivalentMessageFirstBroadcast(messageId []byte, topic string) bool {
-	if len(messageId) > 0 {
-		_, ok := handler.equivalentMessages[topic]
-		if !ok {
-			return true
-		}
-
-		_, ok = handler.equivalentMessages[topic].Get(messageId)
-		if ok {
-			return false
-		}
-
-		handler.equivalentMessages[topic].Put(messageId, struct{}{}, 0)
+	if len(messageId) == 0 {
+		return true
 	}
 
-	return true
+	handler.mutTopics.RLock()
+	cache, ok := handler.equivalentMessages[topic]
+	handler.mutTopics.RUnlock()
+
+	if !ok {
+		return true
+	}
+
+	has, _ := cache.HasOrAdd(messageId, struct{}{}, 0)
+	if has {
+		// force LRU cache update
+		_, _ = cache.Get(messageId)
+	}
+	return !has
 }
 
 func (handler *messagesHandler) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
@@ -596,7 +618,16 @@ func (handler *messagesHandler) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 	identifiers, msgProcessors := topicProcs.GetList()
 
+	shouldThrottle := fromConnectedPeer != handler.peerID
+	if shouldThrottle && !handler.peerThrottler.TryStartProcessing(fromConnectedPeer) {
+		return nil, p2p.ErrTooManyGoroutines
+	}
+
 	go func(msg p2p.MessageP2P) {
+		if shouldThrottle {
+			defer handler.peerThrottler.EndProcessing(fromConnectedPeer)
+		}
+
 		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
 		messageOk := true

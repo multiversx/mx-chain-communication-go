@@ -226,7 +226,9 @@ func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error 
 
 	err = stream.SetWriteDeadline(time.Now().Add(directSendWriteTimeout))
 	if err != nil {
-		ds.log.Trace("directSender.Send: SetWriteDeadline failed", "peer", peer.Pretty(), "err", err)
+		_ = stream.Reset()
+		_ = stream.Close()
+		return err
 	}
 	defer func() { _ = stream.SetWriteDeadline(time.Time{}) }() // clear deadline before releasing
 
@@ -291,7 +293,10 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	var err error
 
 	if foundStream == nil {
-		foundStream, err = ds.hostP2P.NewStream(ds.ctx, conn.RemotePeer(), DirectSendID)
+		ctx, cancel := context.WithTimeout(ds.ctx, directSendWriteTimeout)
+		defer cancel()
+
+		foundStream, err = ds.hostP2P.NewStream(ctx, conn.RemotePeer(), DirectSendID)
 		if err != nil {
 			return nil, err
 		}

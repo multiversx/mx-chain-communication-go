@@ -138,7 +138,8 @@ func (ph *peersHolder) Get() map[uint32][]core.PeerID {
 
 	ph.mut.RLock()
 	for shardId, peerIds := range ph.peerIDsPerShard {
-		peerIDsPerShardCopy[shardId] = peerIds
+		peerIDsPerShardCopy[shardId] = make([]core.PeerID, len(peerIds))
+		copy(peerIDsPerShardCopy[shardId], peerIds)
 	}
 	ph.mut.RUnlock()
 
@@ -165,6 +166,7 @@ func (ph *peersHolder) Remove(peerID core.PeerID) {
 	}
 
 	shard, index, _ := ph.getShardAndIndexForPeer(peerID)
+	ph.updateHigherIndexesIfNeeded(shard, index)
 	ph.removePeerFromMapAtIndex(shard, index)
 
 	connAddress := pidData.connectionAddress
@@ -218,6 +220,18 @@ func (ph *peersHolder) getKnownConnection(connectionAddressStr string) string {
 	}
 
 	return ""
+}
+
+// this function must be called under mutex protection
+func (ph *peersHolder) updateHigherIndexesIfNeeded(shard uint32, index int) {
+	for _, pid := range ph.peerIDsPerShard[shard] {
+		crtPidData, ok := ph.peerIDs[pid]
+		if !ok || crtPidData.index <= index {
+			continue
+		}
+
+		ph.peerIDs[pid].index--
+	}
 }
 
 // this function must be called under mutex protection

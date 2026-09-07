@@ -18,6 +18,7 @@ type streamMock struct {
 	canRead      bool
 	conn         network.Conn
 	id           string
+	ResetWithErrorCalled func(errCode network.StreamErrorCode) error
 }
 
 // NewStreamMock -
@@ -28,6 +29,14 @@ func NewStreamMock() *streamMock {
 		streamClosed: false,
 		canRead:      false,
 	}
+}
+
+// ResetWithError implements network.Stream.
+func (sm *streamMock) ResetWithError(errCode network.StreamErrorCode) error {
+	if sm.ResetWithErrorCalled != nil {
+		return sm.ResetWithErrorCalled(errCode)
+	}
+	return nil
 }
 
 // Read -

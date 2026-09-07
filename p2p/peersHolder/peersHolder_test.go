@@ -197,6 +197,54 @@ func TestPeersHolder_Contains(t *testing.T) {
 	ph.Remove(unknownPid) // for code coverage
 }
 
+func TestPeersHolder_Remove_UpdatesIndexesOfRemainingPeers(t *testing.T) {
+	t.Parallel()
+
+	preferredPeers := []string{"10.100.100.100", "10.100.100.101", "10.100.100.102"}
+	ph, _ := NewPeersHolder(preferredPeers)
+	assert.False(t, check.IfNil(ph))
+
+	shardID := uint32(1)
+	pid1 := core.PeerID("pid1")
+	pid2 := core.PeerID("pid2")
+	pid3 := core.PeerID("pid3")
+
+	conn1 := "/ip4/10.100.100.100/tcp/38191/p2p/some-random-pid" // preferredPeers[0]
+	conn2 := "/ip4/10.100.100.101/tcp/38191/p2p/some-random-pid" // preferredPeers[1]
+	conn3 := "/ip4/10.100.100.102/tcp/38191/p2p/some-random-pid" // preferredPeers[2]
+
+	ph.PutConnectionAddress(pid1, conn1)
+	ph.PutShardID(pid1, shardID)
+	ph.PutConnectionAddress(pid2, conn2)
+	ph.PutShardID(pid2, shardID)
+	ph.PutConnectionAddress(pid3, conn3)
+	ph.PutShardID(pid3, shardID)
+
+	assert.Equal(t, 0, ph.peerIDs[pid1].index)
+	assert.Equal(t, 1, ph.peerIDs[pid2].index)
+	assert.Equal(t, 2, ph.peerIDs[pid3].index)
+
+	ph.Remove(pid2) // remove the middle peer
+
+	assert.Equal(t, 0, ph.peerIDs[pid1].index)
+	assert.Equal(t, 1, ph.peerIDs[pid3].index)
+
+	peers := ph.Get()
+	assert.Equal(t, 2, len(peers[shardID]))
+	assert.Equal(t, pid1, peers[shardID][0])
+	assert.Equal(t, pid3, peers[shardID][1])
+
+	// removing the remaining peers afterwards should still work and yield the correct set
+	ph.Remove(pid3)
+	peers = ph.Get()
+	assert.Equal(t, 1, len(peers[shardID]))
+	assert.Equal(t, pid1, peers[shardID][0])
+
+	ph.Remove(pid1)
+	peers = ph.Get()
+	assert.Equal(t, 0, len(peers[shardID]))
+}
+
 func TestPeersHolder_Clear(t *testing.T) {
 	t.Parallel()
 

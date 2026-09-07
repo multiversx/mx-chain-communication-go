@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
@@ -26,6 +28,20 @@ func (ckdd *continuousKadDhtDiscoverer) StopDHT() error {
 	ckdd.mutKadDht.Unlock()
 
 	return err
+}
+
+// KadDHT -
+func (ckdd *continuousKadDhtDiscoverer) KadDHT() *dht.IpfsDHT {
+	ckdd.mutKadDht.RLock()
+	defer ckdd.mutKadDht.RUnlock()
+
+	return ckdd.kadDHT
+}
+
+// KadDHT -
+func (okdd *optimizedKadDhtDiscoverer) KadDHT() *dht.IpfsDHT {
+	kadDHT, _ := okdd.kadDHT.(*dht.IpfsDHT)
+	return kadDHT
 }
 
 // NewOptimizedKadDhtDiscovererWithInitFunc -

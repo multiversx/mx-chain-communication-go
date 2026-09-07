@@ -524,11 +524,8 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 					return []network.Conn{
 						&mock.ConnStub{
 							RemoteMultiaddrCalled: func() multiaddr.Multiaddr {
-								return &mock.MultiaddrStub{
-									StringCalled: func() string {
-										return "multiaddr"
-									},
-								}
+								addr, _ := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/1234")
+								return addr
 							},
 						},
 					}
@@ -622,7 +619,7 @@ func TestConnectionsHandler_GetConnectedPeersInfo(t *testing.T) {
 }
 
 func getExpectedConn(pid peer.ID) string {
-	return "multiaddr/p2p/" + pid.String()
+	return "/ip4/127.0.0.1/tcp/1234/p2p/" + pid.String()
 }
 
 func TestConnectionsHandler_IsConnectedToTheNetwork(t *testing.T) {

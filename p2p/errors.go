@@ -25,6 +25,9 @@ var ErrChannelCanNotBeReAdded = errors.New("channel can not be re added")
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
+// ErrMessageShouldBeIgnored signals that a valid message should not be processed or propagated
+var ErrMessageShouldBeIgnored = errors.New("message should be ignored")
+
 // ErrAlreadySeenMessage signals that the message has already been seen
 var ErrAlreadySeenMessage = errors.New("already seen this message")
 
@@ -194,6 +197,9 @@ var ErrNilConnectionsHandler = errors.New("nil connections handler")
 
 // ErrNilLogger signals that a nil logger has been provided
 var ErrNilLogger = errors.New("nil logger")
+
+// ErrNilDirectMsgThrottlerHandler signals that a nil direct message throttler handler has been provided
+var ErrNilDirectMsgThrottlerHandler = errors.New("nil direct message throttler handler")
 
 // ErrInvalidTCPAddress signals that an invalid TCP address was used
 var ErrInvalidTCPAddress = errors.New("invalid TCP address")
