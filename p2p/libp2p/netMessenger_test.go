@@ -2104,6 +2104,8 @@ func TestParseTransportOptions(t *testing.T) {
 		})
 	})
 	t.Run("QUIC address", func(t *testing.T) {
+		t.Skip("tmp disabled")
+
 		t.Parallel()
 
 		t.Run("malformed QUIC address, no int markup, should error", func(t *testing.T) {

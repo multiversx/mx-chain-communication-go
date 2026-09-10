@@ -10,7 +10,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
@@ -244,15 +243,15 @@ func parseTransportOptions(configs config.TransportConfig, port int) ([]libp2p.O
 		}
 	}
 
-	quicAddress := configs.QUICAddress
-	if len(quicAddress) > 0 {
-		if !strictCheckStringForIntMarkup(quicAddress) {
-			return nil, nil, p2p.ErrInvalidQUICAddress
-		}
-
-		addresses = append(addresses, fmt.Sprintf(quicAddress, port))
-		options = append(options, libp2p.Transport(quic.NewTransport))
-	}
+	// quicAddress := configs.QUICAddress
+	// if len(quicAddress) > 0 {
+	// 	if !strictCheckStringForIntMarkup(quicAddress) {
+	// 		return nil, nil, p2p.ErrInvalidQUICAddress
+	// 	}
+	//
+	// 	addresses = append(addresses, fmt.Sprintf(quicAddress, port))
+	// 	options = append(options, libp2p.Transport(quic.NewTransport))
+	// }
 
 	webSocketAddress := configs.WebSocketAddress
 	if len(webSocketAddress) > 0 {
