@@ -325,7 +325,8 @@ func TestMessagesHandler_BroadcastOnChannelSyncRejectsNilContext(t *testing.T) {
 	t.Parallel()
 
 	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
-	err := mh.BroadcastOnChannelSync(nil, providedChannel, providedTopic, providedData)
+	var ctx context.Context
+	err := mh.BroadcastOnChannelSync(ctx, providedChannel, providedTopic, providedData)
 	assert.Equal(t, p2p.ErrNilContext, err)
 }
 
