@@ -38,10 +38,12 @@ type p2pSigner interface {
 
 // SendableData represents the struct used in data throttler implementation
 type SendableData struct {
-	Buff  []byte
-	Topic string
-	Sk    crypto.PrivKey
-	ID    peer.ID
+	Buff       []byte
+	Topic      string
+	Sk         crypto.PrivKey
+	ID         peer.ID
+	Context    context.Context
+	Completion chan error
 }
 
 // ChannelLoadBalancer defines what a load balancer that uses chans should do

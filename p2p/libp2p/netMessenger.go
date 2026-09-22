@@ -61,6 +61,7 @@ const (
 )
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
+var _ p2p.SynchronousBroadcaster = (*networkMessenger)(nil)
 var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
 func init() {
@@ -103,6 +104,17 @@ type ArgsNetworkMessenger struct {
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	return newNetworkMessenger(args, withMessageSigning)
+}
+
+// BroadcastOnChannelSync publishes through the existing ordered channel and
+// returns the local pubsub publication result to the caller.
+func (netMes *networkMessenger) BroadcastOnChannelSync(ctx context.Context, channel string, topic string, buff []byte) error {
+	handler, ok := netMes.MessageHandler.(*messagesHandler)
+	if !ok {
+		return p2p.ErrWrongTypeAssertion
+	}
+
+	return handler.broadcastOnChannelSync(ctx, channel, topic, buff)
 }
 
 func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig) (*networkMessenger, error) {

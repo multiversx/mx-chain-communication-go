@@ -17,6 +17,12 @@ type BroadcastChecker interface {
 	IsInterfaceNil() bool
 }
 
+// SynchronousBroadcaster waits for the local pubsub Publish call and reports
+// its result. Serial calls on the same channel are published in call order.
+type SynchronousBroadcaster interface {
+	BroadcastOnChannelSync(ctx context.Context, channel string, topic string, buff []byte) error
+}
+
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
