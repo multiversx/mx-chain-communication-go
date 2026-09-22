@@ -254,10 +254,12 @@ func TestNewMessagesHandler(t *testing.T) {
 			keyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 			privateKey, _ := keyGen.GeneratePair()
 			p2pPrivKey, _ := p2pCrypto.ConvertPrivateKeyToLibp2pPrivateKey(privateKey)
+			completion := make(chan error, 1)
 			providedSendableData := &libp2p.SendableData{
-				Buff:  providedData,
-				Topic: providedTopic,
-				Sk:    p2pPrivKey,
+				Buff:       providedData,
+				Topic:      providedTopic,
+				Sk:         p2pPrivKey,
+				Completion: completion,
 			}
 			providedMarshalledData := []byte("provided marshalled data")
 			args := createMockArgMessagesHandler()
@@ -283,11 +285,81 @@ func TestNewMessagesHandler(t *testing.T) {
 			}
 			mh := libp2p.NewMessagesHandlerWithTopics(args, topics, true)
 			assert.NotNil(t, mh)
-			time.Sleep(time.Millisecond * 5)
+			select {
+			case errPublish := <-completion:
+				assert.Equal(t, expectedError, errPublish)
+			case <-time.After(time.Second):
+				assert.Fail(t, "publication completion was not reported")
+			}
 			assert.True(t, wasPublishCalled.IsSet())
 			assert.Nil(t, mh.Close())
 		})
 	})
+}
+
+func TestMessagesHandler_BroadcastOnChannelSyncReturnsCompletionError(t *testing.T) {
+	t.Parallel()
+
+	channel := make(chan *libp2p.SendableData)
+	args := createMockArgMessagesHandler()
+	args.Throttler = &mock.ThrottlerStub{
+		CanProcessCalled: func() bool { return true },
+	}
+	args.OutgoingCLB = &mock.ChannelLoadBalancerStub{
+		GetChannelOrDefaultCalled: func(_ string) chan *libp2p.SendableData {
+			return channel
+		},
+	}
+	mh := libp2p.NewMessagesHandlerWithNoRoutine(args)
+
+	go func() {
+		sendable := <-channel
+		sendable.Completion <- expectedError
+	}()
+
+	err := mh.BroadcastOnChannelSync(context.Background(), providedChannel, providedTopic, providedData)
+	assert.Equal(t, expectedError, err)
+}
+
+func TestMessagesHandler_BroadcastOnChannelSyncRejectsNilContext(t *testing.T) {
+	t.Parallel()
+
+	mh := libp2p.NewMessagesHandlerWithNoRoutine(createMockArgMessagesHandler())
+	var ctx context.Context
+	err := mh.BroadcastOnChannelSync(ctx, providedChannel, providedTopic, providedData)
+	assert.Equal(t, p2p.ErrNilContext, err)
+}
+
+func TestMessagesHandler_BroadcastOnChannelSyncPropagatesPublishError(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgMessagesHandler()
+	loadBalancer, err := libp2p.NewOutgoingChannelLoadBalancer(args.Logger)
+	require.NoError(t, err)
+	require.NoError(t, loadBalancer.AddChannel(providedChannel))
+	args.OutgoingCLB = loadBalancer
+	args.Throttler = &mock.ThrottlerStub{
+		CanProcessCalled: func() bool { return true },
+	}
+	args.Marshaller = &testscommon.MarshallerStub{
+		MarshalCalled: func(_ interface{}) ([]byte, error) {
+			return []byte("marshalled"), nil
+		},
+	}
+	topics := map[string]libp2p.PubSubTopic{
+		providedTopic: &mock.PubSubTopicStub{
+			PublishCalled: func(_ context.Context, _ []byte, _ ...pubsub.PubOpt) error {
+				return expectedError
+			},
+		},
+	}
+	mh := libp2p.NewMessagesHandlerWithTopics(args, topics, true)
+	t.Cleanup(func() { require.NoError(t, mh.Close()) })
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err = mh.BroadcastOnChannelSync(ctx, providedChannel, providedTopic, providedData)
+	assert.Equal(t, expectedError, err)
 }
 
 func TestMessagesHandler_broadcasts(t *testing.T) {

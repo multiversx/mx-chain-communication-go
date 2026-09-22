@@ -165,22 +165,36 @@ func (handler *messagesHandler) processChannelLoadBalancer(outgoingCLB ChannelLo
 		topic := handler.topics[sendableData.Topic]
 		handler.mutTopics.RUnlock()
 		if topic == nil {
+			errTopic := fmt.Errorf("%w: %s", p2p.ErrNilTopic, sendableData.Topic)
 			handler.log.Warn("writing on a topic that the node did not register on - message dropped",
 				"network", handler.networkType,
 				"topic", sendableData.Topic,
 			)
+			completeSend(sendableData, errTopic)
 
 			continue
 		}
 
-		packedSendableDataBuff := handler.createMessageBytes(sendableData.Buff)
-		if len(packedSendableDataBuff) == 0 {
+		packedSendableDataBuff, errMarshal := handler.createMessageBytesWithError(sendableData.Buff)
+		if errMarshal != nil {
+			handler.log.Warn("error sending data", "error", errMarshal)
+			completeSend(sendableData, errMarshal)
 			continue
 		}
 
 		errPublish := handler.publish(topic, sendableData, packedSendableDataBuff)
+		completeSend(sendableData, errPublish)
 		if errPublish != nil {
 			handler.log.Trace("error sending data", "network", handler.networkType, "error", errPublish)
+		}
+	}
+}
+
+func completeSend(sendableData *SendableData, err error) {
+	if sendableData.Completion != nil {
+		select {
+		case sendableData.Completion <- err:
+		default:
 		}
 	}
 }
@@ -191,8 +205,16 @@ func (handler *messagesHandler) publish(topic PubSubTopic, data *SendableData, p
 	if data.Sk != nil {
 		options = append(options, pubsub.WithSecretKeyAndPeerId(data.Sk, data.ID))
 	}
+	if data.Completion != nil {
+		options = append(options, pubsub.WithReadiness(pubsub.MinTopicSize(1)))
+	}
 
-	return topic.Publish(handler.ctx, packedSendableDataBuff, options...)
+	publishContext := handler.ctx
+	if data.Context != nil {
+		publishContext = data.Context
+	}
+
+	return topic.Publish(publishContext, packedSendableDataBuff, options...)
 }
 
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel
@@ -232,6 +254,53 @@ func (handler *messagesHandler) broadcastOnChannelBlocking(channel string, topic
 	handler.outgoingCLB.GetChannelOrDefault(channel) <- sendable
 	handler.throttler.EndProcessing()
 	return nil
+}
+
+// broadcastOnChannelSync queues one broadcast on the named channel and waits
+// until the local pubsub Publish call has completed. Calls made serially on the
+// same channel are therefore published in the same order.
+func (handler *messagesHandler) broadcastOnChannelSync(ctx context.Context, channel string, topic string, buff []byte) error {
+	if ctx == nil {
+		return p2p.ErrNilContext
+	}
+
+	err := handler.checkSendableData(buff)
+	if err != nil {
+		return err
+	}
+
+	if !handler.throttler.CanProcess() {
+		return p2p.ErrTooManyGoroutines
+	}
+
+	handler.throttler.StartProcessing()
+	defer handler.throttler.EndProcessing()
+
+	completion := make(chan error, 1)
+	sendable := &SendableData{
+		Buff:       buff,
+		Topic:      topic,
+		ID:         peer.ID(handler.peerID),
+		Context:    ctx,
+		Completion: completion,
+	}
+
+	select {
+	case handler.outgoingCLB.GetChannelOrDefault(channel) <- sendable:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-handler.ctx.Done():
+		return handler.ctx.Err()
+	}
+
+	select {
+	case err = <-completion:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-handler.ctx.Done():
+		return handler.ctx.Err()
+	}
 }
 
 // BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
@@ -668,6 +737,16 @@ func (handler *messagesHandler) increaseRatingIfNeeded(msg p2p.MessageP2P, fromC
 }
 
 func (handler *messagesHandler) createMessageBytes(buff []byte) []byte {
+	buffToSend, errMarshal := handler.createMessageBytesWithError(buff)
+	if errMarshal != nil {
+		handler.log.Warn("error sending data", "error", errMarshal)
+		return nil
+	}
+
+	return buffToSend
+}
+
+func (handler *messagesHandler) createMessageBytesWithError(buff []byte) ([]byte, error) {
 	message := &data.TopicMessage{
 		Version:   currentTopicMessageVersion,
 		Payload:   buff,
@@ -676,11 +755,10 @@ func (handler *messagesHandler) createMessageBytes(buff []byte) []byte {
 
 	buffToSend, errMarshal := handler.marshaller.Marshal(message)
 	if errMarshal != nil {
-		handler.log.Warn("error sending data", "error", errMarshal)
-		return nil
+		return nil, errMarshal
 	}
 
-	return buffToSend
+	return buffToSend, nil
 }
 
 // CreateTopic opens a new topic using pubsub infrastructure

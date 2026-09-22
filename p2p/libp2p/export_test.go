@@ -126,6 +126,11 @@ func (handler *messagesHandler) BroadcastOnChannelBlocking(channel string, topic
 	return handler.broadcastOnChannelBlocking(channel, topic, buff)
 }
 
+// BroadcastOnChannelSync -
+func (handler *messagesHandler) BroadcastOnChannelSync(ctx context.Context, channel string, topic string, buff []byte) error {
+	return handler.broadcastOnChannelSync(ctx, channel, topic, buff)
+}
+
 // BroadcastOnChannelBlockingUsingPrivateKey -
 func (handler *messagesHandler) BroadcastOnChannelBlockingUsingPrivateKey(
 	channel string,
